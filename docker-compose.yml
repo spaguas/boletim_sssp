@@ -1,0 +1,14 @@
+services:
+  boletim-sssp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    ports:
+      - 8501:8501
+    #command: streamlit run app.py --server.port 8501
+    volumes:
+      - ./results:/usr/src/app_boletim_diario/results
+      - ./data:/usr/src/app_boletim_diario/data
+      - ./imagens:/usr/src/app_boletim_diario/imagens
+
