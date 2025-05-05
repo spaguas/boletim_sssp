@@ -29,7 +29,6 @@ import time as tm
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support import expected_conditions as EC
 import urllib.parse
 import base64
 import asyncio
