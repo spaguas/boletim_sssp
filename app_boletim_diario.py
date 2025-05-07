@@ -759,21 +759,16 @@ async def slide1_seca():
             <div style="position: fixed; z-index:999999; bottom: 10px; left: 50%; transform: translateX(-50%); background: white; padding: 2px; border-radius: 5px; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
                 <div style="display: flex; align-items: center; margin-right: 5px;">
                     <div style="width: 50px; height: 15px; background-color: #a2f5e9; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
-                        <span> > 5 </span>
+                        <span> > 10 </span>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; margin-right: 5px;">
-                    <div style="width: 50px; height: 15px; background-color: #90f29c; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
-                        <span> 5 >< 10 </span>
-                    </div>   
-                </div>
-                <div style="display: flex; align-items: center; margin-right: 5px;">
-                    <div style="width: 50px; height: 15px; background-color: #5ab53c; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
+                    <div style="width: 50px; height: 15px; background-color: #8ff29b; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
                         <span> 10 >< 30 </span>
                     </div>   
                 </div>
                 <div style="display: flex; align-items: center; margin-right: 5px;">
-                    <div style="width: 50px; height: 15px; background-color: #54f267; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
+                    <div style="width: 50px; height: 15px; background-color: #5ab53c; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
                         <span> 30 >< 50 </span>
                     </div>
                 </div>
