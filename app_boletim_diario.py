@@ -3385,7 +3385,7 @@ async def slide5_seca():
         with col2:
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Dados Fluviometria - Seca</h1>
+                <h1  style="font-size: 16px;">Dados Fluviometria - Estiagem</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -3615,7 +3615,7 @@ async def slide6_seca():
         with col2:
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Sistema Alto Tietê - Seca</h1>
+                <h1  style="font-size: 16px;">Sistema Alto Tietê - Estiagem</h1>
             </div>
             """,
             unsafe_allow_html=True)
