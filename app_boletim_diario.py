@@ -693,12 +693,12 @@ async def slide1_seca():
         grafico_dsc_ugrhi = tabela_dcsc_cities.groupby('ugrhi_id', as_index=False).agg(
             value=('ugrhi_name', 'first'),
             cs_chuva_5=('dcsc_chuva', lambda x: x[x < 5].count()),
-            cs_chuva_10=('dcsc_chuva', lambda x: x[x < 10].count()),
-            cs_chuva_30=('dcsc_chuva', lambda x: x[x < 30].count()),
-            cs_chuva_50=('dcsc_chuva', lambda x: x[x < 50].count()),
-            cs_chuva_80=('dcsc_chuva', lambda x: x[x < 80].count()),
-            cs_chuva_120=('dcsc_chuva', lambda x: x[x < 120].count()),
-            cs_chuva_121=('dcsc_chuva', lambda x: x[x >= 120].count()),
+            cs_chuva_10=('dcsc_chuva', lambda x: x[(x >= 5) & (x < 10)].count()),
+            cs_chuva_30=('dcsc_chuva', lambda x: x[(x >= 10) & (x < 30)].count()),
+            cs_chuva_50=('dcsc_chuva', lambda x: x[(x >= 30) & (x < 50)].count()),
+            cs_chuva_80=('dcsc_chuva', lambda x: x[(x >= 50) & (x < 80)].count()),
+            cs_chuva_120=('dcsc_chuva', lambda x: x[(x >= 80) & (x < 120)].count()),
+            cs_chuva_121=('dcsc_chuva', lambda x: x[x >= 120].count())
         )
 
         tabela_df['cs_chuva'] = tabela_df['cs_chuva'].astype(float)        
@@ -1105,8 +1105,10 @@ async def slide1_seca():
             'cs_chuva_120': '<120',
             'cs_chuva_121': '>=120'
         })
+        
         # Calcular total por UGRHI e % de cada status
         # df_long['total'] = df_long.groupby('value')['qtd'].transform('sum')
+
         df_long['pct'] = df_long['qtd'] / df_long['qtd_city'] * 100
         df_long['pct'] = df_long['pct'].round(0)
         df_long['text_label'] = df_long['pct'].apply(lambda x: f'{x:.0f}' if x >= 10 else '')
@@ -1122,7 +1124,7 @@ async def slide1_seca():
             color_discrete_map={
                 '<5': '#a2f5e9',
                 '<10': '#8ff29b',
-                '<30': '#54f267',
+                '<30': '#5ab53c',
                 '<50': '#d1fb47',
                 '<80': '#faa247',
                 '<120': '#ea311f',
@@ -2793,8 +2795,6 @@ async def slide6():
         st.write(" ") 
         st.write(" ")
         st.write(" ")
-        st.write(" ")
-        st.write(" ") 
 
         colun_grafico1, colun_grafico2, colun_grafico3 = st.columns([1.2, 1.5, 0.15])
         with colun_grafico1:
@@ -3002,9 +3002,6 @@ async def slide6():
         st.write(" ")
         st.write(" ") 
         st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ") 
         
 
 async def slide7():
@@ -3723,7 +3720,7 @@ async def slide6_seca():
             if 'user_input_slide6_seca' not in st.session_state:
                 st.session_state.user_input_slide6_seca = "Clique para editar"
             
-            user_input = st.text_area("Análise do Sistema Produtor - Alto Tietê", value=st.session_state.user_input_slide6_seca, height=100, key="user_input_slide6_seca")
+            user_input = st.text_area("Análise do Sistema Produtor - Alto Tietê", height=100, key="user_input_slide6_seca")
         
         st.write(" ")
         st.write(" ")
@@ -3739,13 +3736,7 @@ async def slide6_seca():
         st.write(" ")
         st.write(" ")
         st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
-        st.write(" ")
+
 
 
         
