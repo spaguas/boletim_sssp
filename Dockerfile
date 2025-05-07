@@ -35,6 +35,6 @@ RUN conda env create -f environment.yml
 
 SHELL [ "conda","run","-n","boletim_env","/bin/bash","-c" ]
 
-EXPOSE 8501
+EXPOSE 8502
 
-CMD ["conda", "run", "-n", "boletim_env", "streamlit", "run", "app_boletim_diario.py", "--server.port=8501", "--server.enableCORS=false"]
+CMD ["conda", "run", "-n", "boletim_env", "streamlit", "run", "app_boletim_diario.py", "--server.port=8502", "--server.enableCORS=false"]
