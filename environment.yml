@@ -15,6 +15,7 @@ dependencies:
   - pip:
     - rasterstats
     - webdriver-manager
+    - selenium
   - geopandas
   - plotly
   - rasterstats
@@ -22,5 +23,5 @@ dependencies:
   - matplotlib
   - schedule
   - time
-  - Selenium
+  
   

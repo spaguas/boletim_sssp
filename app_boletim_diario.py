@@ -18,6 +18,7 @@ from branca.element import Element
 from streamlit.components.v1 import html
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from PIL import Image
 import io
@@ -37,6 +38,9 @@ from matplotlib.colors import Normalize, rgb2hex
 import branca.colormap as cmb
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+import tempfile
+import shutil
+import uuid
 
 st.set_page_config(layout="wide")
 
@@ -219,26 +223,6 @@ def definir_cor(valor):
     else:
         return "#f74f78"
 
-def capturar_tela(url, largura=1500, altura=4000):
-    # Configurar o WebDriver do Chrome
-    options = webdriver.ChromeOptions()
-    options.add_argument("--headless")  # Executar em modo headless (sem interface gráfica)
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size={},{}".format(largura, altura))
-    
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    driver.get(url)
-
-    tm.sleep(2)
-    
-    screenshot = driver.get_screenshot_as_png()
-    
-    driver.quit()
-    
-    imagem = Image.open(io.BytesIO(screenshot))
-    
-    return imagem
-
 
 def classify_state(row):
     value = row['value']
@@ -363,6 +347,143 @@ def colorir_status(valor):
         return 'background-color: red; color: white;'
     else:
         return ''
+
+def iniciar_chrome_com_diretorio_unico():
+    # Cria diretório temporário exclusivo
+    unique_user_data_dir = tempfile.mkdtemp(prefix="selenium_profile_")
+
+    # Configura opções do Chrome
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless=new")  # Usar 'new' evita erros com a versão atual do Chrome
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1300,2000")
+    options.add_argument("--disable-web-security")
+    options.add_argument(f"--user-data-dir={unique_user_data_dir}")
+
+    # Inicia o ChromeDriver
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(options=options, service=service)
+
+    return driver, unique_user_data_dir
+
+
+
+def capturar_ipmet():
+    driver, dir_path = iniciar_chrome_com_diretorio_unico()
+    try:
+        usuario = os.environ.get('IPMET_USERNAME')
+        senha = os.environ.get('IPMET_PASSWORD')
+        url = f"https://www.ipmetradar.com.br/restrito/2login.php?username={usuario}&senha={senha}&tipo_acesso=ip"
+
+        driver.get(url)
+
+        wait = WebDriverWait(driver, 15)  # Espera até 15 segundos
+        iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+
+        driver.switch_to.frame(iframe)
+        driver.implicitly_wait(5)
+
+        select_element = driver.find_element(By.CSS_SELECTOR, "#layer-select")
+        select_element.click()
+        tm.sleep(3)
+        select = Select(select_element)
+        select.select_by_value("acum24h")
+        tm.sleep(14)
+        select_element.click()
+
+        driver.save_screenshot("screenshot_ipmet.png")
+
+        img = Image.open("screenshot_ipmet.png")
+        imagem_recortada = img.crop((120, 362, 1100, 855))
+
+        return imagem_recortada, url
+
+    finally:
+        driver.quit()
+        shutil.rmtree(dir_path, ignore_errors=True)
+
+def capturar_saisp():
+    driver, dir_path = iniciar_chrome_com_diretorio_unico()
+    try:
+        data_anterior = datetime.today() - timedelta(days=1)
+        data_anterior_str = data_anterior.strftime('%d-%m-%Y').replace('-', '/')
+        data = data_anterior.strftime('%Y%m%d')
+
+        usuario = os.environ.get('SAISP_USERNAME')
+        senha = os.environ.get('SAISP_PASSWORD')
+        password_encoded = urllib.parse.quote(senha)
+
+        url = f"https://{usuario}:{password_encoded}@www.saisp.br/geral/processo.jsp?comboFiltroGrupo=&PRODUTO=636&OVLCODE=EPI&dataInicial={data_anterior_str}+07%3A00&WHICHCODE=0&autoUpdate=1&STEP=&DI={data}0700&DF="
+
+        driver.get(url)
+        driver.implicitly_wait(35)
+        driver.save_screenshot("screenshot_saisp.png")
+
+        img = Image.open("screenshot_saisp.png")
+        imagem_recortada = img.crop((500, 51, 972, 533)) #esquerda, cima, direita, baixo
+        imagem_borda = ImageOps.expand(imagem_recortada, border=2, fill='black')
+        return imagem_borda, url
+
+    finally:
+        driver.quit()
+        shutil.rmtree(dir_path, ignore_errors=True)
+
+
+def capturar_ssd():
+    driver, dir_path = iniciar_chrome_com_diretorio_unico()
+    try:
+        data_anterior = datetime.today() - timedelta(days=1)
+        data_anterior_str = data_anterior.strftime('%d-%m-%Y').replace('-', '/')
+        data = data_anterior.strftime('%Y%m%d')
+
+        usuario = os.environ.get('SAISP_USERNAME')
+        senha = os.environ.get('SAISP_PASSWORD')
+        password_encoded = urllib.parse.quote(senha)
+
+        url = f"https://{usuario}:{password_encoded}@www.saisp.br/geral/processo.jsp?comboFiltroGrupo=&PRODUTO=636&OVLCODE=EPI&dataInicial={data_anterior_str}+07%3A00&WHICHCODE=0&autoUpdate=1&STEP=&DI={data}0700&DF="
+
+        driver.get(url)
+        driver.implicitly_wait(35)
+        driver.save_screenshot("screenshot_saisp.png")
+
+        img = Image.open("screenshot_saisp.png")
+        imagem_recortada = img.crop((500, 51, 972, 533)) #esquerda, cima, direita, baixo
+        imagem_borda = ImageOps.expand(imagem_recortada, border=2, fill='black')
+        return imagem_borda, url
+
+    finally:
+        driver.quit()
+        shutil.rmtree(dir_path, ignore_errors=True)
+
+
+def capturar_tela(url):
+
+    driver, dir_path = iniciar_chrome_com_diretorio_unico()
+    try:
+        driver.get(url)
+
+        tm.sleep(2)
+        
+        # Descobrir largura e altura máxima da página com JavaScript
+        largura = driver.execute_script("return document.body.scrollWidth")
+        altura = driver.execute_script("return document.body.scrollHeight")
+
+        # Redimensionar a janela para o tamanho total
+        driver.set_window_size(largura, altura)
+
+        tm.sleep(1)  # Pequena espera para renderizar com o novo tamanho
+
+        screenshot = driver.get_screenshot_as_png()
+        
+    finally:
+        driver.quit()
+        shutil.rmtree(dir_path, ignore_errors=True)
+    
+    imagem = Image.open(io.BytesIO(screenshot))
+    
+    return imagem
 
 # CSS personalizado para fundo branco e estilo dos slides
 st.markdown(
@@ -638,8 +759,13 @@ async def slide1_seca():
             <div style="position: fixed; z-index:999999; bottom: 10px; left: 50%; transform: translateX(-50%); background: white; padding: 2px; border-radius: 5px; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
                 <div style="display: flex; align-items: center; margin-right: 5px;">
                     <div style="width: 50px; height: 15px; background-color: #a2f5e9; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
-                        <span> > 10 </span>
+                        <span> > 5 </span>
                     </div>
+                </div>
+                <div style="display: flex; align-items: center; margin-right: 5px;">
+                    <div style="width: 50px; height: 15px; background-color: #90f29c; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
+                        <span> 5 >< 10 </span>
+                    </div>   
                 </div>
                 <div style="display: flex; align-items: center; margin-right: 5px;">
                     <div style="width: 50px; height: 15px; background-color: #5ab53c; display: flex; align-items: center; justify-content: center; color: #2E2E2E; font-size: 8px; border-radius: 3px;">
@@ -805,7 +931,7 @@ async def slide1_seca():
             if 'user_input_slide1_seca' not in st.session_state:
                 st.session_state.user_input_slide1_seca = "Clique para editar"
             
-            user_input = st.text_area("Relatos 24h", value=st.session_state.user_input_slide1_seca, height=200, key="user_input_slide1_seca")
+            user_input = st.text_area("Relatos 24h", height=200, key="user_input_slide1_seca")
                    
         st.write(" ")
         st.write(" ")
@@ -1397,7 +1523,7 @@ async def slide1():
                     if 'user_input_chuva_slide1' not in st.session_state:
                         st.session_state.user_input_chuva_slide1 = "Clique para editar"
                     
-                    user_input = st.text_area("Relatos 24h", value=st.session_state.user_input_chuva_slide1, height=200, key="user_input_chuva_slide1")
+                    user_input = st.text_area("Relatos 24h", height=200, key="user_input_chuva_slide1")
                     
             
             else:
@@ -1687,46 +1813,10 @@ async def slide3():
             """,
             unsafe_allow_html=True)
 
-        coluna1, coluna2= st.columns([1.2, 0.8])   
-        
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')  # Modo sem interface gráfica
-        options.add_argument("--disable-gpu")
-        options.add_argument("--window-size={},{}".format(1300, 2000)) #largura, altura
-        options.add_argument("--disable-web-security")  # Desabilitar CORS
-        service = Service(ChromeDriverManager().install(), port=62108)
-        driver = webdriver.Chrome(options=options, service=service)
+        coluna1, coluna2= st.columns([1.2, 0.8])  
 
-        usuario = os.environ.get('IPMET_USERNAME')
-        senha = os.environ.get('IPMET_PASSWORD')
-
-        url_ipmet = f"https://www.ipmetradar.com.br/restrito/2login.php?username={usuario}&senha={senha}&tipo_acesso=ip"
-        # Navegar para a URL
-        driver.get(url_ipmet)
-
-        # Esperar o botão carregar e clicar nele
-        driver.implicitly_wait(5)  # Espera até 5 segundos
-        iframe = driver.find_element(By.TAG_NAME, "iframe")
-        driver.switch_to.frame(iframe)
-
-        driver.implicitly_wait(5)
-
-        select_element = driver.find_element(By.CSS_SELECTOR, "#layer-select")
-        select_element.click()
-        tm.sleep(3)
-        select = Select(select_element)
-        select.select_by_value("acum24h")
-
-        # Espera o conteúdo carregar
-        tm.sleep(7)
-        select_element.click()
-        # Tirar a captura de tela
-        driver.save_screenshot("screenshot.png")
-
-        # Exibir a imagem
-        img = Image.open("screenshot.png")
-        imagem_recortada = img.crop((120, 362, 1100, 855)) #esquerda, cima, direita, baixo
-
+        # IPMET
+        img_ipmet, url_ipmet = capturar_ipmet()
         with coluna1:
             st.write("""
             <div style="text-align: center; color: #333333;">
@@ -1734,7 +1824,7 @@ async def slide3():
             </div>
             """,
             unsafe_allow_html=True)
-            st.image(imagem_recortada, caption="", use_container_width=True)
+            st.image(img_ipmet, caption="", use_container_width=True)
 
             st.write(f"""
                     <div style="color: black; line-height: 1;">
@@ -1751,62 +1841,25 @@ async def slide3():
             if user_input != st.session_state.user_input:
                 st.session_state.user_input = user_input
 
-        data_anterior = datetime.today() - timedelta(days=1)
-        data_anterior_str = data_anterior.strftime('%d-%m-%Y').replace('-', '/')
-        data = data_anterior.strftime('%Y%m%d')
 
-        usuario = os.environ.get('SAISP_USERNAME')
-        senha = os.environ.get('SAISP_PASSWORD')
-            
-        password_encoded = urllib.parse.quote(senha)
-        print(f"https://{usuario}:{password_encoded}@www.saisp.br/geral/processo.jsp?comboFiltroGrupo=&PRODUTO=636&OVLCODE=EPI&dataInicial={data_anterior_str}+07%3A00&WHICHCODE=0&autoUpdate=1&STEP=&DI={data}0700&DF=")
-        
-    
-        driver.get(f"https://{usuario}:{password_encoded}@www.saisp.br/geral/processo.jsp?comboFiltroGrupo=&PRODUTO=636&OVLCODE=EPI&dataInicial={data_anterior_str}+07%3A00&WHICHCODE=0&autoUpdate=1&STEP=&DI={data}0700&DF=")
-        
-        driver.implicitly_wait(30)
-        driver.save_screenshot("screenshot_2.png")
-        img_saisp = Image.open("screenshot_2.png")
-
-        imagem_recortada_saisp = img_saisp.crop((492, 51, 972, 530)) #esquerda, cima, direita, baixo
-        largura_borda = 2  # Largura da borda
-        imagem_com_borda = ImageOps.expand(imagem_recortada_saisp, border=largura_borda, fill='black')  # Você pode mudar a cor da borda
-        legenda = Image.open("imagens/Imagem1.jpg")
-
-        st.markdown(
-            """
-            <style>
-                .streamlit-expanderHeader {
-                    border-radius: 0px !important;
-                }
-                img {
-                    border-radius: 0px !important;
-                }
-            </style>
-            """, unsafe_allow_html=True
-        )
-
+        # SAISP
+        img_saisp, url_saisp = capturar_saisp()
         with coluna2:
             st.write("""
             <div style="text-align: center; color: #333333;">
-                <h1  style="font-size: 10px; margin: 0; padding: 0"> Acumulado das 24h (mm) - Radar SP Águas</h1>
+                <h1  style="font-size: 10px; margin: 0; padding: 0">Acumulado das 24h (mm) - Radar SP Águas</h1>
             </div>
             """,
             unsafe_allow_html=True)
-            st.image(imagem_com_borda, caption="", use_container_width=True) 
-            st.image(legenda, caption="", use_container_width=True)
-            url = "http://www.saisp.br"
-
+            st.image(img_saisp, use_container_width=True)
+            st.image("imagens/Imagem1.jpg", use_container_width=True)
             st.write(f"""
                     <div style="color: black; line-height: 1;">
-                        <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Produzido pelo Radar 600S-Selex, Banda S, 850 KW, Doppler, Dupla Polarização. Disponível em: <a href="{url}" target="_blank"> SAISP</a></p>
+                        <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Produzido pelo Radar 600S-Selex, Banda S, 850 KW, Doppler, Dupla Polarização. Disponível em: <a href="{url_saisp}" target="_blank"> SAISP</a></p>
                     </div>
                 """,
             unsafe_allow_html=True)
 
-
-        # Fechar o navegador
-        driver.quit()
         st.write(" ")
         st.write(" ")
         st.write(" ")
@@ -2726,7 +2779,7 @@ async def slide6():
             
             url = 'https://cth.daee.sp.gov.br/ssdsp/'
             imagem = capturar_tela(url)
-            imagem_recortada = imagem.crop((90, 1000, 1450, 1800))
+            imagem_recortada = imagem.crop((90, 945, 1200, 1650)) #esquerda, cima, direita, baixo
 
             st.image(imagem_recortada, caption="", use_container_width=True)
 
@@ -2936,12 +2989,10 @@ async def slide6():
             )
 
 
-        print(legenda)
-
         if 'user_input_slide6' not in st.session_state:
             st.session_state.user_input_slide6 = legenda
         
-        user_input = st.text_area("Análise dos Sistemas Produtores", value=st.session_state.user_input_slide6, height=100, key="user_input_slide6")
+        user_input = st.text_area("Análise dos Sistemas Produtores", height=100, key="user_input_slide6")
         
         st.write(" ")
         st.write(" ") 
@@ -3610,8 +3661,6 @@ async def slide6_seca():
                 "Chuva (mm)"
             ])
 
-            print(tabela)
-
             styled_df = tabela.style\
             .set_table_attributes('style="width:100%; table-layout:fixed"')\
             .set_table_styles([
@@ -3658,7 +3707,7 @@ async def slide6_seca():
                 """,
             unsafe_allow_html=True)
             imagem = capturar_tela(url)
-            imagem_recortada = imagem.crop((130, 1860, 1300, 2500)) #esquerda, cima, direita, baixo
+            imagem_recortada = imagem.crop((30, 1860, 1230, 2500)) #esquerda, cima, direita, baixo
 
 
             st.image(imagem_recortada, caption="", use_container_width=True)
