@@ -37,4 +37,4 @@ SHELL [ "conda","run","-n","boletim_env","/bin/bash","-c" ]
 
 EXPOSE 8502
 
-CMD ["conda", "run", "-n", "boletim_env", "streamlit", "run", "app_boletim_diario.py", "--server.port=8502", "--server.enableCORS=false"]
+CMD ["conda", "run", "-n", "boletim_env", "streamlit", "run", "app_boletim_diario.py", "--server.port=8502", "--server.address=0.0.0.0", "--server.enableCORS=false"]
