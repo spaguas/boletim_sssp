@@ -664,7 +664,7 @@ async def slide1_seca():
                                     SUM(hs.dsc) AS dsc
                                 from hidroapp_statistics hs 
                                 left join cities c on c.id = hs.model_id
-                                where date_hour between '2025-03-01 03:00:00.000' and '2025-09-30 03:00:00.000'and model_type ='City'
+                                where date_hour between '2025-04-01 03:00:00.000' and '2025-09-30 03:00:00.000'and model_type ='City'
                                 group by c.cod_ibge, c."name";"""
         
         tabela_dsc_cities= execute_query(query_dias_sem_chuva)
