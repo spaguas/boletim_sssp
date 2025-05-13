@@ -2896,15 +2896,23 @@ async def slide6():
         st.write(" ")
 
 
-        
-        merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
+        json_sistemas = 'results/sabesp_sistemas.json'
 
-        if data_atual_str in merged_data_sistemas["Data"].values:
-        # Se a data atual já existe na coluna, remove a coluna
-            merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+        if os.path.exists(json_sistemas):
+            merged_data_sistemas = pd.read_json(json_sistemas)
+            if data_atual_str in merged_data_sistemas["Data"].values:
+            # Se a data atual já existe na coluna, remove a coluna
+                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+            else: 
+                get_sabesp_api(data_atual_str, data_ano_anterior_str)
+                merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
+                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+        
         else: 
-            get_sabesp_api(data_atual_str, data_ano_anterior_str)
-            merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
+                get_sabesp_api(data_atual_str, data_ano_anterior_str)
+                merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
+                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+
 
 
         colun_grafico1, colun_grafico2, colun_grafico3 = st.columns([1.2, 1.5, 0.15])
@@ -3815,7 +3823,7 @@ async def slide6_seca():
             data_str = data_inicial.strftime('%Y-%m-%d')
 
 
-            image_path = f'results/imagem_alto_tiete_{data_str}.png'
+            image_path = f'/results/imagem_alto_tiete_{data_str}.png'
 
             if os.path.exists(image_path):
                 print("Entrou if alto tiete")
