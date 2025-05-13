@@ -41,6 +41,7 @@ from dotenv import load_dotenv
 import tempfile
 import shutil
 import uuid
+import json
 
 st.set_page_config(layout="wide")
 
@@ -61,6 +62,8 @@ slide8_secas = st.container()
 
 load_dotenv()
 
+
+
 def conection_postgres():
     host = os.environ.get('DATABASE_HOST')
     port = os.environ.get('DATABASE_PORT')
@@ -79,15 +82,18 @@ def conection_postgres():
 def execute_query(query):
     cur = conection_postgres()
     conn = cur.connection
-
+    print("Conectando com o banco ", datetime.now())
     try:
+        print("Executando a query ", datetime.now())
         cur.execute(query)
         rows = cur.fetchall()
+        print("Executando fetchall ", datetime.now())
         
         colunas = [desc[0] for desc in cur.description]
-        print("Antes do dataframe -", datetime.now())
+        print("Executando colunas ", datetime.now())
         df = pd.DataFrame(rows, columns=colunas)
-        print("Depois do dataframe -", datetime.now())
+
+        print("Executando DataFrame ", datetime.now())
 
         return df
 
@@ -206,11 +212,8 @@ def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arqui
         data_stats[f"{estatistica_desejada}_precipitation"], errors='coerce'
     ).fillna(0)
     
+    data_stats.to_file(f"./results/acumulado_24_mun_{data_hora_final.strftime('%Y-%m-%d')}.shp", driver="ESRI Shapefile")
 
-    data_stats_shp = data_stats.rename(columns={f"{estatistica_desejada}_precipitation": "rain"})
-    data_stats_shp.to_file(f"./results/acumulado_24_mun_{data_hora_final.strftime('%Y-%m-%d')}.shp", driver="ESRI Shapefile")
-
-    return data_stats
 
     
 def definir_cor(valor):
@@ -397,6 +400,11 @@ def capturar_ipmet():
 
         img = Image.open("screenshot_ipmet.png")
         imagem_recortada = img.crop((120, 362, 1100, 855))
+        data_inicial = datetime.today()
+        data_str = data_inicial.strftime('%Y-%m-%d')
+
+        output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
+        imagem_recortada.save(output_path)
 
         return imagem_recortada, url
 
@@ -424,6 +432,12 @@ def capturar_saisp():
         img = Image.open("screenshot_saisp.png")
         imagem_recortada = img.crop((500, 51, 972, 533)) #esquerda, cima, direita, baixo
         imagem_borda = ImageOps.expand(imagem_recortada, border=2, fill='black')
+
+        data_inicial = datetime.today()
+        data_str = data_inicial.strftime('%Y-%m-%d')
+        output_path = os.path.join("results", f"imagem_saisp_{data_str}.png")
+        imagem_borda.save(output_path)
+
         return imagem_borda, url
 
     finally:
@@ -456,6 +470,69 @@ def capturar_ssd():
     finally:
         driver.quit()
         shutil.rmtree(dir_path, ignore_errors=True)
+
+def get_sabesp_api(data_atual_str, data_ano_anterior_str):
+
+    url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
+
+    response = requests.get(url_ano_atual, verify=False)
+
+    if response.status_code == 200:
+
+        data = response.json()
+        print('response ano atual', datetime.now())
+        if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
+            df_sistemas_ano_atual = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
+        else:
+            print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
+    print("Url ano anterior", datetime.now())
+    url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
+    response = requests.get(url_ano_anteior, verify=False)
+
+    if response.status_code == 200:
+
+        data = response.json()
+        print('response ano anterior', datetime.now())
+        if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
+            df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
+            ano_anterior = df_sistemas_ano_anterior[["SistemaId", "VolumePorcentagem"]]
+            ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
+        else:
+            print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
+
+    merged_data = pd.merge(df_sistemas_ano_atual, ano_anterior, on='SistemaId', how='left')
+
+    dados_sistema = {
+        "Cantareira": 0,
+        "Alto Tietê": 1,
+        "Guarapiranga": 2,
+        "Cotia": 3,
+        "Rio Grande": 4, 
+        "Rio Claro":5,
+        "São Lourenço": 17,
+    }
+
+    df_sistemas = pd.DataFrame(list(dados_sistema.items()), columns=["Sistema", "SistemaId"])
+
+    merged_data_sistemas = pd.merge(merged_data, df_sistemas, on='SistemaId', how='left')
+    merged_data_sistemas = merged_data_sistemas.dropna(subset=['Sistema'])
+    merged_data_sistemas['Diferença Vol. Anual (%)'] = merged_data_sistemas['VolumePorcentagem'] - merged_data_sistemas['Volume Ano Anterior (%)']
+
+    merged_data_sistemas = merged_data_sistemas.rename(columns={'VolumePorcentagem': 'VolumeAtual (%)', 'Precipitacao': 'Chuva (mm)', 'PrecipitacaoAcumuladaNoMes': 'Acumulado no Mês (mm)', 'PMLTMensal':'Média Histórica (mm)'})
+
+    merged_data_sistemas = merged_data_sistemas[['Sistema', 'VolumeAtual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
+
+    data_atual_str = datetime.today().strftime("%Y-%m-%d")
+    merged_data_sistemas["Data"] = data_atual_str
+
+    caminho_arquivo_json = os.path.join("results", f"sabesp_sistemas.json")
+
+
+    merged_data_sistemas.to_json(caminho_arquivo_json, orient='records', force_ascii=False, indent=2)
 
 
 def capturar_tela(url):
@@ -558,7 +635,7 @@ def get_base64_image(image_path):
     
 # Função para a capa
 async def capa():
-    print("Capa -", datetime.now())
+    
     with capa_container:
 
         colcenter1, colcenter2 = st.columns([1.50, 0.50])
@@ -1163,7 +1240,7 @@ async def slide1_seca():
 
 
 async def slide1():
-    print("Rodando 1 -", datetime.now())
+    
     with slide1_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
 
@@ -1432,13 +1509,36 @@ async def slide1():
                     
                     # folium_static(mapa, width=500, height=320)
                     # st.markdown(legenda_html, unsafe_allow_html=True)
+
+                    horas = 24
+                    data_hora_final = data_hora_inicial - timedelta(hours=horas)
+
                     sp_border = gpd.read_file('./data/DIV_MUN_SP_2021a.shp').to_crs(epsg=4326)
                     sp_border_shapefile = "results/sp_border.shp"
                     municipio_arquivo = 'cities_idw'
                     excluir_prefixos = ""
 
-                    data_stats = gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
-            
+                    shapefile_path = f'results/acumulado_24_mun_{data_hora_final.strftime("%Y-%m-%d")}.shp'
+
+
+                    if os.path.exists(shapefile_path):
+                        print("entrou if interpolação")
+                        data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
+                        
+                        data_stats["mean_precipitation"] = pd.to_numeric(
+                            data_stats["mean_preci"], errors='coerce'
+                        ).fillna(0)
+                        data_stats = data_stats.drop(columns=["mean_preci"])
+                    else:
+                        print("entrou else interpolação")
+                        gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
+                        data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
+                        
+                        data_stats["mean_precipitation"] = pd.to_numeric(
+                            data_stats["mean_preci"], errors='coerce'
+                        ).fillna(0)
+                        data_stats = data_stats.drop(columns=["mean_preci"])
+
                     selected_bounds = [0, 1, 2, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100, 250]
                     cmap = [
                         "#D5FFFF", "#00D5FF", "#0080AA", "#0000B3",
@@ -1454,7 +1554,6 @@ async def slide1():
                         vmax=max(selected_bounds),  
                         caption=None
                     )
-
 
                     latitude =  -22.8859
                     longitude = -48.4451
@@ -1490,6 +1589,7 @@ async def slide1():
                         # tooltip=folium.GeoJsonTooltip(fields=[f"mean_precipitation"], aliases=["Precipitação (mm)"]),
                     ).add_to(mapa)
 
+                    print("gerando o mapa de interpolação ", datetime.now())
                     # HTML manual para legenda horizontal com todos os rótulos
                     legend_bar = "<div style='position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index:9999; background:white; padding:5px; border-radius:5px; font-size:10px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); width: 90%; max-width: 600px; height: 31px;'>"
                     legend_bar += "<b> </b><div style='display: flex;'>"
@@ -1501,10 +1601,11 @@ async def slide1():
 
                     # Insere a legenda
                     legend_element = Element(legend_bar)
-
                     mapa.get_root().html.add_child(legend_element)
-
+                    print("gerando a legenda de interpolação ", datetime.now())
                     mapa_html = mapa._repr_html_()
+
+                    print("carregando html interpolação ", datetime.now())
                     st.components.v1.html(mapa_html, width=600, height=350)
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
@@ -1544,7 +1645,7 @@ async def slide1():
 
 
 async def slide2():
-    print("Rodando 2 - ", datetime.now())
+    
     with slide2_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
 
@@ -1813,7 +1914,23 @@ async def slide3():
         coluna1, coluna2= st.columns([1.2, 0.8])  
 
         # IPMET
-        img_ipmet, url_ipmet = capturar_ipmet()
+        data_inicial = datetime.today()
+        data_str = data_inicial.strftime('%Y-%m-%d')
+
+        image_path = f'results/imagem_ipmet_{data_str}.png'
+
+        if os.path.exists(image_path):
+            print("Entrou if")
+            img_ipmet = Image.open(image_path)
+            
+        else:
+            print("Entrou else")
+            img_ipmet, url_ipmet = capturar_ipmet()
+
+        url_ipmet = "https://www.saisp.br/estaticos/sitenovo/home.html"
+        # img_ipmet = Image.open("results/imagem_ipmet.png")
+        # img_ipmet, url_ipmet = capturar_ipmet()
+
         with coluna1:
             st.write("""
             <div style="text-align: center; color: #333333;">
@@ -1840,7 +1957,21 @@ async def slide3():
 
 
         # SAISP
-        img_saisp, url_saisp = capturar_saisp()
+
+        image_path = f'results/imagem_saisp_{data_str}.png'
+
+        if os.path.exists(image_path):
+            print("Entrou if saisp")
+            img_saisp = Image.open(image_path)
+            
+        else:
+            print("Entrou else saisp")
+            img_saisp, url_saisp = capturar_saisp()
+
+        url_saisp = "https://www.saisp.br/estaticos/sitenovo/home.html"
+
+        # img_saisp = Image.open("results/imagem_saisp.png")
+        # img_saisp, url_saisp = capturar_saisp()
         with coluna2:
             st.write("""
             <div style="text-align: center; color: #333333;">
@@ -2007,6 +2138,7 @@ async def slide4():
 async def slide5():
     with slide5_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
+        print("rodando slide 5: fluviometria ", datetime.now())
 
         with col1:
             st.write("""
@@ -2124,6 +2256,7 @@ async def slide5():
                     left join cities c on c.id= city_id
                     left join ugrhis u on u.id = ugrhi_id;"""
         
+        query_view = f"select * from estados_estacoes_24h;"
         df_extravasation= execute_query(query)
 
         print("Rodou a query -", datetime.now())
@@ -2709,62 +2842,12 @@ async def slide6():
 
         coluna1, coluna2, coluna3 = st.columns([0.2, 1.5, 0.2])
 
+
+
         data_atual = datetime.today()
         data_ano_anterior = datetime.today() - timedelta(days=365)
         data_atual_str = data_atual.strftime('%Y-%m-%d')
         data_ano_anterior_str = data_ano_anterior.strftime('%Y-%m-%d')
-
-        url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
-        response = requests.get(url_ano_atual, verify=False)
-
-        if response.status_code == 200:
-
-            data = response.json()
-
-            if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
-                df_sistemas_ano_atual = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
-            else:
-                print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
-        else:
-            print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
-
-        url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
-        response = requests.get(url_ano_anteior, verify=False)
-
-        if response.status_code == 200:
-
-            data = response.json()
-
-            if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
-                df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
-                ano_anterior = df_sistemas_ano_anterior[["SistemaId", "VolumePorcentagem"]]
-                ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
-            else:
-                print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
-        else:
-            print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
-
-        merged_data = pd.merge(df_sistemas_ano_atual, ano_anterior, on='SistemaId', how='left')
-
-        dados_sistema = {
-            "Cantareira": 0,
-            "Alto Tietê": 1,
-            "Guarapiranga": 2,
-            "Cotia": 3,
-            "Rio Grande": 4, 
-            "Rio Claro":5,
-            "São Lourenço": 17,
-        }
-
-        df_sistemas = pd.DataFrame(list(dados_sistema.items()), columns=["Sistema", "SistemaId"])
-
-        merged_data_sistemas = pd.merge(merged_data, df_sistemas, on='SistemaId', how='left')
-        merged_data_sistemas = merged_data_sistemas.dropna(subset=['Sistema'])
-        merged_data_sistemas['Diferença Vol. Anual (%)'] = merged_data_sistemas['VolumePorcentagem'] - merged_data_sistemas['Volume Ano Anterior (%)']
-
-        merged_data_sistemas = merged_data_sistemas.rename(columns={'VolumePorcentagem': 'VolumeAtual (%)', 'Precipitacao': 'Chuva (mm)', 'PrecipitacaoAcumuladaNoMes': 'Acumulado no Mês (mm)', 'PMLTMensal':'Média Histórica (mm)'})
-
-        merged_data_sistemas = merged_data_sistemas[['Sistema', 'VolumeAtual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
 
         with coluna2:
             st.write("""
@@ -2775,8 +2858,24 @@ async def slide6():
                     unsafe_allow_html=True)
             
             url = 'https://cth.daee.sp.gov.br/ssdsp/'
-            imagem = capturar_tela(url)
-            imagem_recortada = imagem.crop((90, 945, 1200, 1650)) #esquerda, cima, direita, baixo
+
+            data_inicial = datetime.today()
+            data_str = data_inicial.strftime('%Y-%m-%d')
+
+
+            image_path = f'results/imagem_rmsp_{data_str}.png'
+
+            if os.path.exists(image_path):
+                print("Entrou if rmsp")
+                imagem_recortada = Image.open(image_path)
+                
+            else:
+                print("Entrou else rmsp")
+                imagem = capturar_tela(url)
+                imagem_recortada = imagem.crop((90, 945, 1200, 1650))
+                output_rmsp = os.path.join("results", f"imagem_rmsp_{data_str}.png")
+                imagem_recortada.save(output_rmsp) #esquerda, cima, direita, baixo
+                imagem_recortada = Image.open(image_path)
 
             st.image(imagem_recortada, caption="", use_container_width=True)
 
@@ -2795,6 +2894,18 @@ async def slide6():
         st.write(" ") 
         st.write(" ")
         st.write(" ")
+
+
+        
+        merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
+
+        if data_atual_str in merged_data_sistemas["Data"].values:
+        # Se a data atual já existe na coluna, remove a coluna
+            merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+        else: 
+            get_sabesp_api(data_atual_str, data_ano_anterior_str)
+            merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
+
 
         colun_grafico1, colun_grafico2, colun_grafico3 = st.columns([1.2, 1.5, 0.15])
         with colun_grafico1:
@@ -3621,7 +3732,7 @@ async def slide6_seca():
             unsafe_allow_html=True)
 
         st.write(" ")
-
+        
 
         url = 'https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete'
         response = requests.get(url)
@@ -3698,9 +3809,25 @@ async def slide6_seca():
                 </div>
                 """,
             unsafe_allow_html=True)
-            imagem = capturar_tela(url)
-            imagem_recortada = imagem.crop((30, 1860, 1230, 2500)) #esquerda, cima, direita, baixo
+            # imagem = capturar_tela(url)
+            # imagem_recortada = imagem.crop((30, 1860, 1230, 2500)) #esquerda, cima, direita, baixo
+            data_inicial = datetime.today()
+            data_str = data_inicial.strftime('%Y-%m-%d')
 
+
+            image_path = f'results/imagem_alto_tiete_{data_str}.png'
+
+            if os.path.exists(image_path):
+                print("Entrou if alto tiete")
+                imagem_recortada = Image.open(image_path)
+                
+            else:
+                print("Entrou else alto tiete")
+                imagem_alto_tiete = capturar_tela(url)
+                imagem_recortada = imagem_alto_tiete.crop((30, 1860, 1230, 2500))
+                output_alto_tiete = os.path.join("results", f"imagem_alto_tiete_{data_str}.png")
+                imagem_recortada.save(output_alto_tiete)
+                imagem_recortada = Image.open(image_path)
 
             st.image(imagem_recortada, caption="", use_container_width=True)
 
