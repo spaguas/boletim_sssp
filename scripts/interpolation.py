@@ -1,4 +1,3 @@
-import streamlit as st
 import pandas as pd
 import requests
 import os
@@ -49,7 +48,7 @@ def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arqui
     ]
 
     if not filtered_stations:
-        st.error("Erro: Não há dados válidos para interpolação após a exclusão.")
+        print("Erro: Não há dados válidos para interpolação após a exclusão.")
         return
 
     # Separando latitudes, longitudes e valores
@@ -92,7 +91,7 @@ def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arqui
     )
 
     if not os.path.exists(output_raster):
-        st.error(f"Erro: O raster intermediário {output_raster} não foi criado.")
+        print(f"Erro: O raster intermediário {output_raster} não foi criado.")
         return
 
     # Definindo sistema de coordenadas EPSG:4326 no raster
