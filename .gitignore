@@ -1,7 +1,10 @@
 .env
 "app_boletim_diario copy.py"
 app_boletim_diario_A4.py
+app_boletim.py
 results/
+cron.py
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

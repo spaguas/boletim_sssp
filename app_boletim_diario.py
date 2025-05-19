@@ -624,6 +624,22 @@ st.markdown(
     .editable-box:hover {
         background-color: #f0f0f0;
     }
+
+    /* Cor de fundo principal */
+    [data-testid="stSidebar"] {
+        background-color: #f0f2f6;
+        
+    }
+    
+    /* Cor dos itens do menu */
+    .st-eb {
+        color: #333333;  /* Cor do texto mais escura */
+    }
+    
+    /* Hover nos itens */
+    .st-eb:hover {
+        background-color: #e1e3e7;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -1280,7 +1296,7 @@ async def slide1():
         data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
         hora_inicial_str = data_hora_inicial.strftime('%H:%M')
 
-        url = f'https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now?station_type_id=2&hours=24&from_date={data_inicial_str}T{hora_inicial_str}&show_all=true&serializer=complete&public=true'
+        url = f'https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now?station_type_id=2&hours=24&from_date={data_inicial_str}T{hora_inicial_str}&serializer=complete&public=true'
         
         response = requests.get(url)
 
@@ -3467,7 +3483,7 @@ async def slide8_seca():
             st.write(f"""
                     <div style="color: black; line-height: 1;">
                         <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
-                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">Sexta-feira {data_atual_str}</p>  
+                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">{data_atual_str}</p>  
                     </div>
                 """,
             unsafe_allow_html=True) 
@@ -3823,7 +3839,7 @@ async def slide6_seca():
             data_str = data_inicial.strftime('%Y-%m-%d')
 
 
-            image_path = f'/results/imagem_alto_tiete_{data_str}.png'
+            image_path = f'results/imagem_alto_tiete_{data_str}.png'
 
             if os.path.exists(image_path):
                 print("Entrou if alto tiete")
@@ -3872,46 +3888,66 @@ async def slide6_seca():
         st.write(" ")
         st.write(" ")
 
-
-
-        
-    
-
 async def main():
+    # Configuração inicial - seleção do boletim
+    # if 'boletim' not in st.session_state:
+    #     await capa_boletim()
+    #     return
     
-    if 'boletim' not in st.session_state:
-        # Se ainda não tiver boletim escolhido, exibe a tela de seleção
-        await capa_boletim()
-    else:
-        # Limpar a tela de seleção e exibir os slides
-        st.empty()
-
-        # Executa todas as tasks simultaneamente
-        if st.session_state.boletim == 'chuvas':
-            await asyncio.gather(
-                capa(),
-                slide1(),
-                slide2(),
-                slide3(),
-                # slide4(), não será mais usado
-                slide5(),
-                slide6(),
-                slide7(),
-                slide8()
-            )
-        elif st.session_state.boletim == 'secas':
-            await asyncio.gather(
-                capa(),    
-                slide1_seca(),
-                slide1(),
-                slide2(),
-                slide5_seca(),
-                slide6(),
-                slide6_seca(),
-                slide8_seca()
-            )
-
+    # Barra lateral com navegação por grupo
+    with st.sidebar:
+        st.image("SP-4.png", width=200)
+        
+        # Criar abas para os grupos
+        grupo = st.radio("Selecione o tipo de Relatório:", ["Relatório de Chuva", "Relatório de Seca"])
+        
+        # Mostrar os slides específicos de cada grupo
+        if grupo == "Relatório de Chuva":
+            slides_chuva = {
+                "Capa": capa,
+                "Slide 1 - Mapas de Pluviometria": slide1,
+                "Slide 2 - Gráficos de Pluviometria": slide2,
+                "Slide 3 - Acumulados de Radares": slide3,
+                "Slide 5 - Mapa - Pluviometria": slide5,
+                "Slide 6 - Sistemas RMSP": slide6,
+                "Slide 7 - PPDC": slide7,
+                "Slide 8 - Previsão do Tempo": slide8
+            }
+            selected = st.selectbox("Slides de Chuva", list(slides_chuva.keys()))
+            slide_function = slides_chuva[selected]
+        
+        elif grupo == "Relatório de Seca":
+            slides_seca = {
+                "Capa - Seca": capa,
+                "Slide 1 - Mapa dias secos": slide1_seca,
+                "Slide 2 - Mapas de Pluviometria": slide1,
+                "Slide 3 - Gráficos de Pluviometria": slide2,
+                "Slide 4 - Fluviometria - Estiagem": slide5_seca,
+                "Slide 5 - Sistemas RMSP": slide6,
+                "Slide 6 - Sistema Alto Tietê": slide6_seca,
+                "Slide 7 - Pentada": slide8_seca
+            }
+            selected = st.selectbox("Slides de Seca", list(slides_seca.keys()))
+            slide_function = slides_seca[selected]
     
+    # Executar a função do slide selecionado
+    st.empty()  # Limpa o conteúdo anterior
+    await slide_function()
+
+# Funções de exemplo (substitua pelas suas funções reais)
+async def capa_boletim():
+    st.write("Selecione um boletim")
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("Chuvas", use_container_width=True):
+            st.session_state.boletim = 'chuvas'
+            st.rerun()
+    with col2:
+        if st.button("Secas", use_container_width=True):
+            st.session_state.boletim = 'secas'
+            st.rerun()
+
+
 if __name__ == "__main__":
     asyncio.run(main())
 
