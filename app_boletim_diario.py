@@ -40,8 +40,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import tempfile
 import shutil
-from fpdf import FPDF
-from selenium.webdriver.chrome.options import Options
+import uuid
 import json
 
 st.set_page_config(layout="wide")
@@ -83,18 +82,12 @@ def conection_postgres():
 def execute_query(query):
     cur = conection_postgres()
     conn = cur.connection
-    print("Conectando com o banco ", datetime.now())
     try:
-        print("Executando a query ", datetime.now())
         cur.execute(query)
         rows = cur.fetchall()
-        print("Executando fetchall ", datetime.now())
         
         colunas = [desc[0] for desc in cur.description]
-        print("Executando colunas ", datetime.now())
         df = pd.DataFrame(rows, columns=colunas)
-
-        print("Executando DataFrame ", datetime.now())
 
         return df
 
@@ -625,23 +618,6 @@ st.markdown(
     .editable-box:hover {
         background-color: #f0f0f0;
     }
-
-    /* Cor de fundo principal */
-    [data-testid="stSidebar"] {
-        background-color: #f0f2f6;
-        
-    }
-    
-    /* Cor dos itens do menu */
-    .st-eb {
-        color: #333333;  /* Cor do texto mais escura */
-    }
-    
-    /* Hover nos itens */
-    .st-eb:hover {
-        background-color: #e1e3e7;
-    }
-
     div.stButton > button:first-child {
         background-color: #FFFFFF;  /* Fundo branco */
         color: #000000;           /* Texto preto */
@@ -733,9 +709,8 @@ async def capa():
         st.write(" ")
 
 
-        filename = f"slides_pdf/capa_boletim.png"
-        await asyncio.sleep(5)
 
+        await asyncio.sleep(1)
     
 async def slide1_seca():
     with slide1_secas:
@@ -764,62 +739,33 @@ async def slide1_seca():
             </div>
             """,
             unsafe_allow_html=True)
-        api_ugrhis = "https://cth.daee.sp.gov.br/sibh/api/v2/ugrhis"
 
-        response = requests.get(api_ugrhis)
-        if response.status_code == 200:
+        query_dias_sem_chuva = f"""select 
+                                    c.cod_ibge,
+                                    c."name",
+                                    SUM(hs.dsc) AS dsc
+                                from hidroapp_statistics hs 
+                                left join cities c on c.id = hs.model_id
+                                where date_hour between '2025-04-01 03:00:00.000' and '2025-09-30 03:00:00.000'and model_type ='City'
+                                group by c.cod_ibge, c."name";"""
+        
+        tabela_dsc_cities= execute_query(query_dias_sem_chuva)
 
-            df_ugrhis = response.json()
-
-            df_ugrhis = pd.DataFrame(df_ugrhis)
 
 
-        api_parameters = f"https://cth.daee.sp.gov.br/sibh/api/v2/cities/with_ugrhis?parameter_type_ids%5B%5D=5"
-        response = requests.get(api_parameters)
-        if response.status_code == 200:
+        query_dias_consec_sem_chuva = f"""select 
+                                            c."name",
+                                            c.cod_ibge,
+                                            p.values ->'climate' ->'dsc' AS dcsc_chuva,
+                                            cu.ugrhi_id, 
+                                            cu.ugrhi_name
+                                        from parameters p 
+                                        left join cities c on c.id = p.parameterizable_id
+                                        left join maps.city_ugrhis cu on cu.city_cod = c.cod_ibge
+                                        where p.parameter_type_id ='5' and p.parameterizable_type = 'City';
+                                        """
 
-            data = response.json()
-
-            tabela_dcsc = pd.DataFrame(data)
-            tabela_dcsc["dcsc_chuva"] = tabela_dcsc["parameters"].apply(
-                lambda params: next(
-                    (p["values"]["climate"]["dsc"]
-                    for p in params
-                    if "climate" in p.get("values", {})), 
-                    None
-                )
-            )
-            tabela_dcsc = tabela_dcsc.drop(columns=["parameters"])
-
-            tabela_dcsc["string_agg"] = tabela_dcsc["string_agg"].str.split(",")  # transforma em lista
-            tabela_dcsc = tabela_dcsc.explode("string_agg") 
-            
-            # tabela_dcsc["climate_dsc"] = tabela_dcsc["values"].apply(lambda v: v.get("climate", {}).get("dsc") if isinstance(v, dict) else None)
-
-        data_cities = tabela_dcsc[["city_cod", "city_id", "city_name"]].drop_duplicates()
-
-        tabela_dcsc['string_agg'] = tabela_dcsc['string_agg'].astype(int)   
-        tabela_dcsc_cities = pd.merge(tabela_dcsc, df_ugrhis, left_on='string_agg', right_on='cod', how='left' )
-        tabela_dcsc_cities= tabela_dcsc_cities.rename(columns={"city_name":"name", "city_cod": "cod_ibge", "cod": "ugrhi_id", "name": "ugrhi_name"})
-
-        api_hidroapp_statistics = f"https://cth.daee.sp.gov.br/sibh/api/v2/hidroapp_stats?model_types[]=City&start_date=2025-04-01%2003:00&end_date=2025-09-30%2002:59"
-        response = requests.get(api_hidroapp_statistics)
-
-        if response.status_code == 200:
-
-            data = response.json()
-
-            if 'data' in data and data['data']:
-                
-                tabela_dsc= pd.DataFrame(data['data'])
-                
-            tabela_dsc_cities = pd.merge(tabela_dsc, data_cities, left_on='model_id', right_on='city_id', how='left')
-            tabela_dsc_cities= tabela_dsc_cities.rename(columns={"city_name":"name", "city_cod": "cod_ibge"})
-            tabela_dsc_cities = tabela_dsc_cities.groupby('cod_ibge', as_index=False).agg(
-                            value=('name', 'first'),
-                            dsc=('dsc', 'sum')
-                        )
-
+        tabela_dcsc_cities= execute_query(query_dias_consec_sem_chuva)
         tabela_dcsc_cities['dcsc_chuva'] = tabela_dcsc_cities['dcsc_chuva'].astype(float)
         tabela_df = tabela_dcsc_cities.groupby('cod_ibge', as_index=False).agg(
                             value=('name', 'first'),
@@ -828,7 +774,6 @@ async def slide1_seca():
         
         grafico_dsc_ugrhi = tabela_dcsc_cities.groupby('ugrhi_id', as_index=False).agg(
             value=('ugrhi_name', 'first'),
-            qtd_city_1=('cod_ibge', 'count'),
             cs_chuva_5=('dcsc_chuva', lambda x: x[x < 5].count()),
             cs_chuva_10=('dcsc_chuva', lambda x: x[(x >= 5) & (x < 10)].count()),
             cs_chuva_30=('dcsc_chuva', lambda x: x[(x >= 10) & (x < 30)].count()),
@@ -837,13 +782,13 @@ async def slide1_seca():
             cs_chuva_120=('dcsc_chuva', lambda x: x[(x >= 80) & (x < 120)].count()),
             cs_chuva_121=('dcsc_chuva', lambda x: x[x >= 120].count())
         )
-        
+
         tabela_df['cs_chuva'] = tabela_df['cs_chuva'].astype(float)        
 
         shapefile_path = "data/DIV_MUN_SP_2021a.shp"
         gdf = gpd.read_file(shapefile_path)
         gdf["geometry"] = gdf["geometry"].simplify(tolerance=0.01, preserve_topology=True)
-        
+
         merged_data = pd.merge(gdf, tabela_df, left_on='GEOCODIGO', right_on='cod_ibge', how='left')
         merged_tabela_dsc = pd.merge(gdf, tabela_dsc_cities, left_on='GEOCODIGO', right_on='cod_ibge', how='left')
         
@@ -880,7 +825,7 @@ async def slide1_seca():
 
             mapa_dsc.options['attributionControl'] = False
             
-            geojson_data_dsc = json.loads(merged_tabela_dsc.to_json())
+            geojson_data_dsc = merged_tabela_dsc.to_json()  
             
             folium.GeoJson(
                 geojson_data_dsc,
@@ -972,7 +917,7 @@ async def slide1_seca():
 
             mapa.options['attributionControl'] = False
 
-            geojson_data = json.loads(merged_data.to_json())
+            geojson_data = merged_data.to_json()  
             
             folium.GeoJson(
                 geojson_data,
@@ -1212,21 +1157,20 @@ async def slide1_seca():
             #         """,
             #         unsafe_allow_html=True) 
                 
-        # query_ugrhi = f"""select u.name, 
-        #                     u.cod as ugrhi_id, 
-        #                     count(cu.city_cod) as qtd_city
-        #                 from public.ugrhis u
-        #                 left join maps.city_ugrhis cu on cu.ugrhi_id = u.cod
-        #                 where u.name<>'FORA DO ESTADO DE SÃO PAULO' and u.name<>'Ugrhi não cadastrada'
-        #                 group by u.name,u.cod;"""
+        query_ugrhi = f"""select u.name, 
+                            u.cod as ugrhi_id, 
+                            count(cu.city_cod) as qtd_city
+                        from public.ugrhis u
+                        left join maps.city_ugrhis cu on cu.ugrhi_id = u.cod
+                        where u.name<>'FORA DO ESTADO DE SÃO PAULO' and u.name<>'Ugrhi não cadastrada'
+                        group by u.name,u.cod;"""
 
-        # all_ugrhi = execute_query(query_ugrhi)
+        all_ugrhi = execute_query(query_ugrhi)
 
-        # tabela_ugrhis_df = pd.merge(all_ugrhi, grafico_dsc_ugrhi, on='ugrhi_id', how='left')
+        tabela_ugrhis_df = pd.merge(all_ugrhi, grafico_dsc_ugrhi, on='ugrhi_id', how='left')
 
-        # print(tabela_ugrhis_df)
-        df_long = grafico_dsc_ugrhi.melt(
-            id_vars=['value', 'qtd_city_1'],  # 'value' = nome da UGRHI, 'qtd_city' = total de cidades
+        df_long = tabela_ugrhis_df.melt(
+            id_vars=['value', 'qtd_city'],  # 'value' = nome da UGRHI, 'qtd_city' = total de cidades
             value_vars=[
                 'cs_chuva_5', 'cs_chuva_10', 'cs_chuva_30',
                 'cs_chuva_50', 'cs_chuva_80', 'cs_chuva_120', 'cs_chuva_121'
@@ -1248,7 +1192,7 @@ async def slide1_seca():
         # Calcular total por UGRHI e % de cada status
         # df_long['total'] = df_long.groupby('value')['qtd'].transform('sum')
 
-        df_long['pct'] = df_long['qtd'] / df_long['qtd_city_1'] * 100
+        df_long['pct'] = df_long['qtd'] / df_long['qtd_city'] * 100
         df_long['pct'] = df_long['pct'].round(0)
         df_long['text_label'] = df_long['pct'].apply(lambda x: f'{x:.0f}' if x >= 10 else '')
 
@@ -1299,18 +1243,6 @@ async def slide1_seca():
         fig.update_traces(textposition='inside', texttemplate='%{text}', textfont=dict(size=11, color='#333333'))
 
         st.plotly_chart(fig, use_container_width=True)
-
-    # if st.button('Salvar no PDF'):
-    #     await asyncio.sleep(1)
-        
-    #     current_url = "http://localhost:8501"
-        
-    #     tm.sleep(50)
-    #     imagem = capturar_tela(current_url)
-
-    #     imagem_recortada = imagem.crop((0, 0, 1100, 1650))#esquerda, cima, direita, baixo
-    #     output_pdf = os.path.join("slides_pdf", f"slide1_seca.png")
-    #     imagem_recortada.save(output_pdf) 
 
 
 async def slide1():
@@ -1596,7 +1528,6 @@ async def slide1():
                     shapefile_path = f'results/acumulado_24_mun_{data_hora_final.strftime("%Y-%m-%d")}.shp'
 
 
-
                     if "interpolacao_escolhida" not in st.session_state:
                         st.session_state.interpolacao_escolhida = None
                         
@@ -1613,6 +1544,7 @@ async def slide1():
                             if st.button("Não Interpolar"):
                                 st.session_state.interpolacao_escolhida = "Não Interpolar"
                                 st.rerun()
+                        st.stop()
 
 
                     if st.session_state.interpolacao_escolhida == "Interpolar":
@@ -1633,7 +1565,7 @@ async def slide1():
                             data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
                             data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
                             data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
-                            data_stats = data_stats.drop(columns=["mean_preci"])   
+                            data_stats = data_stats.drop(columns=["mean_preci"])
 
                     selected_bounds = [0, 1, 2, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100, 250]
                     cmap = [
@@ -1673,7 +1605,7 @@ async def slide1():
                     mapa.options['attributionControl'] = False
 
                     folium.GeoJson(
-                        json.loads(data_stats.to_json()),
+                        data_stats.to_json(),
                         name="Precipitação",
                         # style_function=style_function,
                         style_function=lambda feature: {
@@ -1684,8 +1616,7 @@ async def slide1():
                         }
                         # tooltip=folium.GeoJsonTooltip(fields=[f"mean_precipitation"], aliases=["Precipitação (mm)"]),
                     ).add_to(mapa)
-
-                    print("gerando o mapa de interpolação ", datetime.now())
+                    
                     # HTML manual para legenda horizontal com todos os rótulos
                     legend_bar = "<div style='position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index:9999; background:white; padding:5px; border-radius:5px; font-size:10px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); width: 90%; max-width: 600px; height: 31px;'>"
                     legend_bar += "<b> </b><div style='display: flex;'>"
@@ -1698,10 +1629,8 @@ async def slide1():
                     # Insere a legenda
                     legend_element = Element(legend_bar)
                     mapa.get_root().html.add_child(legend_element)
-                    print("gerando a legenda de interpolação ", datetime.now())
                     mapa_html = mapa._repr_html_()
 
-                    print("carregando html interpolação ", datetime.now())
                     st.components.v1.html(mapa_html, width=600, height=350)
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
@@ -1713,11 +1642,11 @@ async def slide1():
 
 
                 with colun2:
+                       
                     if 'user_input_chuva_slide1' not in st.session_state:
                         st.session_state.user_input_chuva_slide1 = "Clique para editar"
                     
-                    st.text_area("Relatos 24h", height=200, key="user_input_chuva_slide1")
-                    
+                    user_input = st.text_area("Relatos 24h", height=200, key="user_input_chuva_slide1")
                     
             
             else:
@@ -1980,7 +1909,6 @@ async def slide2():
 
 
 async def slide3():
-    print('Rodando 3')
     with slide3_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
 
@@ -2016,11 +1944,9 @@ async def slide3():
         image_path = f'results/imagem_ipmet_{data_str}.png'
 
         if os.path.exists(image_path):
-            print("Entrou if")
             img_ipmet = Image.open(image_path)
             
         else:
-            print("Entrou else")
             img_ipmet, url_ipmet = capturar_ipmet()
 
         url_ipmet = "https://www.saisp.br/estaticos/sitenovo/home.html"
@@ -2057,11 +1983,9 @@ async def slide3():
         image_path = f'results/imagem_saisp_{data_str}.png'
 
         if os.path.exists(image_path):
-            print("Entrou if saisp")
             img_saisp = Image.open(image_path)
             
         else:
-            print("Entrou else saisp")
             img_saisp, url_saisp = capturar_saisp()
 
         url_saisp = "https://www.saisp.br/estaticos/sitenovo/home.html"
@@ -2234,7 +2158,6 @@ async def slide4():
 async def slide5():
     with slide5_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
-        print("rodando slide 5: fluviometria ", datetime.now())
 
         with col1:
             st.write("""
@@ -2963,7 +2886,6 @@ async def slide6():
             image_path = f'results/imagem_rmsp_{data_str}.png'
 
             if os.path.exists(image_path):
-                print("Entrou if rmsp")
                 imagem_recortada = Image.open(image_path)
                 
             else:
@@ -3185,14 +3107,14 @@ async def slide6():
         # Verifica se existe valor negativo
         if min_dif_filter["Diferença Vol. Anual (%)"] < 0:
             legenda += (
-                f"O sistema reprodutor da Rede Metropolitana de São Paulo (RMSP) {min_dif_filter['Sistema']} "
+                f"O sistema produtor da Rede Metropolitana de São Paulo (RMSP) {min_dif_filter['Sistema']} "
                 f"está a {min_dif_filter['Diferença Vol. Anual (%)']:.2f}% do volume últil em comparação com o mesmo mês no ano anterior, a maior diferença negativa em comparação com os demais sismtas."
                 f"Atualmente o seu volume últil está em {min_dif_filter['VolumeAtual (%)']:.2f}% e no ano anterior estava com {min_dif_filter['Volume Ano Anterior (%)']:.2f}%."
             )
 
         # Verifica se existe valor positivo
         if max_dif_filter["Diferença Vol. Anual (%)"] > 0:
-            frase_inicial = "Já o sistema" if legenda else "O sistema reprodutor da Rede Metropolitana de São Paulo (RMSP)"
+            frase_inicial = "Já o sistema" if legenda else "O sistema produtor da Rede Metropolitana de São Paulo (RMSP)"
             legenda += (
                 f" {frase_inicial} {max_dif_filter['Sistema']} "
                 f"apresentou a maior diferença positiva de {max_dif_filter['Diferença Vol. Anual (%)']:.2f}% em comparação com o mesmo mês no ano anterior, "
@@ -3278,7 +3200,6 @@ async def slide7():
         shapefile_path_limite = "data/limiteestadualsp.shp"
 
         gdf_limite = gpd.read_file(shapefile_path_limite)
-        gdf_limite["geometry"] = gdf_limite["geometry"].simplify(tolerance=0.01, preserve_topology=True)
 
         if gdf_limite.crs != "EPSG:4326":
             gdf_limite = gdf_limite.to_crs(epsg=4326)
@@ -3482,16 +3403,16 @@ async def slide8():
             st.write(f"""
                     <div style="color: black; line-height: 1;">
                         <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
-                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">Sexta-feira {data_atual_str}</p>  
+                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">{data_atual_str}</p>  
                     </div>
                 """,
             unsafe_allow_html=True) 
 
             legenda = "Clique para editar"
-            if 'user_input' not in st.session_state:
-                st.session_state.user_input = legenda
+            if 'user_input_slide8' not in st.session_state:
+                st.session_state.user_input_slide8 = legenda
             
-            user_input = st.text_area("Previsão personalizada", value=st.session_state.user_input, height=100, label_visibility="collapsed")
+            user_input = st.text_area("Previsão personalizada", value=st.session_state.user_input_slide8, height=100, label_visibility="collapsed")
             
 
 
@@ -3566,7 +3487,7 @@ async def slide8_seca():
             st.write(f"""
                     <div style="color: black; line-height: 1;">
                         <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
-                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">{data_atual_str}</p>  
+                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">Sexta-feira {data_atual_str}</p>  
                     </div>
                 """,
             unsafe_allow_html=True) 
@@ -3926,11 +3847,9 @@ async def slide6_seca():
             image_path = f'results/imagem_alto_tiete_{data_str}.png'
 
             if os.path.exists(image_path):
-                print("Entrou if alto tiete")
                 imagem_recortada = Image.open(image_path)
                 
             else:
-                print("Entrou else alto tiete")
                 imagem_alto_tiete = capturar_tela(url)
                 imagem_recortada = imagem_alto_tiete.crop((30, 1860, 1230, 2500))
                 output_alto_tiete = os.path.join("results", f"imagem_alto_tiete_{data_str}.png")
@@ -3972,109 +3891,46 @@ async def slide6_seca():
         st.write(" ")
         st.write(" ")
 
+
+
+        
+    
+
 async def main():
-    # Inicializa o session_state.boletim se não existir
+    
     if 'boletim' not in st.session_state:
-        st.session_state.boletim = 'chuvas'  # Valor padrão
-    
-    with st.sidebar:
-        st.image("SP-4.png", width=200)
-        
-        # Seleção do tipo de relatório
-        st.session_state.boletim = st.radio(
-            "Selecione o tipo de Relatório:",
-            ["chuvas", "secas"],
-            format_func=lambda x: "Relatório de Chuva" if x == "chuvas" else "Relatório de Seca"
-        )
-        
-        # Dicionário de slides para cada tipo
-        slides = {
-            'chuvas': {
-                "Capa": capa,
-                "Slide 1 - Mapas de Pluviometria": slide1,
-                "Slide 2 - Gráficos de Pluviometria": slide2,
-                "Slide 3 - Acumulados de Radares": slide3,
-                "Slide 5 - Mapa de Fluviometria": slide5,
-                "Slide 6 - Sistemas RMSP": slide6,
-                "Slide 7 - PPDC": slide7,
-                "Slide 8 - Previsão do Tempo": slide8
-            },
-            'secas': {
-                "Capa - Seca": capa,
-                "Slide 1 - Mapa dias secos": slide1_seca,
-                "Slide 2 - Mapas de Pluviometria": slide1,
-                "Slide 3 - Gráficos de Pluviometria": slide2,
-                "Slide 4 - Fluviometria - Estiagem": slide5_seca,
-                "Slide 5 - Sistemas RMSP": slide6,
-                "Slide 6 - Sistema Alto Tietê": slide6_seca,
-                "Slide 7 - Pentada": slide8_seca
-            }
-        }
-        
-        # Selecionador de slides
-        selected = st.selectbox(
-            f"Slides de {'Chuva' if st.session_state.boletim == 'chuvas' else 'Seca'}",
-            list(slides[st.session_state.boletim].keys())
-        )
-        
-        slide_function = slides[st.session_state.boletim][selected]
-        
-        # Divisor visual
-        st.markdown("---")
-        
-        # Botão de exportação no FINAL da sidebar
-        if st.button("📥 Exportar Relatório Completo para PDF", 
-                    use_container_width=True,
-                    type="primary"):
-            with st.spinner("Gerando PDF..."):
-                pdf_path = await export_to_pdf()
-                if pdf_path:
-                    with open(pdf_path, "rb") as f:
-                        st.download_button(
-                            "⬇️ Baixar PDF",
-                            f,
-                            file_name=f"boletim_{st.session_state.boletim}.pdf",
-                            mime="application/pdf",
-                            use_container_width=True
-                        )
-    
-    # Executar a função do slide selecionado
-    st.empty()  # Limpa o conteúdo anterior
-    await slide_function()
+        # Se ainda não tiver boletim escolhido, exibe a tela de seleção
+        await capa_boletim()
+    else:
+        # Limpar a tela de seleção e exibir os slides
+        st.empty()
 
-async def export_to_pdf():
-    try:
-        pdf = FPDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        
-        # Determinar quais slides incluir
-        slide_functions = {
-            'chuvas': [capa, slide1, slide2, slide3, slide5, slide6, slide7, slide8],
-            'secas': [capa, slide1_seca, slide1, slide2, slide5_seca, slide6, slide6_seca, slide8_seca]
-        }[st.session_state.boletim]
-        
-        # Para cada slide (implementação simplificada)
-        for slide_func in slide_functions:
-            # Adiciona página ao PDF
-            pdf.add_page()
-            
-            # Adiciona conteúdo (substitua por sua lógica real de captura)
-            pdf.set_font("Arial", size=16)
-            pdf.cell(0, 10, f"Slide: {slide_func.__name__}", ln=True)
-            
-            # Na prática, você precisaria:
-            # 1. Capturar o conteúdo renderizado como imagem
-            # 2. Adicionar a imagem ao PDF com pdf.image()
-        
-        # Salvar PDF
-        pdf_path = f"boletim_{st.session_state.boletim}.pdf"
-        pdf.output(pdf_path)
-        return pdf_path
-    
-    except Exception as e:
-        st.error(f"Erro ao gerar PDF: {str(e)}")
-        return None
+        # Executa todas as tasks simultaneamente
+        if st.session_state.boletim == 'chuvas':
+            await asyncio.gather(
+                capa(),
+                slide1(),
+                slide2(),
+                slide3(),
+                # slide4(), não será mais usado
+                slide5(),
+                slide6(),
+                slide7(),
+                slide8()
+            )
+        elif st.session_state.boletim == 'secas':
+            await asyncio.gather(
+                capa(),    
+                slide1_seca(),
+                slide1(),
+                slide2(),
+                slide5_seca(),
+                slide6(),
+                slide6_seca(),
+                slide8_seca()
+            )
 
+    
 if __name__ == "__main__":
     asyncio.run(main())
 
