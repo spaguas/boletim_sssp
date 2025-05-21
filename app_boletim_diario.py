@@ -2470,6 +2470,7 @@ async def slide5():
 
         shapefile_path = "data/limiteestadualsp.shp"
         gdf = gpd.read_file(shapefile_path)
+        gdf["geometry"] = gdf["geometry"].simplify(tolerance=0.01, preserve_topology=True)
 
         folium.GeoJson(
             gdf,
@@ -3271,11 +3272,13 @@ async def slide7():
 
         shapefile_path = "data/DIV_MUN_SP_2021a.shp"
         gdf = gpd.read_file(shapefile_path)
+        gdf["geometry"] = gdf["geometry"].simplify(tolerance=0.01, preserve_topology=True)
 
         merged_data = pd.merge(gdf, tabela_df, left_on='GEOCODIGO', right_on='cod_ibge', how='left')
         shapefile_path_limite = "data/limiteestadualsp.shp"
 
         gdf_limite = gpd.read_file(shapefile_path_limite)
+        gdf_limite["geometry"] = gdf_limite["geometry"].simplify(tolerance=0.01, preserve_topology=True)
 
         if gdf_limite.crs != "EPSG:4326":
             gdf_limite = gdf_limite.to_crs(epsg=4326)
@@ -3648,6 +3651,7 @@ async def slide5_seca():
 
                 shapefile_path = "data/limiteestadualsp.shp"
                 gdf = gpd.read_file(shapefile_path)
+                gdf["geometry"] = gdf["geometry"].simplify(tolerance=0.01, preserve_topology=True)
 
                 folium.GeoJson(
                     gdf,
@@ -3990,7 +3994,7 @@ async def main():
                 "Slide 1 - Mapas de Pluviometria": slide1,
                 "Slide 2 - Gráficos de Pluviometria": slide2,
                 "Slide 3 - Acumulados de Radares": slide3,
-                "Slide 5 - Mapa - Pluviometria": slide5,
+                "Slide 5 - Mapa de Fluviometria": slide5,
                 "Slide 6 - Sistemas RMSP": slide6,
                 "Slide 7 - PPDC": slide7,
                 "Slide 8 - Previsão do Tempo": slide8
