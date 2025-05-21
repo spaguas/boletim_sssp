@@ -1203,7 +1203,7 @@ async def slide1_seca():
             color='status_chuva', 
             text='text_label',
             labels={'pct': '% de cidades', 'value': 'UGRHI'},
-            title="""% de cidades com DCSC por UGRHI""",
+            title="""% de cidades com DSC por UGRHI""",
             color_discrete_map={
                 '<5': '#a2f5e9',
                 '<10': '#8ff29b',
@@ -1536,12 +1536,12 @@ async def slide1():
                         col1, col2, col3, col4 = st.columns(4)
                         
                         with col2:
-                            if st.button("Interpolar"):
+                            if st.button("Interpolar Novamente"):
                                 st.session_state.interpolacao_escolhida = "Interpolar"
                                 st.rerun()
                         
                         with col3:
-                            if st.button("Não Interpolar"):
+                            if st.button("Não Interpolar Novamente"):
                                 st.session_state.interpolacao_escolhida = "Não Interpolar"
                                 st.rerun()
                         st.stop()
@@ -2278,7 +2278,6 @@ async def slide5():
         query_view = f"select * from estados_estacoes_24h;"
         df_extravasation= execute_query(query)
 
-        print("Rodou a query -", datetime.now())
         df_extravasation['value'] = pd.to_numeric(df_extravasation['value'], errors='coerce')
         df_extravasation['latitude'] = pd.to_numeric(df_extravasation['latitude'], errors='coerce')
         df_extravasation['longitude'] = pd.to_numeric(df_extravasation['longitude'], errors='coerce')
@@ -2870,12 +2869,6 @@ async def slide6():
         data_ano_anterior_str = data_ano_anterior.strftime('%Y-%m-%d')
 
         with coluna2:
-            st.write("""
-                <div style="text-align: center";"color: black">
-                        <p style="font-size: 13px">Sistemas Produtores</h1>
-                </div>
-                """,
-                    unsafe_allow_html=True)
             
             url = 'https://cth.daee.sp.gov.br/ssdsp/'
 
@@ -2911,6 +2904,8 @@ async def slide6():
         st.write(" ")
         st.write(" ") 
         st.write(" ") 
+        st.write(" ")
+        st.write(" ")
         st.write(" ")
         st.write(" ")
 
@@ -3403,7 +3398,6 @@ async def slide8():
             st.write(f"""
                     <div style="color: black; line-height: 1;">
                         <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
-                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">{data_atual_str}</p>  
                     </div>
                 """,
             unsafe_allow_html=True) 
@@ -3486,8 +3480,7 @@ async def slide8_seca():
 
             st.write(f"""
                     <div style="color: black; line-height: 1;">
-                        <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
-                        <p style="font-size: 10px; margin: 0.5; text-align: center"; padding: 0; text-align: justify;">Sexta-feira {data_atual_str}</p>  
+                        <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>  
                     </div>
                 """,
             unsafe_allow_html=True) 
@@ -3634,7 +3627,7 @@ async def slide5_seca():
                 folium.LayerControl().add_to(mapa)
                 
                 legenda_html = """
-                <div style="position: fixed; z-index:999999; bottom: 22px; left: 50%; transform: translateX(-50%); background: white; padding: 2px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
+                <div style="position: fixed; z-index:999999; bottom: 18px; left: 50%; transform: translateX(-50%); background: white; padding: 1px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
                     <div style="display: flex; align-items: center; margin-right: 5px;">
                         <div style="width: 60px; height: 15px; background-color: #f74f78; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; border-radius: 3px;">
                             <span> Emergência -l7</span>
@@ -3662,6 +3655,10 @@ async def slide5_seca():
                     # folium_static(mapa, width=600, height=400)
                     st.components.v1.html(mapa_html, width=1000, height=580)
                 
+                if 'user_input_slide5_seca' not in st.session_state:
+                    st.session_state.user_input_slide5_seca = "Clique aqui para editar"
+
+                # No local onde você quer exibir o text_area
                 colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
                 with colun2:    
                     url_sib = "https://cth.daee.sp.gov.br/sibh/chuva_agora"
@@ -3672,17 +3669,25 @@ async def slide5_seca():
                             """,
                         unsafe_allow_html=True)
                     
-                    if 'user_input_slide5_seca' not in st.session_state:
-                        st.session_state.user_input_slide5_seca = "Clique aqui para editar" # sem f-string desnecessária
+                    # Usar o valor do session_state diretamente
+                    user_input = st.text_area(
+                        "Análise das redes Telemétrica", 
+                        value=st.session_state.user_input_slide5_seca,
+                        height=100,
+                        key="text_area_seca"
+                    )
+                    if user_input != st.session_state.user_input_slide5_seca:
+                        st.session_state.user_input_slide5_seca = user_input
 
-                        st.text_area("Análise das redes Telemétrica", height=100, key="user_input_slide5_seca")
-            
             st.write(" ")
             st.write(" ")
             st.write(" ")
             st.write(" ")
             st.write(" ")
             st.write(" ")
+            st.write(" ")
+
+
                    
 
 async def capa_boletim():
