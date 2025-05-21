@@ -16,6 +16,7 @@ dependencies:
     - rasterstats
     - webdriver-manager
     - selenium
+    - fpdf
   - geopandas
   - plotly
   - rasterstats
