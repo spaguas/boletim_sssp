@@ -42,8 +42,6 @@ import tempfile
 import shutil
 from fpdf import FPDF
 from selenium.webdriver.chrome.options import Options
-import imgkit
-import uuid
 import json
 
 st.set_page_config(layout="wide")
