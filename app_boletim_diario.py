@@ -114,8 +114,7 @@ def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arqui
     data_hora_final = data_hora_inicial - timedelta(hours=horas)
     date_time_id = data_hora_inicial.strftime("%Y%m%d%H%M")
 
-    url = f'https://cth.daee.sp.gov.br/sibh/api/v1/measurements/last_hours_events?hours={horas}&from_date={data_inicial_str}T{hora_inicial_str}&show_all=true'
-    titulo = f"Acumulado de chuvas de {data_hora_final} à {data_hora_inicial}"
+    url = f'https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now?station_type_id=2&hours=24&from_date={data_inicial_str}T{hora_inicial_str}&show_all=true&public=true'
     estatistica_desejada = "mean"
 
     minx, miny, maxx, maxy = get_data.total_bounds
@@ -129,7 +128,7 @@ def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arqui
     # Extraindo coordenadas e valores
     stations = [
         (item["prefix"], float(item["latitude"]), float(item["longitude"]), item["value"])
-        for item in data["json"]
+        for item in data["measurements"]
         if item["latitude"] and item["longitude"] and item["value"]
     ]
 
