@@ -104,7 +104,7 @@ def execute_query(query):
 def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arquivo, ):
 
     data_inicial = datetime.today()
-    hora_inicial = time(10, 0)
+    hora_inicial = time(7, 0)
     data_hora_inicial = datetime.combine(data_inicial, hora_inicial)
     data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
     hora_inicial_str = data_hora_inicial.strftime('%H:%M')
@@ -3365,7 +3365,7 @@ async def slide8():
 
             data = response.json()
 
-            image_data = next((item for item in data if item["validade"] == 24), None)
+            image_data = next((item for item in data if item["validade"] == 36), None)
 
             if image_data:
                 # Extrai a string base64 da imagem
@@ -3443,7 +3443,7 @@ async def slide8_seca():
         data_inicial = datetime.today()
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
-        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec7dias/{data_inicial_str}H00:00"
         response = requests.get(url, verify=False)
         if response.status_code == 200:
 
