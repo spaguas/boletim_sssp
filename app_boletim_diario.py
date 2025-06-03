@@ -2915,21 +2915,23 @@ async def slide6():
 
 
         json_sistemas = 'results/sabesp_sistemas.json'
+        sistemas_esperados = {"Cantareira", "Alto Tietê", "Guarapiranga", "Cotia", "Rio Grande", "Rio Claro", "São Lourenço"}
 
         if os.path.exists(json_sistemas):
             merged_data_sistemas = pd.read_json(json_sistemas)
-            if data_atual_str in merged_data_sistemas["Data"].values:
-            # Se a data atual já existe na coluna, remove a coluna
+            
+            data_existe = data_atual_str in merged_data_sistemas["Data"].values
+            sistemas_presentes = set(merged_data_sistemas["Sistema"].unique())
+            if data_existe and sistemas_esperados.issubset(sistemas_presentes):
                 merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
-            else: 
+            else:
                 get_sabesp_api(data_atual_str, data_ano_anterior_str)
-                merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
+                merged_data_sistemas = pd.read_json(json_sistemas)
                 merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
-        
-        else: 
-                get_sabesp_api(data_atual_str, data_ano_anterior_str)
-                merged_data_sistemas = pd.read_json("results/sabesp_sistemas.json")
-                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+        else:
+            get_sabesp_api(data_atual_str, data_ano_anterior_str)
+            merged_data_sistemas = pd.read_json(json_sistemas)
+            merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
 
 
 
@@ -3548,7 +3550,6 @@ async def slide5_seca():
                 df_seca['current_state'] = df_seca.apply(classify_state_seca, axis=1)
                 df_seca = df_seca[df_seca['current_state']!='Níveis Indefinidos']
                 df_seca = df_seca[df_seca['net_group']!='piscinao_daee']
-                print(df_seca)
 
                 mapa = folium.Map(
                     location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
@@ -3585,7 +3586,7 @@ async def slide5_seca():
 
                 normal_layer = folium.FeatureGroup(name='Normal')
                 atencao_layer = folium.FeatureGroup(name='Atenção - l95')
-                print(df_seca.columns)
+
                 # Adicionar marcadores para cada ponto
                 for index, row in df_seca.iterrows():
                     lat = row['latitude']
