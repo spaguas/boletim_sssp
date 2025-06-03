@@ -42,6 +42,7 @@ import tempfile
 import shutil
 import uuid
 import json
+from folium import Popup
 
 st.set_page_config(layout="wide")
 
@@ -627,6 +628,9 @@ st.markdown(
     /* Efeito hover (opcional) */
     div.stButton > button:first-child:hover {
         background-color: #F5F5F5;  /* Cor ao passar o mouse */
+    }
+    textarea {
+        font-size: 16px !important;
     }
     </style>
     """,
@@ -1361,6 +1365,7 @@ async def slide1():
 
                         # Definir os marcadores para os diferentes intervalos de valor
                         if valor_inteiro < 10:
+                            
                             folium.CircleMarker(
                                 location=[lat, lon],
                                 radius=6,
@@ -2976,6 +2981,7 @@ async def slide6():
 
                 # Ajuste do eixo Y
                 max_valor = merged_data_sistemas[['VolumeAtual (%)', 'Volume Ano Anterior (%)']].max().max()
+                
                 ax.set_ylim(0, max_valor * 1.2)
 
                 # Plotagem das barras
@@ -3102,8 +3108,8 @@ async def slide6():
         if min_dif_filter["Diferença Vol. Anual (%)"] < 0:
             legenda += (
                 f"O sistema produtor da Rede Metropolitana de São Paulo (RMSP) {min_dif_filter['Sistema']} "
-                f"está a {min_dif_filter['Diferença Vol. Anual (%)']:.2f}% do volume últil em comparação com o mesmo mês no ano anterior, a maior diferença negativa em comparação com os demais sismtas."
-                f"Atualmente o seu volume últil está em {min_dif_filter['VolumeAtual (%)']:.2f}% e no ano anterior estava com {min_dif_filter['Volume Ano Anterior (%)']:.2f}%."
+                f"está a {min_dif_filter['Diferença Vol. Anual (%)']:.2f}% do volume útil em comparação com o mesmo mês no ano anterior, a maior diferença negativa em comparação com os demais sistemas."
+                f" Atualmente o seu volume útil está em {min_dif_filter['VolumeAtual (%)']:.2f}% e no ano anterior estava com {min_dif_filter['Volume Ano Anterior (%)']:.2f}%."
             )
 
         # Verifica se existe valor positivo
@@ -3119,7 +3125,7 @@ async def slide6():
         if 'user_input_slide6' not in st.session_state:
             st.session_state.user_input_slide6 = legenda
         
-        user_input = st.text_area("Análise dos Sistemas Produtores", height=100, key="user_input_slide6")
+        user_input = st.text_area("Análise dos Sistemas Produtores", height=120, key="user_input_slide6")
         
         st.write(" ")
         st.write(" ") 
@@ -3165,7 +3171,7 @@ async def slide7():
             unsafe_allow_html=True) 
         
 
-        coluna1, coluna2 = st.columns([1.5, 0.5])
+        coluna1, coluna2 = st.columns([1.5, 0.6])
         query_cities = f"""SELECT c.name as city_name,
                             max(ac_72h) AS max_ac_72h,
                             avg(ac_mensal) AS ac_mensal,
@@ -3236,7 +3242,7 @@ async def slide7():
         ).add_to(mapa)
         
         legenda_html = """
-        <div style="position: fixed; z-index:999999; bottom: 190px; left: 50%; transform: translateX(-50%); background: white; padding: 2px; border-radius: 5px; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+        <div style="position: fixed; z-index:999999; bottom: 170px; left: 50%; transform: translateX(-50%); background: white; padding: 2px; border-radius: 5px; box-shadow: 0 0 3px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
             <div style="display: flex; align-items: center; margin-right: 5px;">
                 <div style="width: 50px; height: 15px; background-color: #16c995; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; border-radius: 3px;">
                     <span> Normal </span>
@@ -3259,18 +3265,18 @@ async def slide7():
             mapa.get_root().html.add_child(Element(legenda_html))
 
             mapa_html = mapa._repr_html_()
-            st.components.v1.html(mapa_html, width=900, height=350)
+            st.components.v1.html(mapa_html, width=860, height=350)
             url = 'https://cth.daee.sp.gov.br/sibh/chuva_agora'
             st.markdown(f'<p style="text-align: center; font-size: 12px">Elaborado pela equipe do SP Águas. Fonte: <a href="{url}" target="_blank">SIBH</a> </a></p>', unsafe_allow_html=True)
             st.write(" ")
             
         with coluna2:
 
-            legenda = "O PPDC – Plano Preventivo de Defesa Civil específico para escorregamentos nas encostas da Serra do Mar no Estado de São Paulo (Decreto Estadual nº 30,860 de 04/12/1989, redefinido pelo Decreto Estadual nº42,565 de 01/12/1997) tem por objetivo principal evitar a ocorrência de mortes, com a remoção preventiva e temporária da população que ocupa as áreas de risco, antes que os escorregamentos atinjam suas moradias."
+            legenda = '"O PPDC – Plano Preventivo de Defesa Civil específico para escorregamentos nas encostas da Serra do Mar no Estado de São Paulo (Decreto Estadual nº 30,860 de 04/12/1989, redefinido pelo Decreto Estadual nº42,565 de 01/12/1997) tem por objetivo principal evitar a ocorrência de mortes, com a remoção preventiva e temporária da população que ocupa as áreas de risco, antes que os escorregamentos atinjam suas moradias"'
             if 'user_input_slide7' not in st.session_state:
                 st.session_state.user_input_slide7 = legenda 
 
-            st.text_area("Plano Preventivo de Defesa Civil específico para escorregamentos", height=300, key="user_input_slide7")
+            st.text_area("Plano Preventivo de Defesa Civil específico para escorregamentos", height=340, key="user_input_slide7")
 
 
         tabela_df['per_ppdc'] = (tabela_df['max_ac_72h']*100)/tabela_df['ppdc']
@@ -3539,10 +3545,10 @@ async def slide5_seca():
                 df_seca['longitude'] = pd.to_numeric(df_seca['longitude'], errors='coerce')
                 df_seca = df_seca.sort_values(by="value", ascending=False)     
 
-
-
                 df_seca['current_state'] = df_seca.apply(classify_state_seca, axis=1)
                 df_seca = df_seca[df_seca['current_state']!='Níveis Indefinidos']
+                df_seca = df_seca[df_seca['net_group']!='piscinao_daee']
+                print(df_seca)
 
                 mapa = folium.Map(
                     location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
@@ -3579,22 +3585,25 @@ async def slide5_seca():
 
                 normal_layer = folium.FeatureGroup(name='Normal')
                 atencao_layer = folium.FeatureGroup(name='Atenção - l95')
-
+                print(df_seca.columns)
                 # Adicionar marcadores para cada ponto
                 for index, row in df_seca.iterrows():
                     lat = row['latitude']
                     lon = row['longitude']
                     valor = row['value']
                     state = row['current_state']
+                    station_name = row['station_name']
+                    prefix = row['prefix']
 
                     valor_inteiro = int(valor)
-                    popup = f"Valor: {valor}"
+                    
                     
                     valor_inteiro = int(valor)
 
                     if valor_inteiro>0:
                         # Criar um popup com o valor
-                        popup = f"Valor: {valor}"
+                        popup_texto = f"Valor: {valor}<br>Station: {station_name}<br>Prefix: {prefix}"
+                        popup = Popup(popup_texto, max_width=300) 
 
                         if state == 'Atenção - l95':
                             folium.CircleMarker(
