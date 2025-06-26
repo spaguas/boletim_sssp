@@ -20,6 +20,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.action_chains import ActionChains
 from PIL import Image
 import io
 from io import BytesIO
@@ -390,10 +391,15 @@ def capturar_ipmet():
         tm.sleep(14)
         select_element.click()
 
+        select_button = driver.find_element(By.CSS_SELECTOR, "button.ol-zoom-out")
+        select_button.click()
+
+        tm.sleep(3)
+
         driver.save_screenshot("screenshot_ipmet.png")
 
         img = Image.open("screenshot_ipmet.png")
-        imagem_recortada = img.crop((120, 362, 1100, 855))
+        imagem_recortada = img.crop((170, 362, 950, 710)) #esquerda, cima, direita, baixo
         data_inicial = datetime.today()
         data_str = data_inicial.strftime('%Y-%m-%d')
 
@@ -556,6 +562,12 @@ def capturar_tela(url):
     
     return imagem
 
+def to_excel(df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:  # ou engine='xlsxwriter' se preferir
+        df.to_excel(writer, index=False, sheet_name='Seca')
+    return output.getvalue()
+
 # CSS personalizado para fundo branco e estilo dos slides
 st.markdown(
     """
@@ -618,6 +630,7 @@ st.markdown(
     .editable-box:hover {
         background-color: #f0f0f0;
     }
+
     div.stButton > button:first-child {
         background-color: #FFFFFF;  /* Fundo branco */
         color: #000000;           /* Texto preto */
@@ -629,9 +642,19 @@ st.markdown(
     div.stButton > button:first-child:hover {
         background-color: #F5F5F5;  /* Cor ao passar o mouse */
     }
+
     textarea {
         font-size: 16px !important;
     }
+    .stDownloadButton>button {
+        background-color: transparent !important;
+        border: 1px solid #ffffff !important;
+        color: white !important;
+    }
+    .stDownloadButton>button:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
     </style>
     """,
     unsafe_allow_html=True
@@ -738,7 +761,7 @@ async def slide1_seca():
         with col2:
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Mapa de dias secos </h1>
+                <h1  style="font-size: 18px;">Mapa de dias secos </h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -887,7 +910,7 @@ async def slide1_seca():
 
             st.write("""
                 <div style="text-align: center; color: #333333;">
-                    <h1  style="font-size: 10px; margin: 0; padding: 0">Dias sem chuva no período de estiagem (01/04 a 30/09)</h1>
+                    <h1  style="font-size: 14px; margin: 0; padding: 0">Dias sem chuva no período de estiagem (01/04 a 30/09)</h1>
                 </div>
                 """,
             unsafe_allow_html=True)
@@ -896,7 +919,7 @@ async def slide1_seca():
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Elaborado pela equipe do SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe do SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
                 </div>
                 """,
             unsafe_allow_html=True) 
@@ -978,7 +1001,7 @@ async def slide1_seca():
             mapa_html = mapa._repr_html_()
             st.write("""
                 <div style="text-align: center; color: #333333;">
-                    <h1  style="font-size: 10px; margin: 0; padding: 0">Dias consecutivos sem chuva</h1>
+                    <h1  style="font-size: 14px; margin: 0; padding: 0">Dias consecutivos sem chuva</h1>
                 </div>
                 """,
             unsafe_allow_html=True)
@@ -986,7 +1009,7 @@ async def slide1_seca():
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Elaborado pela equipe do SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe do SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
                 </div>
                 """,
             unsafe_allow_html=True) 
@@ -1206,7 +1229,7 @@ async def slide1_seca():
             color='status_chuva', 
             text='text_label',
             labels={'pct': '% de cidades', 'value': 'UGRHI'},
-            title="""% de cidades com DSC por UGRHI""",
+            title="""% de cidades com DCSC por UGRHI""",
             color_discrete_map={
                 '<5': '#a2f5e9',
                 '<10': '#8ff29b',
@@ -1271,7 +1294,7 @@ async def slide1():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Dados Pluviometria</h1>
+                <h1  style="font-size: 18px;">Dados Pluviometria</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -1494,7 +1517,7 @@ async def slide1():
 
                     st.write("""
                         <div style="text-align: center; color: #333333;">
-                            <h1  style="font-size: 10px; margin: 0; padding: 0">Acumulado de chuva das ultimas 24h</h1>
+                            <h1  style="font-size: 14px; margin: 0; padding: 0">Acumulado de chuva das ultimas 24h</h1>
                         </div>
                         """,
                         unsafe_allow_html=True)
@@ -1503,7 +1526,7 @@ async def slide1():
                     url_sib = "https://cth.daee.sp.gov.br/sibh/chuva_agora"
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
-                            <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Fonte: Chuva agora - <a href="{url_sib}" target="_blank"> SIBH</a></p>
+                            <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: Chuva agora - <a href="{url_sib}" target="_blank"> SIBH</a></p>
                         </div>
                         """,
                     unsafe_allow_html=True) 
@@ -1512,7 +1535,7 @@ async def slide1():
 
                     st.write("""
                         <div style="text-align: center; color: #333333;">
-                            <h1  style="font-size: 10px; margin: 0; padding: 0">Interpolação dos pluviômetros a partir do método IDW</h1>
+                            <h1  style="font-size: 14px; margin: 0; padding: 0">Interpolação dos pluviômetros a partir do método IDW</h1>
                         </div>
                         """,
                     unsafe_allow_html=True)
@@ -1638,7 +1661,7 @@ async def slide1():
                     st.components.v1.html(mapa_html, width=600, height=350)
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
-                            <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.</p>
+                            <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.</p>
                         </div>
                         """,
                     unsafe_allow_html=True)
@@ -1696,7 +1719,7 @@ async def slide2():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Dados Pluviometria</h1>
+                <h1  style="font-size: 18px;">Dados Pluviometria</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -1934,7 +1957,7 @@ async def slide3():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Acumulados dos Radares</h1>
+                <h1  style="font-size: 18px;">Acumulados dos Radares</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -1954,21 +1977,25 @@ async def slide3():
             img_ipmet, url_ipmet = capturar_ipmet()
 
         url_ipmet = "https://www.saisp.br/estaticos/sitenovo/home.html"
-        # img_ipmet = Image.open("results/imagem_ipmet.png")
-        # img_ipmet, url_ipmet = capturar_ipmet()
+
+        legenda_ipmet = Image.open("escala_acum.png")
 
         with coluna1:
             st.write("""
             <div style="text-align: center; color: #333333;">
-                <h1  style="font-size: 10px; margin: 0; padding: 0">Acumulado das 24h (mm) - Radar Ipmet</h1>
+                <h1  style="font-size: 14px; margin: 0; padding: 0">Acumulado das 24h (mm) - Radar Ipmet</h1>
             </div>
             """,
             unsafe_allow_html=True)
             st.image(img_ipmet, caption="", use_container_width=True)
 
+            cl1, cl2, cl3= st.columns([0.8, 1.0, 0.8])  
+            with cl2:
+                st.image(legenda_ipmet, caption="", use_container_width=True)
+
             st.write(f"""
                     <div style="color: black; line-height: 1;">
-                        <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Produzido pelo Ipmet. Disponível em: <a href="{url_ipmet}" target="_blank"> IPMET</a></p>
+                        <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Produzido pelo Ipmet. Disponível em: <a href="{url_ipmet}" target="_blank"> IPMET</a></p>
                     </div>
                 """,
             unsafe_allow_html=True)
@@ -1999,7 +2026,7 @@ async def slide3():
         with coluna2:
             st.write("""
             <div style="text-align: center; color: #333333;">
-                <h1  style="font-size: 10px; margin: 0; padding: 0">Acumulado das 24h (mm) - Radar SP Águas</h1>
+                <h1  style="font-size: 14px; margin: 0; padding: 0">Acumulado das 24h (mm) - Radar SP Águas</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -2007,7 +2034,7 @@ async def slide3():
             st.image("imagens/Imagem1.jpg", use_container_width=True)
             st.write(f"""
                     <div style="color: black; line-height: 1;">
-                        <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Produzido pelo Radar 600S-Selex, Banda S, 850 KW, Doppler, Dupla Polarização. Disponível em: <a href="{url_saisp}" target="_blank"> SAISP</a></p>
+                        <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Produzido pelo Radar 600S-Selex, Banda S, 850 KW, Doppler, Dupla Polarização. Disponível em: <a href="{url_saisp}" target="_blank"> SAISP</a></p>
                     </div>
                 """,
             unsafe_allow_html=True)
@@ -2054,7 +2081,7 @@ async def slide4():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Mapa de precipitação pluviométrica das últimas 24 horas</h1>
+                <h1  style="font-size: 14px;">Mapa de precipitação pluviométrica das últimas 24 horas </h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -2181,13 +2208,13 @@ async def slide5():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Dados Fluviometria</h1>
+                <h1  style="font-size: 18px;">Dados Fluviometria</h1>
             </div>
             """,
             unsafe_allow_html=True)
 
 
-        c1, c2, c3 = st.columns([0.1, 1.2, 0.1])
+        c1, c2, c3 = st.columns([0.1, 1.2, 0.2])
 
         data_inicial = datetime.today()
         hora_inicial = time(10, 0)
@@ -2312,7 +2339,7 @@ async def slide5():
         }
         
 
-        estados = ['Atenção', 'Alerta', 'Emergência', 'Extravasamento']
+        estados = ['Extravasamento','Emergência', 'Alerta', 'Atenção', 'Normal']
 
         # Separar extravasamento/emergência e outros
         dados_criticos = []  # Para Extravasamento e Emergência
@@ -2338,13 +2365,18 @@ async def slide5():
                     estado_sem_registro.append(estado)
 
             else:
-                if percentages.get(estado, 0) > 0:
-                    partes_porcentagens.append(f"{percentages.get(estado, 0)} postos estão em nível de {estado}")
+                if percentages.get(estado, 0) == 1:
+                    partes_porcentagens.append(f"{percentages.get(estado, 0)} posto em nível de {estado}")
+                elif percentages.get(estado, 0) > 1:
+                    if estado != 'Normal':
+                        partes_porcentagens.append(f"{percentages.get(estado, 0)} postos em nível de {estado}")
+                    else:
+                        partes_porcentagens.append(f"{percentages.get(estado, 0)} postos em nível {estado}")
                 else:
                     estado_sem_registro.append(estado)
 
         # Construindo a legenda
-        legenda = "De acordo com as redes telemétricas públicas do Estado de São Paulo foram regitrados"
+        legenda = "De acordo com os registros das redes telemétricas públicas do Estado de São Paulo nas últimas 24h foram registrados "
 
         # Primeiro Extravasamento/Emergência
         if dados_criticos:
@@ -2353,13 +2385,13 @@ async def slide5():
             else:
                 legenda += f" níveis de {dados_criticos[0]} e {dados_criticos[1]}, "
 
-        # Agora Normal + porcentagens
-        normal_texto = f"{percentages.get('Normal', 0)} postos em nível normal"
+        # # Agora Normal + porcentagens
+        # normal_texto = f"{percentages.get('Normal', 0)} postos em nível normal"
 
-        if partes_porcentagens:
-            normal_texto += ", "
+        # if partes_porcentagens:
+        #     normal_texto += ", "
 
-        legenda += normal_texto
+        # legenda += normal_texto
 
         if partes_porcentagens:
             if len(partes_porcentagens) == 1:
@@ -2374,7 +2406,7 @@ async def slide5():
         # E por fim estados sem registro
         if 'Extravasamento' in estado_sem_registro:
             
-            legenda += f" Não ocorreram Extravasamentos durante o perído analisado."
+            legenda += f" Não ocorreram Extravasamentos durante o período analisado."
         
         mapa = folium.Map(
             location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
@@ -2533,7 +2565,7 @@ async def slide5():
 
         mapa_html = mapa._repr_html_()
         # mapa.save("mapa_com_legenda.html")
-
+        colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
         with c2:
             # folium_static(mapa, width=600, height=400)
             st.components.v1.html(mapa_html, width=1000, height=580)
@@ -2546,17 +2578,28 @@ async def slide5():
                     """,
                 unsafe_allow_html=True)
             
+        with colun2:    
             if 'user_input_slide5' not in st.session_state:
                 st.session_state.user_input_slide5 = legenda  # sem f-string desnecessária
 
             st.text_area("Análise das redes Telemétrica", height=100, key="user_input_slide5")
-            
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
+
+        with colun3:
+            csv = df_max_values.to_csv(index=False).encode('utf-8')
+                
+            st.download_button(
+                label="⎙",
+                data=csv,
+                file_name='fluviometria_chuva.csv',
+                mime='text/csv'
+                )
+                
+        st.write(" ")
+        st.write(" ")
+        st.write(" ")
+        st.write(" ")
+        st.write(" ")
+        st.write(" ")
 
             
 
@@ -2614,7 +2657,7 @@ async def slide5():
                 with col2:
                     st.write("""
                     <div style="color: black;">
-                        <h1  style="font-size: 16px;">Gráfico do Extravasamento</h1>
+                        <h1  style="font-size: 18px;">Gráfico do Extravasamento</h1>
                     </div>
                     """,
                     unsafe_allow_html=True)
@@ -2857,7 +2900,7 @@ async def slide6():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Sistema Produtores da RMSP</h1>
+                <h1  style="font-size: 18px;">Sistema Produtores da RMSP</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -2880,7 +2923,7 @@ async def slide6():
             data_str = data_inicial.strftime('%Y-%m-%d')
 
 
-            image_path = f'results/imagem_rmsp_{data_str}.png'
+            image_path = f'results/imagem_rmsp.png'
 
             if os.path.exists(image_path):
                 imagem_recortada = Image.open(image_path)
@@ -2889,7 +2932,7 @@ async def slide6():
                 print("Entrou else rmsp")
                 imagem = capturar_tela(url)
                 imagem_recortada = imagem.crop((90, 945, 1200, 1650))
-                output_rmsp = os.path.join("results", f"imagem_rmsp_{data_str}.png")
+                output_rmsp = os.path.join("results", f"imagem_rmsp.png")
                 imagem_recortada.save(output_rmsp) #esquerda, cima, direita, baixo
                 imagem_recortada = Image.open(image_path)
 
@@ -2954,7 +2997,7 @@ async def slide6():
         with colun_grafico2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Sistema Produtores da RMSP</h1>
+                <h1  style="font-size: 18px;">Sistema Produtores da RMSP</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -3167,7 +3210,7 @@ async def slide7():
             
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Acumulados das Últimas 72h e Limiares Críticos do PPDC dos Municípios do Estado de São Paulo</h1>
+                <h1  style="font-size: 18px;">Acumulados das Últimas 72h e Limiares Críticos do PPDC dos Municípios do Estado de São Paulo</h1>
             </div>
             """,
             unsafe_allow_html=True) 
@@ -3357,7 +3400,7 @@ async def slide8():
             url = 'https://cth.daee.sp.gov.br/sibh/chuva_agora'
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Previsão do Tempo</h1>
+                <h1  style="font-size: 18px;">Previsão do Tempo</h1>
             </div>
             """,
             unsafe_allow_html=True) 
@@ -3392,7 +3435,7 @@ async def slide8():
             fonte = "https://vime.inmet.gov.br/"
             st.write(f"""
                     <div style="color: black;">
-                        <p style="font-size: 10px; margin: 0.5; text-align: center";">Fonte: <a href="{fonte}" target="_blank">Inmet</a></p>  
+                        <p style="font-size: 12px; margin: 0.5; text-align: center";">Fonte: <a href="{fonte}" target="_blank">Inmet</a></p>  
                     </div>
                 """,
             unsafe_allow_html=True)
@@ -3404,7 +3447,7 @@ async def slide8():
 
             st.write(f"""
                     <div style="color: black; line-height: 1;">
-                        <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
+                        <p style="font-size: 14px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
                     </div>
                 """,
             unsafe_allow_html=True) 
@@ -3441,7 +3484,7 @@ async def slide8_seca():
             url = 'https://cth.daee.sp.gov.br/sibh/chuva_agora'
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Pentada</h1>
+                <h1  style="font-size: 18px;">Pentada</h1>
             </div>
             """,
             unsafe_allow_html=True) 
@@ -3475,7 +3518,7 @@ async def slide8_seca():
             fonte = "https://vime.inmet.gov.br/"
             st.write(f"""
                     <div style="color: black;">
-                        <p style="font-size: 10px; margin: 0.5; text-align: center";">Fonte: <a href="{fonte}" target="_blank">Inmet</a></p>  
+                        <p style="font-size: 12px; margin: 0.5; text-align: center";">Fonte: <a href="{fonte}" target="_blank">Inmet</a></p>  
                     </div>
                 """,
             unsafe_allow_html=True)
@@ -3524,7 +3567,7 @@ async def slide5_seca():
         with col2:
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Dados Fluviometria - Estiagem</h1>
+                <h1  style="font-size: 18px;">Dados Fluviometria - Estiagem</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -3550,7 +3593,7 @@ async def slide5_seca():
                 df_seca['current_state'] = df_seca.apply(classify_state_seca, axis=1)
                 df_seca = df_seca[df_seca['current_state']!='Níveis Indefinidos']
                 df_seca = df_seca[df_seca['net_group']!='piscinao_daee']
-
+                
                 mapa = folium.Map(
                     location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
                     zoom_start=6.5,
@@ -3659,14 +3702,81 @@ async def slide5_seca():
                 mapa_html = mapa._repr_html_()
                 # mapa.save("mapa_com_legenda.html")
 
+                estados = ['Emergencia - l7', 'Atenção - l95','Normal']
+
+                percentages = {
+                    'Atenção - l95': len(df_seca[df_seca['current_state']=='Atenção - l95']),
+                    'Normal': len(df_seca[df_seca['current_state']=='Normal'])
+                }
+
+                # Separar extravasamento/emergência e outros
+                dados_criticos = []  # Para Extravasamento e Emergência
+                partes_porcentagens = []
+                estado_sem_registro = []
+
+                for estado in estados:
+                    if estado in df_seca['current_state'].values and estado in ['Emergencia - l7']:
+                        postos = df_seca[df_seca['current_state'] == estado]['station_name'].to_list()
+
+                        if postos:
+                            postos = [p.title() for p in postos]
+                            if len(postos) == 1:
+                                prefixo = "no posto"
+                                postos_str = postos[0]
+                            else:
+                                prefixo = "nos postos"
+                                postos_str = ', '.join(postos[:-1]) + ' e ' + postos[-1]
+                            
+                            dados_criticos.append(f" {estado} {prefixo} {postos_str}")
+
+                        if percentages.get(estado, 0) <= 0:
+                            estado_sem_registro.append(estado)
+
+                    else:
+                        if percentages.get(estado, 0) > 0:
+                            partes_porcentagens.append(f"{percentages.get(estado, 0)} postos em nível de {estado}")
+                        else:
+                            estado_sem_registro.append(estado)
+
+
+                # Construindo a legenda
+                legenda = "De acordo com as redes telemétricas públicas do Estado de São Paulo foram registrados "
+
+                # Primeiro Extravasamento/Emergência
+                if dados_criticos:
+                    if len(dados_criticos) == 1:
+                        legenda += f" níveis em {dados_criticos[0]}, "
+                    else:
+                        legenda += f" níveis de {dados_criticos[0]} e {dados_criticos[1]}, "
+
+                # # Agora Normal + porcentagens
+                # normal_texto = f"{percentages.get('Normal', 0)} postos em nível normal"
+
+                # if partes_porcentagens:
+                #     normal_texto += ", "
+
+                # legenda += normal_texto
+
+                if partes_porcentagens:
+                    if len(partes_porcentagens) == 1:
+                        porcentagens_str = partes_porcentagens[0]
+                    else:
+                        porcentagens_str = ', '.join(partes_porcentagens[:-1]) + ' e ' + partes_porcentagens[-1]
+                    
+                    legenda += porcentagens_str + "."
+                else:
+                    legenda += "."
+
                 c1, c2, c3 = st.columns([0.1, 1.2, 0.1])
+
                 with c2:
                     # folium_static(mapa, width=600, height=400)
                     st.components.v1.html(mapa_html, width=1000, height=580)
                 
                 if 'user_input_slide5_seca' not in st.session_state:
-                    st.session_state.user_input_slide5_seca = "Clique aqui para editar"
+                        st.session_state.user_input_slide5_seca = legenda
 
+                
                 # No local onde você quer exibir o text_area
                 colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
                 with colun2:    
@@ -3677,6 +3787,7 @@ async def slide5_seca():
                             </div>
                             """,
                         unsafe_allow_html=True)
+
                     
                     # Usar o valor do session_state diretamente
                     user_input = st.text_area(
@@ -3688,16 +3799,25 @@ async def slide5_seca():
                     if user_input != st.session_state.user_input_slide5_seca:
                         st.session_state.user_input_slide5_seca = user_input
 
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
+                with colun3:    
+                    csv = df_seca.to_csv(index=False).encode('utf-8')
+                
+                    st.download_button(
+                        label="⎙",
+                        data=csv,
+                        file_name='fluviometria_estiagem.csv',
+                        mime='text/csv'
+                    )
 
 
-                   
+
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")                 
 
 async def capa_boletim():
     with capa_boletim_container:
@@ -3769,7 +3889,7 @@ async def slide6_seca():
         with col2:
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 16px;">Sistema Alto Tietê - Estiagem</h1>
+                <h1  style="font-size: 18px;">Sistema Alto Tietê - Estiagem</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -3830,7 +3950,7 @@ async def slide6_seca():
         with colun1:
             st.write("""
                 <div style="text-align: center; color: #333333;">
-                    <h1  style="font-size: 10px; margin: 0; padding: 0">Dados do sistema Alto Tietê</h1>
+                    <h1  style="font-size: 14px; margin: 0; padding: 0">Dados do sistema Alto Tietê</h1>
                 </div>
                 """,
             unsafe_allow_html=True)
@@ -3839,7 +3959,7 @@ async def slide6_seca():
 
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> CTH - DAEE </a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> CTH - DAEE </a></p>
                 </div>
                 """,
             unsafe_allow_html=True)
@@ -3848,7 +3968,7 @@ async def slide6_seca():
         with colun2:
             st.write("""
                 <div style="text-align: center; color: #333333;">
-                    <h1  style="font-size: 10px; margin: 0; padding: 0">Diagrama unifiliar do Alto Tietê</h1>
+                    <h1  style="font-size: 14px; margin: 0; padding: 0">Diagrama unifiliar do Alto Tietê</h1>
                 </div>
                 """,
             unsafe_allow_html=True)
@@ -3874,7 +3994,7 @@ async def slide6_seca():
 
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 10px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> CTH - DAEE </a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> CTH - DAEE </a></p>
                 </div>
                 """,
             unsafe_allow_html=True)
