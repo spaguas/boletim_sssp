@@ -7,9 +7,6 @@ import os
 from osgeo import gdal, ogr, osr
 from rasterstats import zonal_stats
 import geopandas as gpd
-from matplotlib.colors import ListedColormap, BoundaryNorm
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-import numpy as np
 from datetime import datetime, timedelta, time
 from PIL import Image, ImageOps
 import plotly.express as px
@@ -20,7 +17,6 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.action_chains import ActionChains
 from PIL import Image
 import io
 from io import BytesIO
@@ -41,9 +37,36 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 import tempfile
 import shutil
-import uuid
-import json
 from folium import Popup
+from fpdf import FPDF
+from html2image import Html2Image
+
+
+class PDF(FPDF):
+    def __init__(self, orientation='L'):  # 'L' para Landscape (Paisagem)
+        super().__init__(orientation=orientation, unit='mm', format='A4')
+        self.set_margins(0, 0, 0)
+        self.set_auto_page_break(auto=False)
+        self.logo_path = "spaguas.png"
+        
+    def header(self):
+        if self.show_header:
+            self.set_font('Arial', '', 9)
+            col1_w = 45
+            col3_w = 30
+            y = 10
+            self.set_xy(10, y)
+            self.cell(col1_w, 10, "Agência de Água do Estado de São Paulo", 0, 0, 'L')
+            if os.path.exists(self.logo_path):
+                self.image(self.logo_path, x=self.w - col3_w - 10, y=y-3, w=20)
+        else:
+            # Não imprime nada (nenhum cabeçalho)
+            pass
+    
+    def footer(self):
+        # Adicionar rodapé se necessário
+        pass
+
 
 st.set_page_config(layout="wide")
 
@@ -63,8 +86,6 @@ slide8_container = st.container()
 slide8_secas = st.container()
 
 load_dotenv()
-
-
 
 def conection_postgres():
     host = os.environ.get('DATABASE_HOST')
@@ -102,6 +123,988 @@ def execute_query(query):
             cur.close()
         if conn:
             conn.close()
+
+def get_text_height(pdf, text, w, line_height):
+    if isinstance(text, tuple):
+        text = text[0]
+    # Quebra o texto em linhas considerando a largura
+    lines = pdf.multi_cell(w, line_height, txt=text, border=0, split_only=True)
+    return len(lines) * line_height
+
+def transform_html_image(nome_arquivo):
+    hti = Html2Image(
+        output_path='imagens', 
+        custom_flags=["--force-device-scale-factor=3"]
+    )
+    hti.screenshot(
+        html_file=f'{nome_arquivo}.html',
+        save_as=f'{nome_arquivo}.png',
+        size=(800, 600)
+    )
+
+def remove_transparency(image_path):
+    im = Image.open(image_path)
+    if im.mode in ('RGBA', 'LA'):
+        bg = Image.new("RGB", im.size, (255, 255, 255))  # fundo branco
+        bg.paste(im, mask=im.split()[3])  # usa o alpha como máscara
+        bg.save(image_path)
+    else:
+        im.convert("RGB").save(image_path)    
+                
+def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento, user_input6, user_input7, user_input8):
+    # Cria PDF em modo paisagem
+    pdf = PDF(orientation='L')
+
+    #Capa
+    pdf.show_header = False
+    pdf.add_page()
+
+    img = Image.open("Logo Colorido.png").convert("RGBA")
+    alpha = 60  # 0 (totalmente transparente) a 255 (opaco)
+    img.putalpha(alpha)
+    bg = Image.new("RGB", img.size, (255, 255, 255))
+    bg.paste(img, mask=img.split()[3])
+    bg.save("logo_temp.jpg", "JPEG")
+    pdf.image("logo_temp.jpg", x=25, y=-2, w=350)
+
+    pdf.set_xy(10, 85)
+    pdf.set_font("Arial", "B", 30)
+    pdf.cell(0, 10, "Boletim Diário", ln=True)
+
+    pdf.set_xy(10, 95)
+    pdf.set_font("Arial", "B", 15)
+    pdf.cell(0, 10, "Sala de Situação São Paulo - SSSP", ln=True)
+
+    data_atual = datetime.today()
+    data_anterior = datetime.today() - timedelta(days=1)
+    data_atual_str = data_atual.strftime('%d-%m-%Y').replace('-', '/')
+    data_anterior_str = data_anterior.strftime('%d-%m-%Y').replace('-', '/')
+
+    pdf.set_xy(10, 102)
+    pdf.set_font("Arial", "B", 15)
+    pdf.cell(0, 10, f"{data_anterior_str} 07:00 até {data_atual_str} 07:00", ln=True)
+    
+    imagem_logos = "regua.png"
+    pdf.image(imagem_logos, x=165, y=193, w=130)
+
+    #________________________________________________________________Slide 1
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(38, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Acumulado de chuva das ultimas 24h", ln=1)
+
+    mapa_html_flu = 'mapa_html_flu'
+    transform_html_image(mapa_html_flu)
+
+    imgagem_flu = Image.open("imagens/mapa_html_flu.png").convert("RGBA")
+    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+    background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=140)
+    pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+
+
+    pdf.set_xy(165, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Interpolação dos pluviômetros a partir do método IDW", ln=1)
+
+    mapa_html_inter = 'mapa_html_inter'
+    transform_html_image(mapa_html_inter)
+
+    imgagem_inter = Image.open("imagens/mapa_html_inter.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=140)
+    pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
+    
+    x = 10
+    y = 142
+    w = 278
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 132)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Relatos 24h", ln=1)
+
+    cell_height = get_text_height(pdf, user_input1, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input1, border=0)
+
+    #________________________________________________________________Slide 2
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(10, 25)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 7, txt="Municípios com os maiores acumulados de chuvas observadas nas últimas 24h (mm) (Rede Telemétrica)", align='C')
+    imgagem_tabela = Image.open("imagens/tabela_chuva.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_tabela.size, (255, 255, 255))
+    background.paste(imgagem_tabela, mask=imgagem_tabela.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/tabela_chuva.jpg", "JPEG", quality=95)
+    pdf.image("imagens/tabela_chuva.jpg", x=6, y=38, w=153)
+    
+    pdf.set_xy(10, 113)
+    pdf.set_font("Arial", size=10)
+    texto = (
+        "1- Máximo Registrado - Volume máximo (mm) registrado por um posto pluviométrico do município.\n"
+        "2- Média Registrada - Soma do Volume (mm) de todos os postos do município / n° de postos.\n"
+        "3- Acumulado média mês - Soma da média (mm) registrada do primeiro dia do mês até o momento.\n"
+        "4- Histórico mensal - Volume médio mensal calculado a partir da série histórica disponível."
+    )
+    pdf.multi_cell(135, 5, txt=texto)
+
+    pdf.set_xy(155, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 6, txt='Comparação de Precipitação por Município', align='C')
+    pdf.image("imagens/grafico_chuva.png", x=155, y=32, w=121)
+
+    pdf.set_xy(155, 115)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 6, txt='Chuva média acumulada por UGRHI', align='C')
+    pdf.image("imagens/grafico_chuva2.png", x=155, y=120, w=120)
+    
+    #________________________________________________________________Slide 3
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Acumulados dos Radares", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    data_inicial = datetime.today()
+    data_str = data_inicial.strftime('%Y-%m-%d')
+    pdf.set_xy(13, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 6, txt='Acumulado das 24h (mm) - Radar Ipmet', align='C')
+
+    image_path = f'results/imagem_ipmet_{data_str}.png'
+    img_ipmet = Image.open(image_path).convert("RGB")
+    img_ipmet.save("imagens/imagem_ipmet_temp.jpg", "JPEG", quality=95)
+    pdf.image("imagens/imagem_ipmet_temp.jpg", x=10, y=32, w=148)
+
+    legenda_ipmet = Image.open("escala_acum.png").convert("RGB")
+    legenda_ipmet.save("imagens/escala_ipmet_temp.jpg", "JPEG", quality=95)
+    pdf.image("imagens/escala_ipmet_temp.jpg", x=50, y=100, w=60)
+
+    pdf.set_xy(42, 116)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=10, style='I')
+    pdf.cell(0, 6, txt="Produzido pelo Ipmet. Disponível em: IPMET", ln=1, link="https://www.ipmetradar.com.br/")
+
+    pdf.set_xy(163, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(132, 6, txt='Acumulado das 24h (mm) - Radar SP Águas', align='C')
+
+    image_path_saisp = f'results/imagem_saisp_{data_str}.png'
+    img_saisp = Image.open(image_path_saisp).convert("RGB")
+    img_saisp.save("imagens/imagem_saisp_temp.jpg", "JPEG", quality=95)
+    pdf.image("imagens/imagem_saisp_temp.jpg", x=165, y=32, w=120)
+
+    legenda_saisp = Image.open("imagens/Imagem1.jpg").convert("RGB")
+    legenda_saisp.save("imagens/Imagem1_temp.jpg", "JPEG", quality=95)
+    pdf.image("imagens/Imagem1_temp.jpg", x=165, y=155, w=120)
+
+    pdf.set_xy(155, 164)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=10, style='I')
+    pdf.multi_cell(140, 6, txt='Produzido pelo Radar 600S-Selex, Banda S, 850 KW, Doppler, Dupla Polarização.', align='C')
+    pdf.set_xy(205, 168)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=10, style='I')
+    pdf.cell(0, 6, txt="Disponível em: SAISP", ln=1, link="https://www.saisp.br/estaticos/sitenovo/home.html")
+    
+    x = 10
+    y = 140
+    w = 148
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 132)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Análise", ln=1)
+
+    cell_height = get_text_height(pdf, user_input3, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input3, border=0)
+
+
+    #________________________________________________________________________Slide 5
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Dados Fluviometria", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    mapa_html_5 = "mapa_slide5"
+    transform_html_image(mapa_html_5)
+
+    imgagem_html_5 = Image.open("imagens/mapa_slide5.png").convert("RGBA")
+    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+    background = Image.new("RGB", imgagem_html_5.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_html_5, mask=imgagem_html_5.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_slide5.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_slide5.jpg", x=40, y=25, w=210)
+    pdf.set_xy(115, 158)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+
+    x = 10
+    y = 170
+    w = 270
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 160)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Análise das redes Telemétrica", ln=1)
+
+    cell_height = get_text_height(pdf, user_input5, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input5, border=0)
+
+
+    if all_extravasamento != None: 
+
+        for item in all_extravasamento:
+                
+            cards_img = item['cards_image']
+            grafico_img = item['grafico_path']
+            tabela_img = item['tabela_resumo']
+            pdf.add_page()
+            
+            pdf.set_xy(120, 15)
+            pdf.set_font("Arial", size=14,style='B')
+            pdf.cell(120, txt=f"Gráfico do Extravasamento", ln=1, align='L')
+            pdf.set_font("Arial", size=12)
+
+            
+            im = Image.open(f"imagens/{cards_img}")
+            width, height = im.size
+
+            # Define um fator de zoom (por exemplo, 1.5x)
+            remove_transparency(f"imagens/{cards_img}")
+            remove_transparency(f"imagens/{grafico_img}")
+            remove_transparency(f"imagens/{tabela_img}")
+            pdf.image(f"imagens/{cards_img}", x=10, y=22, w=275)
+            pdf.image(f"imagens/{grafico_img}", x=6, y=52, w=285)
+            pdf.image(f"imagens/{tabela_img}", x=10, y=175, w=280)
+
+    #________________________________________________________________________Slide 6
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
+
+    pdf.set_xy(120, 185)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: SSD-Sistemas Produtores", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/")
+
+
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(10, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 7, txt="Comparação entre volume atual x volume no ano anterior (%)", align='C')
+    remove_transparency(f"imagens/grafico_rmsp.png")
+    pdf.image(f"imagens/grafico_rmsp.png", x=8, y=32, w=134)
+
+    pdf.set_xy(150, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 7, txt="Volume dos Sistemas Produtores (Sabesp)", align='C')
+    remove_transparency(f"imagens/tabela_rmsp.png")
+    pdf.image(f"imagens/tabela_rmsp.png", x=147, y=32, w=160)
+
+
+    x = 10
+    y = 150
+    w = 270
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 140)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Análise dos Sistemas Produtores", ln=1)
+
+    cell_height = get_text_height(pdf, user_input6, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input6, border=0)
+
+
+    #________________________________________________________________________Slide 7
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 90  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 12)
+    pdf.set_font("Arial", size=14, style='B')
+    pdf.multi_cell(
+        150,  # largura da célula
+        7,  # altura da linha
+        txt="Acumulados das Últimas 72h e Limiares Críticos do PPDC dos Municípios do Estado de São Paulo",
+        align='C'
+    )
+
+    mapa_html_inter = 'mapa_html_ppdc'
+    transform_html_image(mapa_html_inter)
+
+    imgagem_inter = Image.open("imagens/mapa_html_ppdc.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_html_ppdc.jpg", "JPEG", quality=95)
+
+    img = Image.open("imagens/mapa_html_ppdc.jpg")
+    width, height = img.size
+    cropped_img = img.crop((0, 0, width, height - 700))
+    cropped_img_path = "imagens/mapa_html_ppdc_crop.jpg"
+    cropped_img.save(cropped_img_path, "JPEG", quality=95)
+
+    # Adiciona ao PDF
+    pdf.image(cropped_img_path, x=10, y=28, w=175)
+
+    pdf.set_xy(58, 108)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Fonte: SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+
+    pdf.set_xy(185, 28)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(105, 7, txt="Plano Preventivo de Defesa Civil específico para escorregamentos", align='C')
+
+    x = 185
+    y = 42
+    w = 105
+    padding = 3
+    line_height = 7
+
+    cell_height = get_text_height(pdf, user_input7, w - 1.5 * padding, line_height)
+    total_height = cell_height + 1.5 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+    print(repr(user_input7))
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 1.5 * padding, line_height, txt=user_input7, border=0)
+
+
+    remove_transparency(f"imagens/tabela_ppdc.png")
+    pdf.image(f"imagens/tabela_ppdc.png", x=30, y=117, w=238)
+
+    #________________________________________________________________________Slide 8
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Previsão do Tempo", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+    
+    temp_img_path = "temp_previsao.jpg"
+    image.save(temp_img_path)
+    
+    pdf.image(temp_img_path, x=10, y=32, w=148)
+    
+    pdf.set_xy(182, 32)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(182, 10, txt="Previsão do Tempo para os dias seguintes", ln=1)
+
+    x = col3_w
+    y = 42
+    w = 120
+    h = 40  # Defina a altura ou calcule com base no texto
+    padding = 3
+    line_height = 7
+
+    cell_height = get_text_height(pdf, user_input8, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input8, border=0)
+    
+    pdf.set_xy(70, 184)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=10, style='I')
+    pdf.cell(0, 10, txt="Fonte: INMET", ln=1, link="https://vime.inmet.gov.br/")
+    
+    # Remover arquivo temporário
+    import os
+    if os.path.exists(temp_img_path):
+        os.remove(temp_img_path)
+    
+    return pdf
+
+
+def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_input6, user_input6_seca , image, user_input8_seca):
+    # Cria PDF em modo paisagem
+    pdf = PDF(orientation='L')
+
+    #Capa
+    pdf.show_header = False
+    pdf.add_page()
+
+    img = Image.open("Logo Colorido.png").convert("RGBA")
+    alpha = 60  # 0 (totalmente transparente) a 255 (opaco)
+    img.putalpha(alpha)
+    bg = Image.new("RGB", img.size, (255, 255, 255))
+    bg.paste(img, mask=img.split()[3])
+    bg.save("logo_temp.jpg", "JPEG")
+    pdf.image("logo_temp.jpg", x=25, y=-2, w=350)
+
+    pdf.set_xy(10, 85)
+    pdf.set_font("Arial", "B", 30)
+    pdf.cell(0, 10, "Boletim Diário", ln=True)
+
+    pdf.set_xy(10, 95)
+    pdf.set_font("Arial", "B", 15)
+    pdf.cell(0, 10, "Sala de Situação São Paulo - SSSP", ln=True)
+
+    data_atual = datetime.today()
+    data_anterior = datetime.today() - timedelta(days=1)
+    data_atual_str = data_atual.strftime('%d-%m-%Y').replace('-', '/')
+    data_anterior_str = data_anterior.strftime('%d-%m-%Y').replace('-', '/')
+
+    pdf.set_xy(10, 102)
+    pdf.set_font("Arial", "B", 15)
+    pdf.cell(0, 10, f"{data_anterior_str} 07:00 até {data_atual_str} 07:00", ln=True)
+    
+    imagem_logos = "regua.png"
+    pdf.image(imagem_logos, x=165, y=193, w=130)
+
+
+    #________________________________________________________________Slide 1 Seca
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Mapa de dias secos ", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(38, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Dias sem chuva no período de estiagem (01/04 a 30/09)", ln=1)
+
+    mapa_html_dsc = 'mapa_html_dsc'
+    transform_html_image(mapa_html_dsc)
+
+    imgagem_flu = Image.open("imagens/mapa_html_dsc.png").convert("RGBA")
+    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+    background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_html_dsc.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_html_dsc.jpg", x=10, y=36, w=140)
+    pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
+
+
+    pdf.set_xy(165, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Dias consecutivos sem chuva", ln=1)
+
+    mapa_html_dcsc = 'mapa_html_dcsc'
+    transform_html_image(mapa_html_dcsc)
+
+    imgagem_inter = Image.open("imagens/mapa_html_dcsc.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_html_dcsc.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_html_dcsc.jpg", x=150, y=36, w=140)
+    pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
+
+    x = 10
+    y = 142
+    w = 278
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 132)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Relatos 24h", ln=1)
+
+    cell_height = get_text_height(pdf, user_input1_seca, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input1_seca, border=0)
+
+    #________________________________________________________________Slide 2 secas
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Mapa de dias secos ", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(38, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Dias sem chuva (DSC) por Município", ln=1)
+
+ 
+    imgagem_flu = Image.open("imagens/tabela_dsc.png").convert("RGBA")
+    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+    background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/tabela_dcsc.jpg", "JPEG", quality=95)
+    pdf.image("imagens/tabela_dcsc.jpg", x=10, y=36, w=170)
+    pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+
+    pdf.set_xy(165, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Dias consecutivos sem chuva (DCSC) por Município", ln=1)
+
+    imgagem_inter = Image.open("imagens/tabela_dcsc.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/tabela_dcsc.jpg", "JPEG", quality=95)
+    pdf.image("imagens/tabela_dcsc.jpg", x=150, y=36, w=170)
+    
+    x = 10
+    y = 142
+    w = 278
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(117, 97)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="% de cidades com DCSC por UGRHI", ln=1)
+
+    imgagem_inter = Image.open("imagens/grafico_dcsc_ugrhi.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/grafico_dcsc_ugrhi.jpg", "JPEG", quality=95)
+    pdf.image("imagens/grafico_dcsc_ugrhi.jpg", x=25, y=105, w=270)
+
+
+
+    #________________________________________________________________Slide 1
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(38, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Acumulado de chuva das ultimas 24h", ln=1)
+
+    mapa_html_flu = 'mapa_html_flu'
+    transform_html_image(mapa_html_flu)
+
+    imgagem_flu = Image.open("imagens/mapa_html_flu.png").convert("RGBA")
+    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+    background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=140)
+    pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+
+
+    pdf.set_xy(165, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Interpolação dos pluviômetros a partir do método IDW", ln=1)
+
+    mapa_html_inter = 'mapa_html_inter'
+    transform_html_image(mapa_html_inter)
+
+    imgagem_inter = Image.open("imagens/mapa_html_inter.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=140)
+    pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
+    
+    x = 10
+    y = 142
+    w = 278
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 132)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Relatos 24h", ln=1)
+
+    cell_height = get_text_height(pdf, user_input1, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input1, border=0)
+
+    #________________________________________________________________Slide 2
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(10, 25)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 7, txt="Municípios com os maiores acumulados de chuvas observadas nas últimas 24h (mm) (Rede Telemétrica)", align='C')
+    imgagem_tabela = Image.open("imagens/tabela_chuva.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_tabela.size, (255, 255, 255))
+    background.paste(imgagem_tabela, mask=imgagem_tabela.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/tabela_chuva.jpg", "JPEG", quality=95)
+    pdf.image("imagens/tabela_chuva.jpg", x=6, y=38, w=153)
+    
+    pdf.set_xy(10, 113)
+    pdf.set_font("Arial", size=10)
+    texto = (
+        "1- Máximo Registrado - Volume máximo (mm) registrado por um posto pluviométrico do município.\n"
+        "2- Média Registrada - Soma do Volume (mm) de todos os postos do município / n° de postos.\n"
+        "3- Acumulado média mês - Soma da média (mm) registrada do primeiro dia do mês até o momento.\n"
+        "4- Histórico mensal - Volume médio mensal calculado a partir da série histórica disponível."
+    )
+    pdf.multi_cell(135, 5, txt=texto)
+
+    pdf.set_xy(155, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 6, txt='Comparação de Precipitação por Município', align='C')
+    pdf.image("imagens/grafico_chuva.png", x=155, y=32, w=121)
+
+    pdf.set_xy(155, 115)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 6, txt='Chuva média acumulada por UGRHI', align='C')
+    pdf.image("imagens/grafico_chuva2.png", x=155, y=120, w=120)
+
+    #________________________________________________________________________Slide 5 Seca 
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Dados Fluviometria - Estiagem", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    mapa_slide5_seca = "mapa_slide5_seca"
+    transform_html_image(mapa_slide5_seca)
+
+    imgagem_html_5 = Image.open("imagens/mapa_slide5_seca.png").convert("RGBA")
+    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+    background = Image.new("RGB", imgagem_html_5.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_html_5, mask=imgagem_html_5.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/mapa_slide5_seca.jpg", "JPEG", quality=95)
+    pdf.image("imagens/mapa_slide5_seca.jpg", x=40, y=25, w=210)
+    pdf.set_xy(115, 158)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+
+    x = 10
+    y = 170
+    w = 270
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 160)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Análise das redes Telemétrica", ln=1)
+
+    cell_height = get_text_height(pdf, user_input5_seca, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input5_seca, border=0)
+
+
+
+    #________________________________________________________________________Slide 6
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
+
+    pdf.set_xy(120, 185)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: SSD-Sistemas Produtores", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/")
+
+
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+
+    pdf.set_xy(10, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 7, txt="Comparação entre volume atual x volume no ano anterior (%)", align='C')
+    remove_transparency(f"imagens/grafico_rmsp.png")
+    pdf.image(f"imagens/grafico_rmsp.png", x=8, y=32, w=134)
+
+    pdf.set_xy(150, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(135, 7, txt="Volume dos Sistemas Produtores (Sabesp)", align='C')
+    remove_transparency(f"imagens/tabela_rmsp.png")
+    pdf.image(f"imagens/tabela_rmsp.png", x=147, y=32, w=160)
+
+
+    x = 10
+    y = 150
+    w = 270
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 140)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt="Análise dos Sistemas Produtores", ln=1)
+
+    cell_height = get_text_height(pdf, user_input6, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input6, border=0)
+
+
+    #________________________________________________________________________Slide 6 seca
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120 
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 12)
+    pdf.set_font("Arial", size=14, style='B')
+    pdf.cell(col2_w, txt="Sistema Alto Tietê - Estiagem", ln=1, align='L')
+
+    pdf.set_xy(50, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(0, 7, txt="Dados do sistema Alto Tietê", align='L')
+    remove_transparency(f"imagens/tabela_alto_tiete.png")
+    pdf.image(f"imagens/tabela_alto_tiete.png", x=8, y=37, w=150)
+    pdf.set_xy(59, 100)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: SSSD Alto Tietê - CTH - DAEE", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete")
+
+    data_inicial = datetime.today()
+    data_str = data_inicial.strftime('%Y-%m-%d')
+    pdf.set_xy(150, 26)
+    pdf.set_font("Arial","B", size=12)
+    pdf.multi_cell(0, 7, txt="Diagrama unifiliar do Alto Tietê", align='C')
+    pdf.image(f"results/imagem_alto_tiete_{data_str}.png", x=155, y=32, w=140)
+    pdf.set_xy(200, 100)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=8, style='I')
+    pdf.cell(0, 10, txt="Fonte: SSSD Alto Tietê - CTH - DAEE", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete")
+
+
+    x = 10
+    y = 150
+    w = 270
+    padding = 3
+    line_height = 7
+
+    pdf.set_xy(x, 140)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(0, 10, txt= "Análise do Sistema Produtor - Alto Tietê", ln=1)
+   
+    cell_height = get_text_height(pdf, user_input6_seca, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input6_seca, border=0)
+
+
+
+    #________________________________________________________________________Slide 8
+    pdf.show_header = True 
+    pdf.add_page()
+
+    col1_w = 80 
+    col2_w = 120  
+    col3_w = 165  
+   
+    pdf.set_xy(col2_w, 15)
+    pdf.set_font("Arial", size=14,style='B')
+    pdf.cell(col2_w, txt="Pentada", ln=1, align='L')
+    pdf.set_font("Arial", size=12)
+    
+    temp_img_path = "imagens/temp_pentada.jpg"
+    image.save(temp_img_path)
+    
+    pdf.image(temp_img_path, x=10, y=32, w=148)
+    
+    pdf.set_xy(182, 32)
+    pdf.set_font("Arial","B", size=12)
+    pdf.cell(182, 10, txt="Previsão do Tempo para os dias seguintes", ln=1)
+
+    x = col3_w
+    y = 42
+    w = 120
+    padding = 3
+    line_height = 7
+
+    cell_height = get_text_height(pdf, user_input8_seca, w - 2 * padding, line_height)
+    total_height = cell_height + 2 * padding
+
+    pdf.set_draw_color(200, 200, 200)  # cinza claro
+    pdf.rect(x, y, w, total_height)
+
+    pdf.set_xy(x + padding, y + padding)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input8_seca, border=0)
+    
+    pdf.set_xy(70, 184)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_font("Arial", size=10, style='I')
+    pdf.cell(0, 10, txt="Fonte: INMET", ln=1, link="https://vime.inmet.gov.br/")
+    
+    # Remover arquivo temporário
+    import os
+    if os.path.exists(temp_img_path):
+        os.remove(temp_img_path)
+    
+    return pdf
 
 def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arquivo, ):
 
@@ -208,9 +1211,7 @@ def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arqui
     ).fillna(0)
     
     data_stats.to_file(f"./results/acumulado_24_mun_{data_hora_final.strftime('%Y-%m-%d')}.shp", driver="ESRI Shapefile")
-
-
-    
+   
 def definir_cor(valor):
     if valor < 10:
         return "#16c995"
@@ -220,7 +1221,6 @@ def definir_cor(valor):
         return "#ff7b00"
     else:
         return "#f74f78"
-
 
 def classify_state(row):
     value = row['value']
@@ -365,8 +1365,6 @@ def iniciar_chrome_com_diretorio_unico():
     driver = webdriver.Chrome(options=options, service=service)
 
     return driver, unique_user_data_dir
-
-
 
 def capturar_ipmet():
     driver, dir_path = iniciar_chrome_com_diretorio_unico()
@@ -562,11 +1560,6 @@ def capturar_tela(url):
     
     return imagem
 
-def to_excel(df):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:  # ou engine='xlsxwriter' se preferir
-        df.to_excel(writer, index=False, sheet_name='Seca')
-    return output.getvalue()
 
 # CSS personalizado para fundo branco e estilo dos slides
 st.markdown(
@@ -908,6 +1901,8 @@ async def slide1_seca():
 
             mapa_html_dsc = mapa_dsc._repr_html_()
 
+            mapa_dsc.save("mapa_html_dsc.html")
+
             st.write("""
                 <div style="text-align: center; color: #333333;">
                     <h1  style="font-size: 14px; margin: 0; padding: 0">Dias sem chuva no período de estiagem (01/04 a 30/09)</h1>
@@ -999,6 +1994,8 @@ async def slide1_seca():
             mapa.get_root().html.add_child(Element(legenda_html))
 
             mapa_html = mapa._repr_html_()
+            mapa.save("mapa_html_dcsc.html")
+
             st.write("""
                 <div style="text-align: center; color: #333333;">
                     <h1  style="font-size: 14px; margin: 0; padding: 0">Dias consecutivos sem chuva</h1>
@@ -1124,6 +2121,20 @@ async def slide1_seca():
                     
             st.markdown(styled_df.to_html(), unsafe_allow_html=True)
             st.write(" ")
+
+            html_tabela = styled_df.to_html()
+            # html_tabela.save("tabela_slide1.html")
+
+            soup = BeautifulSoup(html_tabela, 'html.parser')
+            caption = soup.find('caption')
+            if caption:
+                caption.decompose() 
+
+            html_sem_titulo = str(soup)
+
+            hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+            hti.output_path = "imagens"
+            hti.screenshot(html_str=html_sem_titulo, save_as='tabela_dsc.png', size=(700, 500))
             # st.write("""  
             #         <div style="color: black; line-height: 1;">
             #             <p style="font-size: 12px; margin: 0.5; padding: 0;">DS - Dias sem chuva</p>
@@ -1176,6 +2187,20 @@ async def slide1_seca():
             .set_properties(**{"background-color": "#f9f9f9", "color": "#333333"})
                     
             st.markdown(styled_df.to_html(), unsafe_allow_html=True)
+
+            html_tabela = styled_df.to_html()
+            # html_tabela.save("tabela_slide1.html")
+
+            soup = BeautifulSoup(html_tabela, 'html.parser')
+            caption = soup.find('caption')
+            if caption:
+                caption.decompose() 
+
+            html_sem_titulo = str(soup)
+
+            hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+            hti.output_path = "imagens"
+            hti.screenshot(html_str=html_sem_titulo, save_as='tabela_dcsc.png', size=(700, 500))
             # st.write("""  
             #         <div style="color: black; line-height: 1;">
             #             <p style="font-size: 12px; margin: 0.5; padding: 0;">DCSC - Dias consecutivos sem chuva</p>
@@ -1258,6 +2283,7 @@ async def slide1_seca():
             legend_title_text=' ',
             xaxis=dict(title_font=dict(size=14, color='#333333'), tickfont=dict(size=12, color='#333333')),
             yaxis=dict(title_font=dict(size=14, color='#333333'), tickfont=dict(size=12, color='#333333'), range=[0, 100]),
+            margin=dict(t=60, b=140, l=60, r=40),
             legend=dict(
                 orientation='h',
                 yanchor='bottom',
@@ -1269,6 +2295,18 @@ async def slide1_seca():
         fig.update_traces(textposition='inside', texttemplate='%{text}', textfont=dict(size=11, color='#333333'))
 
         st.plotly_chart(fig, use_container_width=True)
+
+        fig.update_layout(title_text="")  # Remove o título
+
+        html_str = fig.to_html(full_html=False, include_plotlyjs='cdn')
+        hti = Html2Image(
+            custom_flags=["--force-device-scale-factor=3"]
+        )
+        hti.output_path = "imagens"
+        hti.screenshot(html_str=html_str, save_as=f'grafico_dcsc_ugrhi.png', size=(1400, 1000))
+
+
+        return user_input
 
 
 async def slide1():
@@ -1509,8 +2547,9 @@ async def slide1():
                 # # Adicionar a legenda ao mapa
                 mapa.get_root().html.add_child(Element(legenda_html))
 
-                mapa_html = mapa._repr_html_()
-                # # mapa.save("mapa_com_legenda.html")
+                mapa_html_flu = mapa._repr_html_()
+                mapa.save("mapa_html_flu.html")
+
 
                 with coluna1:
                     # folium_static(mapa, width=350, height=300)
@@ -1521,8 +2560,9 @@ async def slide1():
                         </div>
                         """,
                         unsafe_allow_html=True)
-                    st.components.v1.html(mapa_html, width=600, height=350)
-
+                       
+                    st.components.v1.html(mapa_html_flu, width=600, height=350)
+                    
                     url_sib = "https://cth.daee.sp.gov.br/sibh/chuva_agora"
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
@@ -1656,9 +2696,11 @@ async def slide1():
                     # Insere a legenda
                     legend_element = Element(legend_bar)
                     mapa.get_root().html.add_child(legend_element)
-                    mapa_html = mapa._repr_html_()
+                    mapa_html_inter = mapa._repr_html_()
+                    mapa.save("mapa_html_inter.html")
 
-                    st.components.v1.html(mapa_html, width=600, height=350)
+                    st.components.v1.html(mapa_html_inter, width=600, height=350)
+
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
                             <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.</p>
@@ -1666,14 +2708,13 @@ async def slide1():
                         """,
                     unsafe_allow_html=True)
                     
-
-
                 with colun2:
                        
                     if 'user_input_chuva_slide1' not in st.session_state:
                         st.session_state.user_input_chuva_slide1 = "Clique para editar"
                     
-                    user_input = st.text_area("Relatos 24h", height=200, key="user_input_chuva_slide1")
+                    user_input = st.text_area("Relatos 24h", value=st.session_state.user_input_chuva_slide1, height=200, label_visibility="collapsed")
+                    # user_input = st.text_area("Previsão personalizada", value=st.session_state.user_input_slide8, height=100, label_visibility="collapsed")
                     
             
             else:
@@ -1693,6 +2734,8 @@ async def slide1():
             st.write(" ")
             st.write(" ")
             st.write(" ")
+
+        return user_input
 
 
 
@@ -1725,7 +2768,7 @@ async def slide2():
             unsafe_allow_html=True)
 
 
-        coluna1, coluna2= st.columns([1.0, 0.8])
+        coluna1, coluna2= st.columns([1.0, 0.9])
             
         query_cities = f"""SELECT c.name as city_name,
                     max(ac_diario) AS max_ac_diario,
@@ -1773,6 +2816,7 @@ async def slide2():
             
         tabela_ugrhis_df= execute_query(query_ugrhis)
 
+        first_column_name = tabela_df.columns[0]
         with coluna1:
 
             styled_df = tabela_df.style\
@@ -1786,21 +2830,21 @@ async def slide2():
             .set_table_styles([
                 {"selector": "caption", "props": [
                     ("color", "black"),
-                    ("font-size", "14px"),
+                    ("font-size", "16px"),
                     ("font-weight", "bold"),
                     ("text-align", "center"),
                     ("padding", "5px"),
                     ("caption-side", "top") 
                 ]},
                 {"selector": "th", "props": [
-                    ("font-size", "14px"), 
+                    ("font-size", "16px"), 
                     ("background-color", "#f0f0f0"),
                     ("color", "#333333"),
                     ("padding", "5px"),
                     ("text-align", "center")
                     ]},
                 {"selector": "td", "props": [
-                    ("font-size", "14px"),
+                    ("font-size", "16px"),
                     ("height", "7px"),
                     ("color", "#333333"),
                     ("padding", "2px 4px"),
@@ -1811,19 +2855,45 @@ async def slide2():
                 {"selector": "tr:hover", "props": [(
                     "background-color", "#ffff99"),
                     ("cursor", "pointer")
-                    ]}
+                    ]},
+                {"selector": "th.col0", "props": [("width", "150px")]},
+                {"selector": "td.col0", "props": [("width", "150px")]},
+                {"selector": "th.col1", "props": [("width", "110px")]},
+                {"selector": "td.col1", "props": [("width", "110px")]},
+                {"selector": "th.col2", "props": [("width", "100px")]},
+                {"selector": "td.col2", "props": [("width", "100px")]},
+                {"selector": "th.col3", "props": [("width", "110px")]},
+                {"selector": "td.col3", "props": [("width", "110px")]},
+                {"selector": "th.col4", "props": [("width", "110px")]},
+                {"selector": "td.col4", "props": [("width", "110px")]},
+
             ])\
             .set_properties(**{"background-color": "#f9f9f9", "color": "#333333"})
 
             st.markdown(styled_df.to_html(), unsafe_allow_html=True)
 
+            html_tabela = styled_df.to_html()
+            # html_tabela.save("tabela_slide1.html")
+
+            soup = BeautifulSoup(html_tabela, 'html.parser')
+            caption = soup.find('caption')
+            if caption:
+                caption.decompose() 
+
+            html_sem_titulo = str(soup)
+
+            hti = Html2Image()
+            hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+            hti.output_path = "imagens" 
+            hti.screenshot(html_str=html_sem_titulo, save_as='tabela_chuva.png', size=(700, 500))
+
             st.write("""
                     <div class="align-left-center">
                         <div style="color: black; line-height: 1;">
-                            <p style="font-size: 12px; margin: 0.5; padding: 0;">1- Máximo Registrado - Volume máximo (mm) registrado por um posto pluviométrico do município.</p>
-                            <p style="font-size: 12px; margin: 0.5; padding: 0;">2- Média Registrada - Soma do Volume (mm) de todos postos do municípios / n°postos.</p>
-                            <p style="font-size: 12px; margin: 0.5; padding: 0;">3- Acumulado média mês - Soma da média (mm) registrada do primeiro dia do mês até o momento.</p>
-                            <p style="font-size: 12px; margin: 0.5; padding: 0;">4- Histórico mensal - Volume médio mensal calculado a partir da série histórica disponível</p>
+                            <p style="font-size: 14px; margin: 0.5; padding: 0;">  1- Máximo Registrado - Volume máximo (mm) registrado por um posto pluviométrico do município.</p>
+                            <p style="font-size: 14px; margin: 0.5; padding: 0;">  2- Média Registrada - Soma do Volume (mm) de todos postos do municípios / n°postos.</p>
+                            <p style="font-size: 14px; margin: 0.5; padding: 0;">  3- Acumulado média mês - Soma da média (mm) registrada do primeiro dia do mês até o momento.</p>
+                            <p style="font-size: 14px; margin: 0.5; padding: 0;">  4- Histórico mensal - Volume médio mensal calculado a partir da série histórica disponível</p>
                         </div>
                     </div>
                 """,
@@ -1840,13 +2910,10 @@ async def slide2():
         
             fig, ax = plt.subplots(figsize=(7, 5)) 
 
-            # Configurações das barras
             n = len(tabela_df)  # Número de municípios
             largura_barra = 0.15  # Largura de cada barra individual
             espacamento = 0.05  # Espaço entre grupos de barras
             indice = np.arange(n)  # Posições no eixo X
-
-            # Offset calculado corretamente
             offset = np.array([-1.5, -0.5, 0.5, 1.5]) * (largura_barra + espacamento/2)
             cores = ['#4CAF50', '#2196F3', '#FF5722', '#FFC107']
 
@@ -1866,16 +2933,17 @@ async def slide2():
 
             # Personalização do gráfico
             ax.set_title('Comparação de Precipitação por Município', fontsize=10, pad=30)
-            ax.set_xlabel('Municípios', fontsize=6)
-            ax.set_ylabel('Precipitação (mm)', fontsize=6)
+            # ax.set_xlabel('Municípios', fontsize=8)
+            ax.set_ylabel('Precipitação (mm)', fontsize=8)
             ax.set_xticks(indice)
-            ax.set_xticklabels(tabela_df['Municípios'], rotation=45, ha='right', fontsize=7)
+            ax.set_xticklabels(tabela_df['Municípios'], rotation=30, ha='right', fontsize=10)
             ax.grid(axis='y', linestyle=':', alpha=0.3)
             
             # Ajuste do eixo Y
             max_valor = tabela_df[['Chuva Média (mm)', 'Chuva Máximo (mm)', 
                                 'Acum. média mês (mm)', 'Histórico mensal (mm)']].max().max()
             ax.set_ylim(0, max_valor * 1.2)
+            ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
 
             # Legenda fora do gráfico
             ax.legend(
@@ -1886,11 +2954,14 @@ async def slide2():
                 loc='upper center',  # Âncora no centro superior
                 ncol=4  # Número de colunas para distribuir os itens
             )
+
             plt.tight_layout()
             st.pyplot(fig)
+            ax.set_title("")
+            fig.savefig("imagens/grafico_chuva.png", dpi=300, bbox_inches="tight")
 
         with coluna2:
-            fig, ax = plt.subplots(figsize=(6, 4))
+            fig, ax = plt.subplots(figsize=(8, 6))
             # Definindo as posições das barras
             n = len(tabela_ugrhis_df)
             indice = np.arange(n)  # Posições no eixo X (0, 1, 2, ...)
@@ -1910,18 +2981,21 @@ async def slide2():
 
             ax.set_title('Chuva média acumulada por UGRHI', fontsize=10)             # Título do gráfico
             ax.set_xticks(indice)                           # Define os ticks no eixo X
-            ax.set_xticklabels(tabela_ugrhis_df['ugrhi_name'], fontsize=7)     # Nomes das UGRHIs nos ticks
+            ax.set_xticklabels(tabela_ugrhis_df['ugrhi_name'], fontsize=10)     # Nomes das UGRHIs nos ticks
             ax.set_ylabel('Precipitação (mm)', fontsize=8)
 
-            # y_ticks = np.arange(0, max(tabela_ugrhis_df['ac_diario']) + 1, 0.5)  # Define os valores dos ticks
-            # ax.set_yticks(y_ticks)  # Define os ticks no eixo Y
+            max_valor = tabela_ugrhis_df['ac_diario'].max()
+
+            # ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
 
 
             # Rotaciona os rótulos do eixo X para melhor visualização (opcional)
-            plt.xticks(rotation=45, ha='right')
+            plt.xticks(rotation=30, ha='right')
 
             plt.tight_layout()
             st.pyplot(fig)
+            ax.set_title("")
+            fig.savefig("imagens/grafico_chuva2.png", dpi=300, bbox_inches="tight")
 
         st.write(" ")
         st.write(" ")
@@ -1933,6 +3007,8 @@ async def slide2():
         st.write(" ")
         st.write(" ")
         st.write(" ")
+
+        return None
 
 
 async def slide3():
@@ -2057,6 +3133,7 @@ async def slide3():
         st.write(" ")
 
         # await asyncio.sleep(2)
+        return user_input
 
 async def slide4():
     with slide4_container:
@@ -2337,7 +3414,6 @@ async def slide5():
             'Atenção': len(df_max_values[df_max_values['current_state']=='Atenção']),
             'Normal': len(df_max_values[df_max_values['current_state']=='Normal'])
         }
-        
 
         estados = ['Extravasamento','Emergência', 'Alerta', 'Atenção', 'Normal']
 
@@ -2385,14 +3461,6 @@ async def slide5():
             else:
                 legenda += f" níveis de {dados_criticos[0]} e {dados_criticos[1]}, "
 
-        # # Agora Normal + porcentagens
-        # normal_texto = f"{percentages.get('Normal', 0)} postos em nível normal"
-
-        # if partes_porcentagens:
-        #     normal_texto += ", "
-
-        # legenda += normal_texto
-
         if partes_porcentagens:
             if len(partes_porcentagens) == 1:
                 porcentagens_str = partes_porcentagens[0]
@@ -2410,7 +3478,7 @@ async def slide5():
         
         mapa = folium.Map(
             location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
-            zoom_start=6.5,
+            zoom_start=6.0,
             tiles=None,
             control_scale=False, 
             zoomControl=False
@@ -2564,8 +3632,10 @@ async def slide5():
         mapa.get_root().html.add_child(Element(legenda_html))
 
         mapa_html = mapa._repr_html_()
-        # mapa.save("mapa_com_legenda.html")
-        colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
+        mapa.save("mapa_slide5.html")
+
+        c1, c2, c3 = st.columns([0.1, 1.2, 0.1])
+
         with c2:
             # folium_static(mapa, width=600, height=400)
             st.components.v1.html(mapa_html, width=1000, height=580)
@@ -2578,11 +3648,14 @@ async def slide5():
                     """,
                 unsafe_allow_html=True)
             
+        colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
+            
         with colun2:    
             if 'user_input_slide5' not in st.session_state:
                 st.session_state.user_input_slide5 = legenda  # sem f-string desnecessária
 
-            st.text_area("Análise das redes Telemétrica", height=100, key="user_input_slide5")
+            user_input = st.text_area("Análise das redes Telemétrica", height=100, key="user_input_slide5")
+
 
         with colun3:
             csv = df_max_values.to_csv(index=False).encode('utf-8')
@@ -2593,7 +3666,8 @@ async def slide5():
                 file_name='fluviometria_chuva.csv',
                 mime='text/csv'
                 )
-                
+
+
         st.write(" ")
         st.write(" ")
         st.write(" ")
@@ -2611,8 +3685,8 @@ async def slide5():
 
             df_extravasation = df_extravasation[df_extravasation['station_prefix_id'].isin(prefix_id)]
 
-
-            for station_prefix_id in prefix_id:  # Iterando sobre os IDs já conhecidos
+            all_extravasamento = []
+            for i, station_prefix_id in enumerate(prefix_id, start=1):  # Iterando sobre os IDs já conhecidos
                 df_filtered = df_extravasation[df_extravasation['station_prefix_id'].astype(str) == station_prefix_id]
 
                 df_filtered = df_filtered.sort_values(by='current_data', ascending=True)
@@ -2662,57 +3736,36 @@ async def slide5():
                     """,
                     unsafe_allow_html=True)
 
-                   
 
-                cols = st.columns(5)
-
-                background_colors = {
-                    'Extravasamento': '#da070f',  # Vermelho
-                    'Emergência': '#8435b7',      # Roxo
-                    'Alerta': '#f95108',          # Laranja
-                    'Atenção': '#f8d202',         # Amarelo
-                    'Normal': '#268b12'           # Verde
-                }
-
-                with cols[0]:
-                    st.markdown(f"""
-                    <div style="background-color:#da070f; padding: 7px; border-radius: 3px; height: auto; display:flex; flex-direction: column; align-items: center; justify-content: center">
-                        <div style="color: white; text-align: center; font-size: 14px;"><strong>Extravasamento</strong></div>
-                        <div style="color: white; text-align: center; font-size: 12px;">{percentages['Extravasamento']:.2f}%</div>
+                html_perc_blocks = f"""
+                    <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
+                        <div style="background-color:#da070f; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                            <div style="color: white; font-size: 18px;"><strong>Extravasamento</strong></div>
+                            <div style="color: white; font-size: 16px;">{percentages['Extravasamento']:.2f}%</div>
+                        </div>
+                        <div style="background-color:#8435b7; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                            <div style="color: white; font-size: 18px;"><strong>Emergência</strong></div>
+                            <div style="color: white; font-size: 16px;">{percentages['Emergência']:.2f}%</div>
+                        </div>
+                        <div style="background-color:#f95108; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                            <div style="color: white; font-size: 18px;"><strong>Alerta</strong></div>
+                            <div style="color: white; font-size: 16px;">{percentages['Alerta']:.2f}%</div>
+                        </div>
+                        <div style="background-color:#f8d202; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                            <div style="color: white; font-size: 18px;"><strong>Atenção</strong></div>
+                            <div style="color: white; font-size: 16px;">{percentages['Atenção']:.2f}%</div>
+                        </div>
+                        <div style="background-color:#268b12; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                            <div style="color: white; font-size: 18px;"><strong>Normal</strong></div>
+                            <div style="color: white; font-size: 16px;">{percentages['Normal']:.2f}%</div>
+                        </div>
                     </div>
-                    """, unsafe_allow_html=True)
+                    """
+                st.markdown(html_perc_blocks, unsafe_allow_html=True)
 
-                with cols[1]:
-                    st.markdown(f"""
-                    <div style="background-color:#8435b7; padding: 7px; border-radius: 3px; height: auto; display:flex; flex-direction: column; align-items: center; justify-content: center">
-                        <div style="color: white; text-align: center; font-size: 14px;"><strong>Emergência</strong></div>
-                        <div style="color: white; text-align: center; font-size: 12px;">{percentages['Emergência']:.2f}%</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with cols[2]:
-                    st.markdown(f"""
-                    <div style="background-color:#f95108; padding: 7px; border-radius: 3px; height: auto; display:flex; flex-direction: column; align-items: center; justify-content: center">
-                        <div style="color: white; text-align: center; font-size: 14px;"><strong>Alerta</strong></div>
-                        <div style="color: white; text-align:: center; font-size: 12px;">{percentages['Alerta']:.2f}%</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with cols[3]:
-                    st.markdown(f"""
-                    <div style="background-color:#f8d202; padding: 7px; border-radius: 3px; height: auto; display:flex; flex-direction: column; align-items: center; justify-content: center">
-                        <div style="color: white; text-align: center; font-size: 14px;"><strong>Atenção</strong></div>
-                        <div style="color: white; text-align: center; font-size: 12px;">{percentages['Atenção']:.2f}%</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                with cols[4]:
-                    st.markdown(f"""
-                    <div style="background-color:#268b12; padding: 7px; border-radius: 3px; height: auto; display:flex; flex-direction: column; align-items: center; justify-content: center">
-                        <div style="color: white; text-align: center; font-size: 14px;"><strong>Normal</strong></div>
-                        <div style="color: white; text-align: center; font-size: 12px;">{percentages['Normal']:.2f}%</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                hti = Html2Image()
+                hti.output_path = "imagens"  # ou outro diretório
+                hti.screenshot(html_str=html_perc_blocks, save_as=f'barras_percentuais{i}.png', size=(1200, 300))
 
                 fig = go.Figure()
 
@@ -2752,6 +3805,13 @@ async def slide5():
                     xaxis=dict(tickfont=dict(color='black', size=9), gridcolor='lightgray', dtick="3600000", tickformat="%H:%M"),# Cor dos valores no eixo X
                     yaxis=dict(tickfont=dict(color='black', size=9), gridcolor='lightgray', tickformat=".", tickmode='auto') 
                 )
+
+                html_str = fig.to_html(full_html=False, include_plotlyjs='cdn')
+                hti = Html2Image(
+                    custom_flags=["--force-device-scale-factor=3"]
+                )
+                hti.output_path = "imagens"
+                hti.screenshot(html_str=html_str, save_as=f'grafico_plotly{i}.png', size=(1100, 600))
 
                 # Exibindo o gráfico no Streamlit
                 st.plotly_chart(fig)
@@ -2854,10 +3914,28 @@ async def slide5():
                     }) \
                     .hide(axis="index") 
 
-                
+                html_str = styled_df.to_html()
+                hti = Html2Image(
+                    custom_flags=["--force-device-scale-factor=3"]
+                )
+                hti.output_path = "imagens"
+                hti.screenshot(html_str=html_str, save_as=f'tabela_resumo{i}.png', size=(1200, 300))
                 st.markdown(styled_df.to_html(), unsafe_allow_html=True)
+
                 # st.table(styled_df)
                 # st.dataframe(styled_df, use_container_width=True)
+
+                all_extravasamento.append({
+                    "numero": i,  # <--- numerando aqui
+                    "station_id": id_station,
+                    "station_name": name_station,
+                    "cards_image":f'barras_percentuais{i}.png',
+                    "grafico_path": f'grafico_plotly{i}.png',
+                    "tabela_resumo": f"tabela_resumo{i}.png",
+                    "percentuais": percentages,
+                    "resumo": summary_data,
+                    # ... outros dados
+                })
 
                 st.write(" ")
                 st.write(" ")
@@ -2874,8 +3952,17 @@ async def slide5():
                 st.write(" ") 
                 st.write(" ")
                 st.write(" ")
-                st.write(" ") 
-                
+                st.write(" ")
+
+            return user_input, all_extravasamento
+            
+        else:
+            all_extravasamento = None
+            return user_input, all_extravasamento
+            
+
+
+
 
 
 async def slide6(): 
@@ -2931,9 +4018,9 @@ async def slide6():
             else:
                 print("Entrou else rmsp")
                 imagem = capturar_tela(url)
-                imagem_recortada = imagem.crop((90, 945, 1200, 1650))
+                imagem_recortada = imagem.crop((90, 945, 1200, 1650))#esquerda, cima, direita, baixo
                 output_rmsp = os.path.join("results", f"imagem_rmsp.png")
-                imagem_recortada.save(output_rmsp) #esquerda, cima, direita, baixo
+                imagem_recortada.save(output_rmsp) 
                 imagem_recortada = Image.open(image_path)
 
             st.image(imagem_recortada, caption="", use_container_width=True)
@@ -3080,6 +4167,11 @@ async def slide6():
 
             plt.tight_layout()
             st.pyplot(fig)
+            ax.set_title("")
+            fig.savefig("imagens/grafico_rmsp.png", dpi=300, bbox_inches="tight")
+
+
+
 
         with colun2: 
             styled_df = merged_data_sistemas.style\
@@ -3096,14 +4188,14 @@ async def slide6():
             .set_table_styles([
                 {"selector": "caption", "props": [
                     ("color", "black"),
-                    ("font-size", "12px"),
+                    ("font-size", "14px"),
                     ("font-weight", "bold"),
                     ("text-align", "center"),
                     ("padding", "5px"),
                     ("caption-side", "top") 
                 ]},
                 {"selector": "th", "props": [ #cabeçalho
-                    ("font-size", "12px"),
+                    ("font-size", "14px"),
                     ("height", "12px"), 
                     ("background-color", "#f0f0f0"),
                     ("color", "#333333"),
@@ -3111,7 +4203,7 @@ async def slide6():
                     ("text-align", "center")
                     ]},
                 {"selector": "td", "props": [
-                    ("font-size", "12px"),
+                    ("font-size", "14px"),
                     ("height", "7px"),
                     ("color", "#333333"),
                     ("padding", "4px 5px"),
@@ -3141,6 +4233,21 @@ async def slide6():
             ])\
             .set_properties(**{"background-color": "#f9f9f9", "color": "#333333"})
             st.markdown(styled_df.to_html(), unsafe_allow_html=True)
+            
+            html_tabela = styled_df.to_html()
+
+            soup = BeautifulSoup(html_tabela, 'html.parser')
+            caption = soup.find('caption')
+            if caption:
+                caption.decompose()
+
+            html_sem_titulo = str(soup)
+            hti = Html2Image(
+                custom_flags=["--force-device-scale-factor=3"]
+            )
+            hti.output_path = "imagens"  # ou outro diretório
+            hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_rmsp.png', size=(800, 600))
+
 
 
         min_dif_filter = merged_data_sistemas[merged_data_sistemas["Diferença Vol. Anual (%)"] == merged_data_sistemas["Diferença Vol. Anual (%)"].min()].iloc[0]
@@ -3185,6 +4292,8 @@ async def slide6():
         st.write(" ")
         st.write(" ") 
         st.write(" ")
+
+        return user_input
         
 
 async def slide7():
@@ -3230,7 +4339,7 @@ async def slide7():
                         ORDER BY max_ac_72h DESC;"""
 
         tabela_df= execute_query(query_cities)
-
+ 
         tabela_df['status'] = 'Sem dados' 
         tabela_df.loc[tabela_df['max_ac_72h'] > tabela_df['ppdc'], 'status'] = 'Atenção'
         tabela_df.loc[tabela_df['max_ac_72h'] < tabela_df['ppdc'], 'status'] = 'Normal'
@@ -3310,6 +4419,9 @@ async def slide7():
             mapa.get_root().html.add_child(Element(legenda_html))
 
             mapa_html = mapa._repr_html_()
+
+            mapa.save("mapa_html_ppdc.html")
+
             st.components.v1.html(mapa_html, width=860, height=350)
             url = 'https://cth.daee.sp.gov.br/sibh/chuva_agora'
             st.markdown(f'<p style="text-align: center; font-size: 12px">Elaborado pela equipe do SP Águas. Fonte: <a href="{url}" target="_blank">SIBH</a> </a></p>', unsafe_allow_html=True)
@@ -3317,11 +4429,11 @@ async def slide7():
             
         with coluna2:
 
-            legenda = '"O PPDC – Plano Preventivo de Defesa Civil específico para escorregamentos nas encostas da Serra do Mar no Estado de São Paulo (Decreto Estadual nº 30,860 de 04/12/1989, redefinido pelo Decreto Estadual nº42,565 de 01/12/1997) tem por objetivo principal evitar a ocorrência de mortes, com a remoção preventiva e temporária da população que ocupa as áreas de risco, antes que os escorregamentos atinjam suas moradias"'
+            legenda = '"O PPDC - Plano Preventivo de Defesa Civil específico para escorregamentos nas encostas da Serra do Mar no Estado de São Paulo (Decreto Estadual nº 30,860 de 04/12/1989, redefinido pelo Decreto Estadual nº42,565 de 01/12/1997) tem por objetivo principal evitar a ocorrência de mortes, com a remoção preventiva e temporária da população que ocupa as áreas de risco, antes que os escorregamentos atinjam suas moradias"'
             if 'user_input_slide7' not in st.session_state:
                 st.session_state.user_input_slide7 = legenda 
 
-            st.text_area("Plano Preventivo de Defesa Civil específico para escorregamentos", height=340, key="user_input_slide7")
+            user_input = st.text_area("Plano Preventivo de Defesa Civil específico para escorregamentos", height=340, key="user_input_slide7")
 
 
         tabela_df['per_ppdc'] = (tabela_df['max_ac_72h']*100)/tabela_df['ppdc']
@@ -3369,11 +4481,27 @@ async def slide7():
         # Exibindo a tabela com estilo aplicado em HTML
         st.markdown(styled_df.to_html(), unsafe_allow_html=True)
 
+        html_tabela = styled_df.to_html()
+
+        soup = BeautifulSoup(html_tabela, 'html.parser')
+        caption = soup.find('caption')
+        if caption:
+            caption.decompose()
+
+        html_sem_titulo = str(soup)
+        hti = Html2Image(
+            custom_flags=["--force-device-scale-factor=3"]
+        )
+        hti.output_path = "imagens" 
+        hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_ppdc.png', size=(800, 600))
+
         st.write(" ")
         st.write(" ")
         st.write(" ")
         st.write(" ")
         st.write(" ")
+
+        return user_input
 
 
 async def slide8():
@@ -3430,7 +4558,6 @@ async def slide8():
 
 
         with coluna1:
-
             st.image(image, caption="", use_container_width=True)
             fonte = "https://vime.inmet.gov.br/"
             st.write(f"""
@@ -3457,8 +4584,9 @@ async def slide8():
                 st.session_state.user_input_slide8 = legenda
             
             user_input = st.text_area("Previsão personalizada", value=st.session_state.user_input_slide8, height=100, label_visibility="collapsed")
-            
 
+        return image, user_input
+            
 
 async def slide8_seca():
     with slide8_secas:
@@ -3543,6 +4671,7 @@ async def slide8_seca():
             if user_input != st.session_state.user_input:
                 st.session_state.user_input = user_input
         
+        return image, user_input
 
 async def slide5_seca(): 
     with slide5_secas:
@@ -3596,7 +4725,7 @@ async def slide5_seca():
                 
                 mapa = folium.Map(
                     location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
-                    zoom_start=6.5,
+                    zoom_start=6.0,
                     tiles=None,
                     control_scale=False, 
                     zoomControl=False
@@ -3701,6 +4830,7 @@ async def slide5_seca():
 
                 mapa_html = mapa._repr_html_()
                 # mapa.save("mapa_com_legenda.html")
+                mapa.save("mapa_slide5_seca.html")
 
                 estados = ['Emergencia - l7', 'Atenção - l95','Normal']
 
@@ -3809,15 +4939,15 @@ async def slide5_seca():
                         mime='text/csv'
                     )
 
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")
+            st.write(" ")   
 
-
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")
-            st.write(" ")                 
+        return user_input              
 
 async def capa_boletim():
     with capa_boletim_container:
@@ -3930,8 +5060,8 @@ async def slide6_seca():
             styled_df = tabela.style\
             .set_table_attributes('style="width:100%; table-layout:fixed"')\
             .set_table_styles([
-                {"selector": "thead th", "props": [("background-color", "#f0f0f0"), ("color", "#333333"), ("font-size", "12px"), ("padding", "5px 5px"),("text-align", "center")]},
-                {"selector": "tbody td", "props": [("background-color", "white"), ("color", "black"), ("font-size", "12px"), ("padding", "5px 5px"), ("text-align", "center"), ("line-height", "3.0")]},
+                {"selector": "thead th", "props": [("background-color", "#f0f0f0"), ("color", "#333333"), ("font-size", "14px"), ("padding", "5px 5px"),("text-align", "center")]},
+                {"selector": "tbody td", "props": [("background-color", "white"), ("color", "black"), ("font-size", "14px"), ("padding", "5px 5px"), ("text-align", "center"), ("line-height", "3.0")]},
                 {"selector": "tbody tr:nth-child(odd)", "props": [("background-color", "#f9f9f9")]},
 
                 # Largura específica para colunas (baseado na ordem do DataFrame)
@@ -3945,6 +5075,21 @@ async def slide6_seca():
             ])\
                 .hide(axis="index") 
             
+
+            html_tabela = styled_df.to_html()
+
+            soup = BeautifulSoup(html_tabela, 'html.parser')
+            caption = soup.find('caption')
+            if caption:
+                caption.decompose()
+
+            html_sem_titulo = str(soup)
+            hti = Html2Image(
+                custom_flags=["--force-device-scale-factor=3"]
+            )
+            hti.output_path = "imagens"  # ou outro diretório
+            hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_alto_tiete.png', size=(800, 600))
+
         colun1, colun2 = st.columns([1.0, 1.0])
 
         with colun1:
@@ -4025,8 +5170,8 @@ async def slide6_seca():
         st.write(" ")
         st.write(" ")
 
-
-
+        return user_input
+    
         
     
 
@@ -4041,19 +5186,42 @@ async def main():
 
         # Executa todas as tasks simultaneamente
         if st.session_state.boletim == 'chuvas':
-            await asyncio.gather(
+            capa_data, slide1_data, slide2_data, slide3_data, slide5_data, slide6_data, slide7_data, slide8_data = await asyncio.gather(
                 capa(),
                 slide1(),
                 slide2(),
                 slide3(),
-                # slide4(), não será mais usado
                 slide5(),
                 slide6(),
                 slide7(),
                 slide8()
             )
+
+            user_input1 = slide1_data
+            user_input3 = slide3_data
+            user_input5, all_extravasamento = slide5_data
+            user_input6 = slide6_data
+            user_input7 = slide7_data
+            image, user_input8 = slide8_data
+
+            if image.mode == 'P':
+                image_convert = image.convert('RGB')
+
+            if st.button("Exportar para PDF"):
+
+                pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8)
+                
+                pdf_bytes = pdf.output(dest='S').encode('latin1')
+
+                st.download_button(
+                    label="Baixar PDF",
+                    data=pdf_bytes,
+                    file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                    mime="application/pdf",
+                )
+
         elif st.session_state.boletim == 'secas':
-            await asyncio.gather(
+            capa_data, slide1_data_seca, slide1_data, slide2_data, slide5_data_seca, slide6_data, slide6_data_seca, slide8_data_seca = await asyncio.gather(
                 capa(),    
                 slide1_seca(),
                 slide1(),
@@ -4063,6 +5231,28 @@ async def main():
                 slide6_seca(),
                 slide8_seca()
             )
+            user_input1_seca = slide1_data_seca
+            user_input1 = slide1_data
+            user_input5_seca = slide5_data_seca
+            user_input6 = slide6_data
+            user_input6_seca = slide6_data_seca
+            image, user_input8_seca = slide8_data_seca
+
+            if image.mode == 'P':
+                image_convert = image.convert('RGB')
+
+            if st.button("Exportar para PDF"):
+
+                pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca)
+                
+                pdf_bytes = pdf.output(dest='S').encode('latin1')
+
+                st.download_button(
+                    label="Baixar PDF",
+                    data=pdf_bytes,
+                    file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                    mime="application/pdf",
+                )
 
     
 if __name__ == "__main__":

@@ -17,6 +17,8 @@ dependencies:
     - webdriver-manager
     - selenium
     - fpdf
+    - html2image
+    - PIL
   - geopandas
   - plotly
   - rasterstats
