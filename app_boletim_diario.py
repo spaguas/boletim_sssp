@@ -132,10 +132,10 @@ def get_text_height(pdf, text, w, line_height):
     return len(lines) * line_height
 
 def transform_html_image(nome_arquivo):
-    png_path = f'imagens/{nome_arquivo}.png'
+    # png_path = f'imagens/{nome_arquivo}.png'
 
-    if os.path.exists(png_path):
-        os.remove(png_path)
+    # if os.path.exists(png_path):
+    #     os.remove(png_path)
 
     hti = Html2Image(
         output_path='imagens', 
