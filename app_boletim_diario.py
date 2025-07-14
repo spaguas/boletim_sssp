@@ -132,9 +132,17 @@ def get_text_height(pdf, text, w, line_height):
     return len(lines) * line_height
 
 def transform_html_image(nome_arquivo):
+    png_path = f'imagens/{nome_arquivo}.png'
+
+    if os.path.exists(png_path):
+        os.remove(png_path)
+
     hti = Html2Image(
         output_path='imagens', 
-        custom_flags=["--force-device-scale-factor=3"]
+        custom_flags=["--force-device-scale-factor=3",
+                      "--incognito",
+                      "--disable-application-cache",
+                      "--no-cache"]
     )
     hti.screenshot(
         html_file=f'{nome_arquivo}.html',
@@ -457,7 +465,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
 
-    pdf.set_xy(120, 185)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(120, 189)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Fonte: SSD-Sistemas Produtores", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/")
 
@@ -671,7 +679,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.cell(col2_w, txt="Mapa de dias secos ", ln=1, align='L')
     pdf.set_font("Arial", size=12)
 
-    pdf.set_xy(38, 26)
+    pdf.set_xy(25, 26)
     pdf.set_font("Arial","B", size=12)
     pdf.cell(0, 10, txt="Dias sem chuva no período de estiagem (01/04 a 30/09)", ln=1)
 
@@ -684,12 +692,12 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_dsc.jpg", "JPEG", quality=95)
     pdf.image("imagens/mapa_html_dsc.jpg", x=10, y=36, w=140)
-    pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(38, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
 
 
-    pdf.set_xy(165, 26)
+    pdf.set_xy(185, 26)
     pdf.set_font("Arial","B", size=12)
     pdf.cell(0, 10, txt="Dias consecutivos sem chuva", ln=1)
 
@@ -701,7 +709,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_dcsc.jpg", "JPEG", quality=95)
     pdf.image("imagens/mapa_html_dcsc.jpg", x=150, y=36, w=140)
-    pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(177, 125)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
 
@@ -952,7 +960,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
 
-    pdf.set_xy(120, 185)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(120, 189)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Fonte: SSD-Sistemas Produtores", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/")
 
@@ -1247,7 +1255,7 @@ def classify_state_seca(row):
     
     # Verifica cada nível na ordem de prioridade, apenas se não for nulo
     if not pd.isna(row.get('l95')) and value <= row['l95']:
-        return 'Atenção - l95'
+        return 'Atenção'
     else:
         # Se todos os níveis forem nulos ou o valor for menor que attention_level
         if pd.isna([row['l95']]).all():
@@ -2620,7 +2628,6 @@ async def slide1():
                 mapa_html_flu = mapa._repr_html_()
                 mapa.save("mapa_html_flu.html")
 
-
                 with coluna1:
                     # folium_static(mapa, width=350, height=300)
 
@@ -2743,8 +2750,6 @@ async def slide1():
                     data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
                     data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
                     data_stats.drop(columns=["mean_preci"])
-
-                    print(data_stats.columns)
 
                     selected_bounds = [0, 1, 2, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100, 250]
                     cmap = [
@@ -4905,7 +4910,7 @@ async def slide5_seca():
                 ).add_to(mapa)
 
                 normal_layer = folium.FeatureGroup(name='Normal')
-                atencao_layer = folium.FeatureGroup(name='Atenção - l95')
+                atencao_layer = folium.FeatureGroup(name='Atenção')
 
                 # Adicionar marcadores para cada ponto
                 for index, row in df_seca.iterrows():
@@ -4926,7 +4931,7 @@ async def slide5_seca():
                         popup_texto = f"Valor: {valor}<br>Station: {station_name}<br>Prefix: {prefix}"
                         popup = Popup(popup_texto, max_width=300) 
 
-                        if state == 'Atenção - l95':
+                        if state == 'Atenção':
                             folium.CircleMarker(
                                 location=[lat, lon],
                                 radius=4,  # Tamanho do marcador
@@ -4959,12 +4964,12 @@ async def slide5_seca():
                 <div style="position: fixed; z-index:999999; bottom: 18px; left: 50%; transform: translateX(-50%); background: white; padding: 1px; border-radius: 5px; display: flex; align-items: center; justify-content: center;">
                     <div style="display: flex; align-items: center; margin-right: 5px;">
                         <div style="width: 60px; height: 15px; background-color: #f74f78; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; border-radius: 3px;">
-                            <span> Emergência -l7</span>
+                            <span> Emergência</span>
                         </div>   
                     </div>
                     <div style="display: flex; align-items: center; margin-right: 5px;">
                         <div style="width: 60px; height: 15px; background-color: #bda501; display: flex; align-items: center; justify-content: center; color: white; font-size: 8px; border-radius: 3px;">
-                            <span> Atenção - l95</span>
+                            <span> Atenção</span>
                         </div>   
                     </div>
                     <div style="display: flex; align-items: center; margin-right: 5px;">
@@ -4980,10 +4985,10 @@ async def slide5_seca():
                 # mapa.save("mapa_com_legenda.html")
                 mapa.save("mapa_slide5_seca.html")
 
-                estados = ['Emergencia - l7', 'Atenção - l95','Normal']
+                estados = ['Emergencia', 'Atenção','Normal']
 
                 percentages = {
-                    'Atenção - l95': len(df_seca[df_seca['current_state']=='Atenção - l95']),
+                    'Atenção': len(df_seca[df_seca['current_state']=='Atenção']),
                     'Normal': len(df_seca[df_seca['current_state']=='Normal'])
                 }
 
@@ -4993,7 +4998,7 @@ async def slide5_seca():
                 estado_sem_registro = []
 
                 for estado in estados:
-                    if estado in df_seca['current_state'].values and estado in ['Emergencia - l7']:
+                    if estado in df_seca['current_state'].values and estado in ['Emergencia']:
                         postos = df_seca[df_seca['current_state'] == estado]['station_name'].to_list()
 
                         if postos:
@@ -5012,7 +5017,10 @@ async def slide5_seca():
 
                     else:
                         if percentages.get(estado, 0) > 0:
-                            partes_porcentagens.append(f"{percentages.get(estado, 0)} postos em nível de {estado}")
+                            if estado == 'Normal':
+                                partes_porcentagens.append(f"{percentages.get(estado, 0)} postos em nível {estado}")
+                            else:
+                                partes_porcentagens.append(f"{percentages.get(estado, 0)} postos em nível de {estado}")
                         else:
                             estado_sem_registro.append(estado)
 
@@ -5026,14 +5034,6 @@ async def slide5_seca():
                         legenda += f" níveis em {dados_criticos[0]}, "
                     else:
                         legenda += f" níveis de {dados_criticos[0]} e {dados_criticos[1]}, "
-
-                # # Agora Normal + porcentagens
-                # normal_texto = f"{percentages.get('Normal', 0)} postos em nível normal"
-
-                # if partes_porcentagens:
-                #     normal_texto += ", "
-
-                # legenda += normal_texto
 
                 if partes_porcentagens:
                     if len(partes_porcentagens) == 1:
