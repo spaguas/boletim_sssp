@@ -569,7 +569,6 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     pdf.set_draw_color(200, 200, 200)  # cinza claro
     pdf.rect(x, y, w, total_height)
-    print(repr(user_input7))
     pdf.set_xy(x + padding, y + padding)
     pdf.set_font("Arial", size=12)
     pdf.multi_cell(w - 1.5 * padding, line_height, txt=user_input7, border=0)
@@ -2428,18 +2427,6 @@ async def slide1():
                 if 'excluir_prefixos' not in st.session_state:
                     st.session_state.excluir_prefixos = []
 
-
-                # prefixos_selecionados = st.multiselect(
-                #     'Excluir prefixos',
-                #     prefix_list,
-                #     default=st.session_state.excluir_prefixos,
-                # )
-
-                # # Se a seleção mudou, atualiza e reroda
-                # if set(prefixos_selecionados) != set(st.session_state.excluir_prefixos):
-                #     st.session_state.excluir_prefixos = prefixos_selecionados
-                #     st.rerun()
-
                 # Aplica o filtro, se houver exclusões
                 if st.session_state.excluir_prefixos:
                     df = df[~df['prefix'].isin(st.session_state.excluir_prefixos)]
@@ -2649,10 +2636,6 @@ async def slide1():
                         """,
                     unsafe_allow_html=True) 
 
-                    # prefix_list = sorted(df['prefix'].dropna().unique().tolist())
-                    # if 'excluir_prefixos' not in st.session_state:
-                    #     st.session_state.excluir_prefixos = []
-
                     prefixos_selecionados = st.multiselect(
                         label="",
                         options=prefix_list,
@@ -2667,17 +2650,6 @@ async def slide1():
                         st.rerun()
 
 
-                    # if st.button("Filtrar"):
-                    #     st.session_state.excluir_prefixos = prefixos_selecionados
-                        
-
-                    # prefix_list = df['prefix'].to_list()
-
-                    # options = st.multiselect(
-                    #     'Excluir prefixos',
-                    #     prefix_list,
-                    #     default=[],
-                    # )
                                         
                 with coluna2:
 
@@ -2698,53 +2670,16 @@ async def slide1():
                     sp_border["geometry"] = sp_border["geometry"].simplify(tolerance=0.01, preserve_topology=True)
                     sp_border_shapefile = "results/sp_border.shp"
                     municipio_arquivo = 'cities_idw'
-                    excluir_prefixos = ""
 
                     shapefile_path = f'results/acumulado_24_mun_{data_hora_final.strftime("%Y-%m-%d")}.shp'
 
 
                     if "interpolar_novamente" not in st.session_state:
                         st.session_state.interpolar_novamente = False
-                        
-                    # if st.session_state.interpolacao_escolhida is None:
-
-                    #     col1, col2, col3, col4 = st.columns(4)
-                        
-                    #     with col2:
-                    #         if st.button("Interpolar Novamente"):
-                    #             st.session_state.interpolacao_escolhida = "Interpolar"
-                    #             st.rerun()
-                        
-                    #     with col3:
-                    #         if st.button("Não Interpolar Novamente"):
-                    #             st.session_state.interpolacao_escolhida = "Não Interpolar"
-                    #             st.rerun()
-                    #     st.stop()
-
-
-                    # if st.session_state.interpolacao_escolhida == "Interpolar":
-                    #     gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
-                    #     data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
-                    #     data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
-                    #     data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
-                    #     data_stats = data_stats.drop(columns=["mean_preci"])
-
-                    # elif st.session_state.interpolacao_escolhida == "Não Interpolar":
-                    #     if os.path.exists(shapefile_path):
-                    #         data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
-                    #         data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
-                    #         data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
-                    #         data_stats = data_stats.drop(columns=["mean_preci"])
-                    #     else:
-                    #         gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
-                    #         data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
-                    #         data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
-                    #         data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
-                    #         data_stats = data_stats.drop(columns=["mean_preci"])
 
 
                     if st.session_state.interpolar_novamente or not os.path.exists(shapefile_path):
-                        gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo, excluir_prefixos)
+                        gerar_mapa_chuva_shapefile(sp_border, sp_border_shapefile, municipio_arquivo, prefixos_selecionados)
 
                     data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
                     data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
@@ -3514,8 +3449,6 @@ async def slide5():
         
         query_view = f"select * from estados_estacoes_24h;"
         df_extravasation= execute_query(query)
-
-        print(df_extravasation.columns)
 
         prefix_list = sorted(df_extravasation['prefix'].dropna().unique().tolist())
 
