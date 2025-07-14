@@ -7,7 +7,7 @@ import os
 from osgeo import gdal, ogr, osr
 from rasterstats import zonal_stats
 import geopandas as gpd
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from PIL import Image, ImageOps
 import plotly.express as px
 import folium
@@ -1106,7 +1106,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     
     return pdf
 
-def gerar_mapa_chuva_shapefile(excluir_prefixos, get_data, data_shapefile, arquivo, ):
+def gerar_mapa_chuva_shapefile(get_data, data_shapefile, arquivo, excluir_prefixos):
 
     data_inicial = datetime.today()
     hora_inicial = time(7, 0)
@@ -1644,10 +1644,45 @@ st.markdown(
         border: 1px solid #ffffff !important;
         color: white !important;
     }
+
     .stDownloadButton>button:hover {
         background-color: rgba(255, 255, 255, 0.1) !important;
     }
 
+    /* Container principal - reforço de especificidade */
+    div[data-baseweb="select"] div {
+        color: #000000 !important;
+    }
+
+    /* Caixa principal do select */
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        border: 1px solid #CCCCCC !important;
+        border-radius: 4px !important;
+    }
+
+    /* Texto do placeholder (quando vazio) - abordagem agressiva */
+    div[data-baseweb="select"] > div > div > div[aria-hidden="true"],
+    div[data-baseweb="select"] > div > div > div:first-child {
+        color: #000000 !important;
+    }
+
+    /* Texto digitado (busca) - abordagem direta */
+    div[data-baseweb="select"] input {
+        color: #000000 !important;
+        caret-color: #000000 !important; /* Cor do cursor de texto */
+    }
+
+    /* Ícones */
+    div[data-baseweb="select"] svg {
+        fill: #000000 !important;
+    }
+
+    /* Itens selecionados (tags) */
+    div[data-baseweb="select"] span[role="button"] {
+        color: #000000 !important;
+        background-color: #f0f0f0 !important;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -2340,15 +2375,28 @@ async def slide1():
 
         coluna1, coluna2 = st.columns([1.0, 1.0])
 
-        cmap1, cmap2, coluna3 = st.columns([0.4, 2.0, 0.2])
+        cmap1, cmap2, coluna3 = st.columns([1.0, 1.0, 0.2])
 
         colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
+
+        data_ini, data_fim = st.session_state.get("intervalo", (None, None))
 
         data_inicial = datetime.today()
         hora_inicial = time(10, 0)
         data_hora_inicial = datetime.combine(data_inicial, hora_inicial)
         data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
         hora_inicial_str = data_hora_inicial.strftime('%H:%M')
+       
+        # if data_ini:
+        #     # Define horário desejado (ex: 10h00)
+        #     hora_inicial = time(10, 0)
+
+        #     # Combina a data inicial com o horário
+        #     data_hora_inicial = datetime.combine(data_ini, hora_inicial)
+
+        #     # Formata para o padrão usado na URL
+        #     data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
+        #     hora_inicial_str = data_hora_inicial.strftime('%H:%M')
 
         url = f'https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now?station_type_id=2&hours=24&from_date={data_inicial_str}T{hora_inicial_str}&serializer=complete&public=true'
         
@@ -2366,9 +2414,31 @@ async def slide1():
                 df['latitude'] = pd.to_numeric(df['latitude'], errors='coerce')
                 df['longitude'] = pd.to_numeric(df['longitude'], errors='coerce')
                 df = df.sort_values(by="value", ascending=False)
+
+                prefix_list = sorted(df['prefix'].dropna().unique().tolist())
+
+                if 'excluir_prefixos' not in st.session_state:
+                    st.session_state.excluir_prefixos = []
+
+
+                # prefixos_selecionados = st.multiselect(
+                #     'Excluir prefixos',
+                #     prefix_list,
+                #     default=st.session_state.excluir_prefixos,
+                # )
+
+                # # Se a seleção mudou, atualiza e reroda
+                # if set(prefixos_selecionados) != set(st.session_state.excluir_prefixos):
+                #     st.session_state.excluir_prefixos = prefixos_selecionados
+                #     st.rerun()
+
+                # Aplica o filtro, se houver exclusões
+                if st.session_state.excluir_prefixos:
+                    df = df[~df['prefix'].isin(st.session_state.excluir_prefixos)]
                 
                 latitude =  -22.8859
                 longitude = -48.4451
+
 
                 mapa = folium.Map(
                     location=[latitude, longitude],  # Centralizar no meio dos pontos
@@ -2567,10 +2637,41 @@ async def slide1():
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
                             <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: Chuva agora - <a href="{url_sib}" target="_blank"> SIBH</a></p>
+                            <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;"> </p>
                         </div>
                         """,
                     unsafe_allow_html=True) 
-                    
+
+                    # prefix_list = sorted(df['prefix'].dropna().unique().tolist())
+                    # if 'excluir_prefixos' not in st.session_state:
+                    #     st.session_state.excluir_prefixos = []
+
+                    prefixos_selecionados = st.multiselect(
+                        label="",
+                        options=prefix_list,
+                        default=st.session_state.excluir_prefixos,
+                        placeholder="Excluir prefixos",
+                        label_visibility="collapsed"
+                    )
+
+                    # Se mudar a seleção, atualiza o estado e recarrega
+                    if set(prefixos_selecionados) != set(st.session_state.excluir_prefixos):
+                        st.session_state.excluir_prefixos = prefixos_selecionados
+                        st.rerun()
+
+
+                    # if st.button("Filtrar"):
+                    #     st.session_state.excluir_prefixos = prefixos_selecionados
+                        
+
+                    # prefix_list = df['prefix'].to_list()
+
+                    # options = st.multiselect(
+                    #     'Excluir prefixos',
+                    #     prefix_list,
+                    #     default=[],
+                    # )
+                                        
                 with coluna2:
 
                     st.write("""
@@ -2595,44 +2696,55 @@ async def slide1():
                     shapefile_path = f'results/acumulado_24_mun_{data_hora_final.strftime("%Y-%m-%d")}.shp'
 
 
-                    if "interpolacao_escolhida" not in st.session_state:
-                        st.session_state.interpolacao_escolhida = None
+                    if "interpolar_novamente" not in st.session_state:
+                        st.session_state.interpolar_novamente = False
                         
-                    if st.session_state.interpolacao_escolhida is None:
+                    # if st.session_state.interpolacao_escolhida is None:
 
-                        col1, col2, col3, col4 = st.columns(4)
+                    #     col1, col2, col3, col4 = st.columns(4)
                         
-                        with col2:
-                            if st.button("Interpolar Novamente"):
-                                st.session_state.interpolacao_escolhida = "Interpolar"
-                                st.rerun()
+                    #     with col2:
+                    #         if st.button("Interpolar Novamente"):
+                    #             st.session_state.interpolacao_escolhida = "Interpolar"
+                    #             st.rerun()
                         
-                        with col3:
-                            if st.button("Não Interpolar Novamente"):
-                                st.session_state.interpolacao_escolhida = "Não Interpolar"
-                                st.rerun()
-                        st.stop()
+                    #     with col3:
+                    #         if st.button("Não Interpolar Novamente"):
+                    #             st.session_state.interpolacao_escolhida = "Não Interpolar"
+                    #             st.rerun()
+                    #     st.stop()
 
 
-                    if st.session_state.interpolacao_escolhida == "Interpolar":
-                        gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
-                        data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
-                        data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
-                        data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
-                        data_stats = data_stats.drop(columns=["mean_preci"])
+                    # if st.session_state.interpolacao_escolhida == "Interpolar":
+                    #     gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
+                    #     data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
+                    #     data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
+                    #     data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
+                    #     data_stats = data_stats.drop(columns=["mean_preci"])
 
-                    elif st.session_state.interpolacao_escolhida == "Não Interpolar":
-                        if os.path.exists(shapefile_path):
-                            data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
-                            data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
-                            data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
-                            data_stats = data_stats.drop(columns=["mean_preci"])
-                        else:
-                            gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
-                            data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
-                            data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
-                            data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
-                            data_stats = data_stats.drop(columns=["mean_preci"])
+                    # elif st.session_state.interpolacao_escolhida == "Não Interpolar":
+                    #     if os.path.exists(shapefile_path):
+                    #         data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
+                    #         data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
+                    #         data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
+                    #         data_stats = data_stats.drop(columns=["mean_preci"])
+                    #     else:
+                    #         gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo)
+                    #         data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
+                    #         data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
+                    #         data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
+                    #         data_stats = data_stats.drop(columns=["mean_preci"])
+
+
+                    if st.session_state.interpolar_novamente or not os.path.exists(shapefile_path):
+                        gerar_mapa_chuva_shapefile(excluir_prefixos, sp_border, sp_border_shapefile, municipio_arquivo, excluir_prefixos)
+
+                    data_stats = gpd.read_file(shapefile_path).to_crs(epsg=4326)
+                    data_stats["geometry"] = data_stats["geometry"].simplify(tolerance=0.01, preserve_topology=True)
+                    data_stats["mean_precipitation"] = pd.to_numeric(data_stats["mean_preci"], errors='coerce').fillna(0)
+                    data_stats.drop(columns=["mean_preci"])
+
+                    print(data_stats.columns)
 
                     selected_bounds = [0, 1, 2, 5, 7, 10, 15, 20, 25, 30, 40, 50, 75, 100, 250]
                     cmap = [
@@ -2707,6 +2819,10 @@ async def slide1():
                         </div>
                         """,
                     unsafe_allow_html=True)
+
+                    if st.button("Interpolar novamente"):
+                        st.session_state.interpolar_novamente = True
+                        st.rerun()
                     
                 with colun2:
                        
@@ -2769,6 +2885,14 @@ async def slide2():
 
 
         coluna1, coluna2= st.columns([1.0, 0.9])
+
+        prefix_list = st.session_state.excluir_prefixos
+        if prefix_list:
+            prefix_str = ",".join(f"'{p}'" for p in prefix_list)
+            filtro_prefixo = f"AND re.prefix NOT IN ({prefix_str})"
+        else:
+        # Lista vazia – ignora o filtro
+            filtro_prefixo = ""
             
         query_cities = f"""SELECT c.name as city_name,
                     max(ac_diario) AS max_ac_diario,
@@ -2792,7 +2916,7 @@ async def slide2():
                 FROM public.station_rainfall_accum_month re
                     LEFT JOIN cities c ON c.id = re.city_id
                     LEFT JOIN avg_rainfall_cities rc ON rc.cod_ibge::text = c.cod_ibge::text
-                WHERE disponibilidade_diaria > 80 AND disponibilidade_mensal > 60::numeric AND ac_diario IS NOT null and c.name!='Município não Existente ou Incorporado por Outro'
+                WHERE disponibilidade_diaria > 80 AND disponibilidade_mensal > 60::numeric AND ac_diario IS NOT null and c.name!='Município não Existente ou Incorporado por Outro' {filtro_prefixo}
                 GROUP BY city_name, media_historica
                 ORDER BY (avg(ac_diario)) DESC LIMIT 10;"""
 
@@ -3386,11 +3510,22 @@ async def slide5():
         query_view = f"select * from estados_estacoes_24h;"
         df_extravasation= execute_query(query)
 
+        print(df_extravasation.columns)
+
+        prefix_list = sorted(df_extravasation['prefix'].dropna().unique().tolist())
+
+        if 'excluir_prefixos_fluvio' not in st.session_state:
+            st.session_state.excluir_prefixos_fluvio = []
+
+
         df_extravasation['value'] = pd.to_numeric(df_extravasation['value'], errors='coerce')
         df_extravasation['latitude'] = pd.to_numeric(df_extravasation['latitude'], errors='coerce')
         df_extravasation['longitude'] = pd.to_numeric(df_extravasation['longitude'], errors='coerce')
         df_extravasation['station_prefix_id'] = df_extravasation['station_prefix_id'].astype(str)
         df_extravasation = df_extravasation.sort_values(by="value", ascending=True)
+
+        if st.session_state.excluir_prefixos_fluvio:
+            df_extravasation = df_extravasation[~df_extravasation['prefix'].isin(st.session_state.excluir_prefixos_fluvio)]
 
         df_max_values = df_extravasation.groupby('prefix', as_index=False).agg(
                             value=('value', 'max'),
@@ -3476,6 +3611,8 @@ async def slide5():
             
             legenda += f" Não ocorreram Extravasamentos durante o período analisado."
         
+
+
         mapa = folium.Map(
             location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
             zoom_start=6.0,
@@ -3521,15 +3658,15 @@ async def slide5():
             lon = row['longitude']
             valor = row['value']
             state = row['current_state']
+            station_name = row['station_name']
+            prefix = row['prefix']
 
-            valor_inteiro = int(valor)
-            popup = f"Valor: {valor}"
-            
             valor_inteiro = int(valor)
 
             if valor_inteiro>0:
                 # Criar um popup com o valor
-                popup = f"Valor: {valor}"
+                popup_texto = f"Valor: {valor}<br>Station: {station_name}<br>Prefix: {prefix}"
+                popup = Popup(popup_texto, max_width=300) 
 
                 if state == 'Extravasamento':
                     folium.CircleMarker(
@@ -3647,6 +3784,19 @@ async def slide5():
                     </div>
                     """,
                 unsafe_allow_html=True)
+            
+            prefixos_selecionados = st.multiselect(
+                label="",
+                options=prefix_list,
+                default=st.session_state.excluir_prefixos_fluvio,
+                placeholder="Excluir prefixos",
+                label_visibility="collapsed"
+            )
+
+            # Se mudar a seleção, atualiza o estado e recarrega
+            if set(prefixos_selecionados) != set(st.session_state.excluir_prefixos_fluvio):
+                st.session_state.excluir_prefixos_fluvio = prefixos_selecionados
+                st.rerun()
             
         colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
             
@@ -3815,8 +3965,6 @@ async def slide5():
 
                 # Exibindo o gráfico no Streamlit
                 st.plotly_chart(fig)
-
-                
                 
                 df_extravasamento = df_filtered[df_filtered['current_state'] == 'Extravasamento']
                 first_extravasamento_date = df_extravasamento['current_data'].min()
@@ -4012,16 +4160,16 @@ async def slide6():
 
             image_path = f'results/imagem_rmsp.png'
 
-            if os.path.exists(image_path):
-                imagem_recortada = Image.open(image_path)
+            # if os.path.exists(image_path):
+            #     imagem_recortada = Image.open(image_path)
                 
-            else:
-                print("Entrou else rmsp")
-                imagem = capturar_tela(url)
-                imagem_recortada = imagem.crop((90, 945, 1200, 1650))#esquerda, cima, direita, baixo
-                output_rmsp = os.path.join("results", f"imagem_rmsp.png")
-                imagem_recortada.save(output_rmsp) 
-                imagem_recortada = Image.open(image_path)
+            # else:
+            #     print("Entrou else rmsp")
+            imagem = capturar_tela(url)
+            imagem_recortada = imagem.crop((90, 945, 1200, 1650))#esquerda, cima, direita, baixo
+            output_rmsp = os.path.join("results", f"imagem_rmsp.png")
+            imagem_recortada.save(output_rmsp) 
+            imagem_recortada = Image.open(image_path)
 
             st.image(imagem_recortada, caption="", use_container_width=True)
 
@@ -4042,7 +4190,6 @@ async def slide6():
         st.write(" ")
         st.write(" ")
         st.write(" ")
-
 
         json_sistemas = 'results/sabesp_sistemas.json'
         sistemas_esperados = {"Cantareira", "Alto Tietê", "Guarapiranga", "Cotia", "Rio Grande", "Rio Claro", "São Lourenço"}
@@ -4326,6 +4473,7 @@ async def slide7():
         
 
         coluna1, coluna2 = st.columns([1.5, 0.6])
+        
         query_cities = f"""SELECT c.name as city_name,
                             max(ac_72h) AS max_ac_72h,
                             avg(ac_mensal) AS ac_mensal,
@@ -4954,6 +5102,43 @@ async def capa_boletim():
 
             
         col_logo_1, col_logo_2, col_logo_3 = st.columns([0.4, 1.50, 0.30])
+        # st.markdown("""
+        #     <style>
+        #     /* Remove fundo do date input */
+        #     div[data-baseweb="input"] > div {
+        #         background-color: #FFFFFF !important;
+        #         color: #333333 !important;
+        #     }
+
+        #     /* Texto dentro do date picker */
+        #     input[type="text"] {
+        #         background-color: #FFFFFF !important;
+        #         color: #333333 !important;
+        #     }
+
+        #     /* Label do date_input */
+        #     label {
+        #         color: #333333 !important;
+        #         font-weight: bold;
+        #     }
+        #     </style>
+        # """, unsafe_allow_html=True)
+        # with col_logo_2:
+        #     data_inicial = datetime.today()
+        #     data_final = data_inicial - timedelta(days=1)
+        #     ano_atual = data_inicial.year
+        #     jan_1 = date(ano_atual, 1, 1)
+        #     dec_31 = date(ano_atual, 12, 31)
+
+        #     intervalo = st.date_input(
+        #         "Intervalo de data para gerar o Boletim",
+        #         (data_final, data_inicial),  # valor inicial
+        #         min_value=jan_1,
+        #         max_value=dec_31,
+        #         format="DD.MM.YYYY",
+        #     )
+        #     st.session_state.intervalo = intervalo
+
         with col_logo_1:
             st.image("spaguas.png", caption="", width=80)
 
@@ -4996,6 +5181,9 @@ async def capa_boletim():
             if col2.button("Relatório de secas", use_container_width=True):
                 st.session_state.boletim = "secas"
                 st.session_state.selecionado = True
+
+
+
 
 async def slide6_seca(): 
     with slide6_secas:
@@ -5183,7 +5371,7 @@ async def main():
     else:
         # Limpar a tela de seleção e exibir os slides
         st.empty()
-
+        
         # Executa todas as tasks simultaneamente
         if st.session_state.boletim == 'chuvas':
             capa_data, slide1_data, slide2_data, slide3_data, slide5_data, slide6_data, slide7_data, slide8_data = await asyncio.gather(
