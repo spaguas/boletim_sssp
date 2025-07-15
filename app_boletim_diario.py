@@ -144,11 +144,14 @@ def transform_html_image(nome_arquivo):
                       "--disable-application-cache",
                       "--no-cache"]
     )
+
     hti.screenshot(
         html_file=f'{nome_arquivo}.html',
         save_as=f'{nome_arquivo}.png',
         size=(800, 600)
     )
+
+    tm.sleep(1)
 
 def remove_transparency(image_path):
     im = Image.open(image_path)
@@ -220,6 +223,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
+
     pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=140)
     pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
