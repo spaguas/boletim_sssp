@@ -132,10 +132,10 @@ def get_text_height(pdf, text, w, line_height):
     return len(lines) * line_height
 
 def transform_html_image(nome_arquivo):
-    # png_path = f'imagens/{nome_arquivo}.png'
+    png_path = f'imagens/{nome_arquivo}.png'
 
-    # if os.path.exists(png_path):
-    #     os.remove(png_path)
+    if os.path.exists(png_path):
+        os.remove(png_path)
 
     hti = Html2Image(
         output_path='imagens', 
@@ -748,14 +748,13 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.set_xy(38, 26)
     pdf.set_font("Arial","B", size=12)
     pdf.cell(0, 10, txt="Dias sem chuva (DSC) por Município", ln=1)
-
  
-    imgagem_flu = Image.open("imagens/tabela_dsc.png").convert("RGBA")
-    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
-    background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
-    background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
-    background.save("imagens/tabela_dcsc.jpg", "JPEG", quality=95)
-    pdf.image("imagens/tabela_dcsc.jpg", x=10, y=36, w=170)
+    imgagem_dsc = Image.open("imagens/tabela_dsc.png").convert("RGBA")
+    # background.paste(imgagem_dsc, mask=imgagem_dsc.getchannel("A"))
+    background = Image.new("RGB", imgagem_dsc.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_dsc, mask=imgagem_dsc.split()[3])  # usa canal alpha como máscara
+    background.save("imagens/tabela_dsc.jpg", "JPEG", quality=95)
+    pdf.image("imagens/tabela_dsc.jpg", x=10, y=36, w=170)
     pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
 
@@ -763,9 +762,9 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.set_font("Arial","B", size=12)
     pdf.cell(0, 10, txt="Dias consecutivos sem chuva (DCSC) por Município", ln=1)
 
-    imgagem_inter = Image.open("imagens/tabela_dcsc.png").convert("RGBA")
-    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
-    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+    imgagem_dcsc = Image.open("imagens/tabela_dcsc.png").convert("RGBA")
+    background = Image.new("RGB", imgagem_dcsc.size, (255, 255, 255))  # fundo branco
+    background.paste(imgagem_dcsc, mask=imgagem_dcsc.split()[3])  # usa canal alpha como máscara
     background.save("imagens/tabela_dcsc.jpg", "JPEG", quality=95)
     pdf.image("imagens/tabela_dcsc.jpg", x=150, y=36, w=170)
     
