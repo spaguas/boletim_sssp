@@ -151,7 +151,7 @@ def transform_html_image(nome_arquivo):
         size=(800, 600)
     )
 
-    tm.sleep(1)
+
 
 def remove_transparency(image_path):
     im = Image.open(image_path)
@@ -217,6 +217,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     mapa_html_flu = 'mapa_html_flu'
     transform_html_image(mapa_html_flu)
+    tm.sleep(10)
 
     imgagem_flu = Image.open("imagens/mapa_html_flu.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
@@ -236,7 +237,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     mapa_html_inter = 'mapa_html_inter'
     transform_html_image(mapa_html_inter)
-
+    tm.sleep(10)
     imgagem_inter = Image.open("imagens/mapa_html_inter.png").convert("RGBA")
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
@@ -396,7 +397,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     mapa_html_5 = "mapa_slide5"
     transform_html_image(mapa_html_5)
-
+    tm.sleep(10)
     imgagem_html_5 = Image.open("imagens/mapa_slide5.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
     background = Image.new("RGB", imgagem_html_5.size, (255, 255, 255))  # fundo branco
@@ -539,7 +540,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     mapa_html_inter = 'mapa_html_ppdc'
     transform_html_image(mapa_html_inter)
-
+    tm.sleep(10)
     imgagem_inter = Image.open("imagens/mapa_html_ppdc.png").convert("RGBA")
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
@@ -688,7 +689,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_dsc = 'mapa_html_dsc'
     transform_html_image(mapa_html_dsc)
-
+    tm.sleep(10)
     imgagem_flu = Image.open("imagens/mapa_html_dsc.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
     background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
@@ -706,7 +707,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_dcsc = 'mapa_html_dcsc'
     transform_html_image(mapa_html_dcsc)
-
+    tm.sleep(10)
     imgagem_inter = Image.open("imagens/mapa_html_dcsc.png").convert("RGBA")
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
@@ -809,7 +810,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_flu = 'mapa_html_flu'
     transform_html_image(mapa_html_flu)
-
+    tm.sleep(10)
     imgagem_flu = Image.open("imagens/mapa_html_flu.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
     background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
@@ -827,7 +828,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_inter = 'mapa_html_inter'
     transform_html_image(mapa_html_inter)
-
+    tm.sleep(10)
     imgagem_inter = Image.open("imagens/mapa_html_inter.png").convert("RGBA")
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
@@ -914,7 +915,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_slide5_seca = "mapa_slide5_seca"
     transform_html_image(mapa_slide5_seca)
-
+    tm.sleep(10)
     imgagem_html_5 = Image.open("imagens/mapa_slide5_seca.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
     background = Image.new("RGB", imgagem_html_5.size, (255, 255, 255))  # fundo branco
