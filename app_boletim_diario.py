@@ -271,7 +271,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
 
-    pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=140)
+    pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
     pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
@@ -288,7 +288,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
-    pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=140)
+    pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
     pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
@@ -599,7 +599,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     cropped_img.save(cropped_img_path, "JPEG", quality=95)
 
     # Adiciona ao PDF
-    pdf.image(cropped_img_path, x=10, y=28, w=175)
+    pdf.image(cropped_img_path, x=10, y=28, w=170)
 
     pdf.set_xy(58, 108)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
@@ -678,7 +678,6 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
     return pdf
 
-
 def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_input6, user_input6_seca , image, user_input8_seca):
     # Cria PDF em modo paisagem
     pdf = PDF(orientation='L')
@@ -743,7 +742,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_dsc.jpg", "JPEG", quality=95)
-    pdf.image("imagens/mapa_html_dsc.jpg", x=10, y=36, w=140)
+    pdf.image("imagens/mapa_html_dsc.jpg", x=10, y=36, w=136)
     pdf.set_xy(38, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
@@ -763,7 +762,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_dcsc.jpg", "JPEG", quality=95)
-    pdf.image("imagens/mapa_html_dcsc.jpg", x=150, y=36, w=140)
+    pdf.image("imagens/mapa_html_dcsc.jpg", x=150, y=36, w=136)
     pdf.set_xy(177, 125)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
@@ -870,7 +869,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
-    pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=140)
+    pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
     pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
@@ -890,7 +889,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
-    pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=140)
+    pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
     pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
