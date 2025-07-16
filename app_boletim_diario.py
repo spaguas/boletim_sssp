@@ -40,7 +40,7 @@ import shutil
 from folium import Popup
 from fpdf import FPDF
 from html2image import Html2Image
-
+import platform
 
 class PDF(FPDF):
     def __init__(self, orientation='L'):  # 'L' para Landscape (Paisagem)
@@ -131,32 +131,72 @@ def get_text_height(pdf, text, w, line_height):
     lines = pdf.multi_cell(w, line_height, txt=text, border=0, split_only=True)
     return len(lines) * line_height
 
-def transform_html_image(nome_arquivo):
-    png_path = f'imagens/{nome_arquivo}.png'
+def localizar_chrome():
+    sistema = platform.system()
 
+    # Caminhos padrão por sistema
+    caminhos_possiveis = []
+    if sistema == "Windows":
+        caminhos_possiveis = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+        ]
+    elif sistema == "Linux":
+        caminhos_possiveis = [
+            "/usr/bin/google-chrome",
+            "/usr/bin/chromium-browser"
+        ]
+
+
+    # Procura o primeiro caminho existente
+    for caminho in caminhos_possiveis:
+        if os.path.exists(caminho):
+            return caminho
+
+    return None
+
+def transform_html_image(nome_arquivo):
+
+    chrome_path = localizar_chrome()
+    png_path = f'imagens/{nome_arquivo}.png'
+    
+    # Garante que o diretório existe
+    os.makedirs("imagens", exist_ok=True)
+    
     if os.path.exists(png_path):
         os.remove(png_path)
 
+    # Usa o mesmo Chrome do Selenium (caminho explícito)
     hti = Html2Image(
-        output_path='imagens', 
-        custom_flags=["--force-device-scale-factor=3",
-                      "--incognito",
-                      "--disable-application-cache",
-                      "--no-cache"]
+        output_path='imagens',
+        custom_flags=[
+            "--headless=new",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--force-device-scale-factor=3"
+        ]
     )
 
-    hti.screenshot(
-        html_file=f'{nome_arquivo}.html',
-        save_as=f'{nome_arquivo}.png',
-        size=(800, 600)
-    )
+    hti.browser_path = chrome_path
+
+    try:
+        hti.screenshot(
+            html_file=f'{nome_arquivo}.html',
+            save_as=f'{nome_arquivo}.png',
+            size=(800, 600)
+        )
+        print(f"[SUCESSO] Screenshot salvo em: {png_path}")
+    except Exception as e:
+        print(f"[ERRO] Falha ao gerar imagem: {str(e)}")
+        raise
 
 def wait_for_file(filepath, timeout=30):
     start_time = tm.time()
     while not os.path.exists(filepath):
         if tm.time() - start_time > timeout:
-            raise FileNotFoundError(f"Arquivo {filepath} não foi criado dentro do tempo limite")
-        tm.sleep(1)
+            raise FileNotFoundError(f"Arquivo {filepath} não gerado em {timeout}s")
+        tm.sleep(2)
     return True
 
 def remove_transparency(image_path):

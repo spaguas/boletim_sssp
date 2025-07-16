@@ -20,6 +20,9 @@ RUN wget --no-check-certificate https://dl.google.com/linux/direct/google-chrome
     rm google-chrome-stable_current_amd64.deb && \
     ln -s /usr/bin/google-chrome /usr/bin/chromium-browser
 
+# Verifica se o Chrome está instalado
+RUN google-chrome --version && which google-chrome
+
 ENV PATH="/opt/conda/bin:$PATH"
 
 # Instala o Miniconda
@@ -30,6 +33,10 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh &
 WORKDIR /usr/src/app_boletim_diario
 COPY . /usr/src/app_boletim_diario
 
+# Cria o diretório de imagens com permissões
+RUN mkdir -p /usr/src/app_boletim_diario/imagens && \
+    chmod 777 /usr/src/app_boletim_diario/imagens
+    
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
 RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 RUN conda env create -f environment.yml
