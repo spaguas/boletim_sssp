@@ -151,7 +151,13 @@ def transform_html_image(nome_arquivo):
         size=(800, 600)
     )
 
-
+def wait_for_file(filepath, timeout=30):
+    start_time = tm.time()
+    while not os.path.exists(filepath):
+        if tm.time() - start_time > timeout:
+            raise FileNotFoundError(f"Arquivo {filepath} não foi criado dentro do tempo limite")
+        tm.sleep(1)
+    return True
 
 def remove_transparency(image_path):
     im = Image.open(image_path)
@@ -689,7 +695,9 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_dsc = 'mapa_html_dsc'
     transform_html_image(mapa_html_dsc)
-    tm.sleep(10)
+    png_path_dsc = f"imagens/{mapa_html_dsc}.png"
+    wait_for_file(png_path_dsc)
+    tm.sleep(1)
     imgagem_flu = Image.open("imagens/mapa_html_dsc.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
     background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
@@ -707,7 +715,10 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_dcsc = 'mapa_html_dcsc'
     transform_html_image(mapa_html_dcsc)
-    tm.sleep(10)
+    png_path_dcsc = f"imagens/{mapa_html_dcsc}.png"
+    wait_for_file(png_path_dcsc)
+    tm.sleep(1)
+
     imgagem_inter = Image.open("imagens/mapa_html_dcsc.png").convert("RGBA")
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
@@ -810,7 +821,10 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_flu = 'mapa_html_flu'
     transform_html_image(mapa_html_flu)
-    tm.sleep(10)
+    png_path_flu = f"imagens/{mapa_html_flu}.png"
+    wait_for_file(png_path_flu)
+    tm.sleep(1)
+
     imgagem_flu = Image.open("imagens/mapa_html_flu.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
     background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
@@ -828,7 +842,10 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_html_inter = 'mapa_html_inter'
     transform_html_image(mapa_html_inter)
-    tm.sleep(10)
+    png_path_inter= f"imagens/{mapa_html_inter}.png"
+    wait_for_file(png_path_inter)
+    tm.sleep(1)
+
     imgagem_inter = Image.open("imagens/mapa_html_inter.png").convert("RGBA")
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
@@ -915,7 +932,10 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     mapa_slide5_seca = "mapa_slide5_seca"
     transform_html_image(mapa_slide5_seca)
-    tm.sleep(10)
+    png_path5_seca= f"imagens/{mapa_slide5_seca}.png"
+    wait_for_file(png_path5_seca)
+    tm.sleep(1)
+
     imgagem_html_5 = Image.open("imagens/mapa_slide5_seca.png").convert("RGBA")
     # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
     background = Image.new("RGB", imgagem_html_5.size, (255, 255, 255))  # fundo branco
@@ -1110,8 +1130,6 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.set_font("Arial", size=10, style='I')
     pdf.cell(0, 10, txt="Fonte: INMET", ln=1, link="https://vime.inmet.gov.br/")
     
-    # Remover arquivo temporário
-    import os
     if os.path.exists(temp_img_path):
         os.remove(temp_img_path)
     

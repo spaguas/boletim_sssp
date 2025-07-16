@@ -4,6 +4,7 @@ app_boletim_diario_A4.py
 app_boletim.py
 results/
 cron.py
+imagens/
 
 
 # Byte-compiled / optimized / DLL files
