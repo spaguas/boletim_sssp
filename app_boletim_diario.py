@@ -174,7 +174,7 @@ def transform_html_image(nome_arquivo):
             "--no-sandbox",
             "--disable-dev-shm-usage",
             "--disable-gpu",
-            "--force-device-scale-factor=3"
+            "--force-device-scale-factor=5"
         ]
     )
 
@@ -2004,6 +2004,17 @@ async def slide1_seca():
 
             mapa_html_dsc = mapa_dsc._repr_html_()
 
+            zoom_css = """
+            <style>
+                body {
+                    zoom: 1.5;
+                }
+            </style>
+            """
+
+            # Insere no <head> do HTML do Folium
+            mapa_dsc.get_root().header.add_child(Element(zoom_css))
+
             mapa_dsc.save("mapa_html_dsc.html")
 
             st.write("""
@@ -2097,6 +2108,17 @@ async def slide1_seca():
             mapa.get_root().html.add_child(Element(legenda_html))
 
             mapa_html = mapa._repr_html_()
+
+            zoom_css = """
+            <style>
+                body {
+                    zoom: 1.5;
+                }
+            </style>
+            """
+
+            # Insere no <head> do HTML do Folium
+            mapa.get_root().header.add_child(Element(zoom_css))
             mapa.save("mapa_html_dcsc.html")
 
             st.write("""
@@ -2228,6 +2250,11 @@ async def slide1_seca():
             html_tabela = styled_df.to_html()
             # html_tabela.save("tabela_slide1.html")
 
+            os.makedirs("imagens", exist_ok=True)
+            caminho_imagem = "imagens/tabela_dsc.png"
+            if os.path.exists(caminho_imagem):
+                os.remove(caminho_imagem)
+
             soup = BeautifulSoup(html_tabela, 'html.parser')
             caption = soup.find('caption')
             if caption:
@@ -2237,6 +2264,8 @@ async def slide1_seca():
 
             hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
             hti.output_path = "imagens"
+            chrome_path = localizar_chrome()
+            hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as='tabela_dsc.png', size=(700, 500))
             # st.write("""  
             #         <div style="color: black; line-height: 1;">
@@ -2294,6 +2323,11 @@ async def slide1_seca():
             html_tabela = styled_df.to_html()
             # html_tabela.save("tabela_slide1.html")
 
+            os.makedirs("imagens", exist_ok=True)
+            caminho_imagem = "imagens/tabela_dcsc.png"
+            if os.path.exists(caminho_imagem):
+                os.remove(caminho_imagem)
+
             soup = BeautifulSoup(html_tabela, 'html.parser')
             caption = soup.find('caption')
             if caption:
@@ -2303,6 +2337,9 @@ async def slide1_seca():
 
             hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
             hti.output_path = "imagens"
+
+            chrome_path = localizar_chrome()
+            hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as='tabela_dcsc.png', size=(700, 500))
             # st.write("""  
             #         <div style="color: black; line-height: 1;">
@@ -2399,6 +2436,11 @@ async def slide1_seca():
 
         st.plotly_chart(fig, use_container_width=True)
 
+        os.makedirs("imagens", exist_ok=True)
+        caminho_imagem = "imagens/grafico_dcsc_ugrhi.png"
+        if os.path.exists(caminho_imagem):
+            os.remove(caminho_imagem)
+
         fig.update_layout(title_text="")  # Remove o título
 
         html_str = fig.to_html(full_html=False, include_plotlyjs='cdn')
@@ -2406,6 +2448,8 @@ async def slide1_seca():
             custom_flags=["--force-device-scale-factor=3"]
         )
         hti.output_path = "imagens"
+        chrome_path = localizar_chrome()
+        hti.browser_path = chrome_path
         hti.screenshot(html_str=html_str, save_as=f'grafico_dcsc_ugrhi.png', size=(1400, 1000))
 
 
@@ -2588,6 +2632,7 @@ async def slide1():
 
                             folium.Marker(
                                 location=[lat, lon],
+                                popup=popup,
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
@@ -2609,6 +2654,7 @@ async def slide1():
 
                             folium.Marker(
                                 location=[lat, lon],
+                                popup=popup,
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
@@ -2631,6 +2677,7 @@ async def slide1():
 
                             folium.Marker(
                                 location=[lat, lon],
+                                popup=popup,
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
@@ -2674,6 +2721,16 @@ async def slide1():
                 mapa.get_root().html.add_child(Element(legenda_html))
 
                 mapa_html_flu = mapa._repr_html_()
+                zoom_css = """
+                <style>
+                    body {
+                        zoom: 1.5;
+                    }
+                </style>
+                """
+
+                # Insere no <head> do HTML do Folium
+                mapa.get_root().header.add_child(Element(zoom_css))
                 mapa.save("mapa_html_flu.html")
 
                 with coluna1:
@@ -2810,6 +2867,16 @@ async def slide1():
                     legend_element = Element(legend_bar)
                     mapa.get_root().html.add_child(legend_element)
                     mapa_html_inter = mapa._repr_html_()
+                    zoom_css = """
+                    <style>
+                        body {
+                            zoom: 1.5;
+                        }
+                    </style>
+                    """
+
+                    # Insere no <head> do HTML do Folium
+                    mapa.get_root().header.add_child(Element(zoom_css))
                     mapa.save("mapa_html_inter.html")
 
                     st.components.v1.html(mapa_html_inter, width=600, height=350)
@@ -2998,19 +3065,41 @@ async def slide2():
             st.markdown(styled_df.to_html(), unsafe_allow_html=True)
 
             html_tabela = styled_df.to_html()
-            # html_tabela.save("tabela_slide1.html")
 
-            soup = BeautifulSoup(html_tabela, 'html.parser')
+            soup = BeautifulSoup(styled_df.to_html(), 'html.parser')
             caption = soup.find('caption')
             if caption:
-                caption.decompose() 
+                caption.decompose()
 
             html_sem_titulo = str(soup)
 
-            hti = Html2Image()
+            os.makedirs("imagens", exist_ok=True)
+            caminho_imagem = "imagens/tabela_chuva.png"
+            if os.path.exists(caminho_imagem):
+                os.remove(caminho_imagem)
+
             hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
-            hti.output_path = "imagens" 
+            hti.output_path = "imagens"
             hti.screenshot(html_str=html_sem_titulo, save_as='tabela_chuva.png', size=(700, 500))
+
+            
+            if prefix_list:
+                soup = BeautifulSoup(styled_df.to_html(), 'html.parser')
+                caption = soup.find('caption')
+                if caption:
+                    caption.decompose()
+
+                html_sem_titulo = str(soup)
+
+                os.makedirs("imagens", exist_ok=True)
+                caminho_imagem = "imagens/tabela_chuva.png"
+                if os.path.exists(caminho_imagem):
+                    os.remove(caminho_imagem)
+
+                hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+                hti.output_path = "imagens"
+                hti.screenshot(html_str=html_sem_titulo, save_as='tabela_chuva.png', size=(700, 500))
+
 
             st.write("""
                     <div class="align-left-center">
@@ -3768,6 +3857,7 @@ async def slide5():
         mapa.get_root().html.add_child(Element(legenda_html))
 
         mapa_html = mapa._repr_html_()
+        
         mapa.save("mapa_slide5.html")
 
         c1, c2, c3 = st.columns([0.1, 1.2, 0.1])
