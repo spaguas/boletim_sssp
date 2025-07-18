@@ -3100,8 +3100,18 @@ async def slide2():
             if os.path.exists(caminho_imagem):
                 os.remove(caminho_imagem)
 
-            hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+            hti = Html2Image(
+                custom_flags=[
+                "--headless=new",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--force-device-scale-factor=3"
+            ]
+            )
             hti.output_path = "imagens"
+            chrome_path = localizar_chrome()
+            hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as='tabela_chuva.png', size=(700, 500))
 
             
@@ -3118,8 +3128,18 @@ async def slide2():
                 if os.path.exists(caminho_imagem):
                     os.remove(caminho_imagem)
 
-                hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+                hti = Html2Image(
+                    custom_flags=[
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--force-device-scale-factor=3"
+                ]
+                )
                 hti.output_path = "imagens"
+                chrome_path = localizar_chrome()
+                hti.browser_path = chrome_path
                 hti.screenshot(html_str=html_sem_titulo, save_as='tabela_chuva.png', size=(700, 500))
 
 
