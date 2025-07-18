@@ -2262,7 +2262,15 @@ async def slide1_seca():
 
             html_sem_titulo = str(soup)
 
-            hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+            hti = Html2Image(
+                    custom_flags=[
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--force-device-scale-factor=3"
+                ]
+            )
             hti.output_path = "imagens"
             chrome_path = localizar_chrome()
             hti.browser_path = chrome_path
@@ -2335,7 +2343,15 @@ async def slide1_seca():
 
             html_sem_titulo = str(soup)
 
-            hti = Html2Image(custom_flags=["--force-device-scale-factor=3"])
+            hti = Html2Image(
+                custom_flags=[
+                "--headless=new",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--force-device-scale-factor=3"
+                ]
+            )
             hti.output_path = "imagens"
 
             chrome_path = localizar_chrome()
@@ -2445,7 +2461,13 @@ async def slide1_seca():
 
         html_str = fig.to_html(full_html=False, include_plotlyjs='cdn')
         hti = Html2Image(
-            custom_flags=["--force-device-scale-factor=3"]
+            custom_flags=[
+                "--headless=new",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--force-device-scale-factor=3"
+            ]
         )
         hti.output_path = "imagens"
         chrome_path = localizar_chrome()
