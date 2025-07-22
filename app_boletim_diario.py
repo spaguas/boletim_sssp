@@ -4194,10 +4194,22 @@ async def slide5():
                     .hide(axis="index") 
 
                 html_str = styled_df.to_html()
+                os.makedirs("imagens", exist_ok=True)
+                caminho_imagem = f"imagens/tabela_resumo{i}.png"
+                if os.path.exists(caminho_imagem):
+                    os.remove(caminho_imagem)
                 hti = Html2Image(
-                    custom_flags=["--force-device-scale-factor=3"]
-                )
-                hti.output_path = "imagens"
+                        custom_flags=[
+                        "--headless=new",
+                        "--disable-gpu",
+                        "--no-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--force-device-scale-factor=3"
+                    ]
+                    )
+                hti.output_path = "imagens"  # ou outro diretório
+                chrome_path = localizar_chrome()
+                hti.browser_path = chrome_path
                 hti.screenshot(html_str=html_str, save_as=f'tabela_resumo{i}.png', size=(1200, 300))
                 st.markdown(styled_df.to_html(), unsafe_allow_html=True)
 
@@ -4239,11 +4251,6 @@ async def slide5():
             all_extravasamento = None
             return user_input, all_extravasamento
             
-
-
-
-
-
 async def slide6(): 
     with slide6_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
@@ -4520,12 +4527,23 @@ async def slide6():
                 caption.decompose()
 
             html_sem_titulo = str(soup)
+            os.makedirs("imagens", exist_ok=True)
+            caminho_imagem = "imagens/tabela_rmsp.png"
+            if os.path.exists(caminho_imagem):
+                os.remove(caminho_imagem)
             hti = Html2Image(
-                custom_flags=["--force-device-scale-factor=3"]
-            )
+                    custom_flags=[
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--force-device-scale-factor=3"
+                ]
+                )
             hti.output_path = "imagens"  # ou outro diretório
+            chrome_path = localizar_chrome()
+            hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_rmsp.png', size=(800, 600))
-
 
 
         min_dif_filter = merged_data_sistemas[merged_data_sistemas["Diferença Vol. Anual (%)"] == merged_data_sistemas["Diferença Vol. Anual (%)"].min()].iloc[0]
@@ -5309,8 +5327,6 @@ async def capa_boletim():
                 st.session_state.selecionado = True
 
 
-
-
 async def slide6_seca(): 
     with slide6_secas:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
@@ -5398,10 +5414,23 @@ async def slide6_seca():
                 caption.decompose()
 
             html_sem_titulo = str(soup)
+
+            os.makedirs("imagens", exist_ok=True)
+            caminho_imagem = "imagens/tabela_alto_tiete.png"
+            if os.path.exists(caminho_imagem):
+                os.remove(caminho_imagem)
             hti = Html2Image(
-                custom_flags=["--force-device-scale-factor=3"]
-            )
+                    custom_flags=[
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--force-device-scale-factor=3"
+                ]
+                )
             hti.output_path = "imagens"  # ou outro diretório
+            chrome_path = localizar_chrome()
+            hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_alto_tiete.png', size=(800, 600))
 
         colun1, colun2 = st.columns([1.0, 1.0])
@@ -5423,7 +5452,7 @@ async def slide6_seca():
                 """,
             unsafe_allow_html=True)
         
-        
+
         with colun2:
             st.write("""
                 <div style="text-align: center; color: #333333;">
@@ -5485,9 +5514,7 @@ async def slide6_seca():
         st.write(" ")
 
         return user_input
-    
-        
-    
+     
 
 async def main():
     
