@@ -594,7 +594,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     img = Image.open("imagens/mapa_html_ppdc.jpg")
     width, height = img.size
-    cropped_img = img.crop((0, 0, width, height - 700))
+    cropped_img = img.crop((0, 0, width, height - 1100))
     cropped_img_path = "imagens/mapa_html_ppdc_crop.jpg"
     cropped_img.save(cropped_img_path, "JPEG", quality=95)
 
@@ -652,7 +652,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     x = col3_w
     y = 42
-    w = 120
+    w = 124
     h = 40  # Defina a altura ou calcule com base no texto
     padding = 3
     line_height = 7
@@ -4044,8 +4044,23 @@ async def slide5():
                     """
                 st.markdown(html_perc_blocks, unsafe_allow_html=True)
 
-                hti = Html2Image()
-                hti.output_path = "imagens"  # ou outro diretório
+                caminho_imagem = f"imagens/barras_percentuais{i}.png"
+                if os.path.exists(caminho_imagem):
+                    os.remove(caminho_imagem)
+
+                hti = Html2Image(
+                    custom_flags=[
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--force-device-scale-factor=3"
+                ]
+                )
+                hti.output_path = "imagens"
+                chrome_path = localizar_chrome()
+                hti.browser_path = chrome_path
+
                 hti.screenshot(html_str=html_perc_blocks, save_as=f'barras_percentuais{i}.png', size=(1200, 300))
 
                 fig = go.Figure()
@@ -4088,10 +4103,24 @@ async def slide5():
                 )
 
                 html_str = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+                caminho_imagem_ploty = f"imagens/grafico_plotly{i}.png"
+                if os.path.exists(caminho_imagem_ploty):
+                    os.remove(caminho_imagem_ploty)
+
                 hti = Html2Image(
-                    custom_flags=["--force-device-scale-factor=3"]
+                    custom_flags=[
+                    "--headless=new",
+                    "--disable-gpu",
+                    "--no-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--force-device-scale-factor=3"
+                ]
                 )
                 hti.output_path = "imagens"
+                chrome_path = localizar_chrome()
+                hti.browser_path = chrome_path
+
                 hti.screenshot(html_str=html_str, save_as=f'grafico_plotly{i}.png', size=(1100, 600))
 
                 # Exibindo o gráfico no Streamlit
@@ -5019,6 +5048,9 @@ async def slide5_seca():
                 df_seca['current_state'] = df_seca.apply(classify_state_seca, axis=1)
                 df_seca = df_seca[df_seca['current_state']!='Níveis Indefinidos']
                 df_seca = df_seca[df_seca['net_group']!='piscinao_daee']
+
+                df_piscinao = df_seca[df_seca['net_group']=='piscinao_daee']
+
                 
                 mapa = folium.Map(
                     location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
