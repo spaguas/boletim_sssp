@@ -1,5 +1,6 @@
 services:
   boletim-sssp:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: Dockerfile
@@ -7,6 +8,7 @@ services:
     ports:
       - 8502:8502
     #command: streamlit run app.py --server.port 8502
+
     volumes:
       - ./results:/usr/src/app_boletim_diario/results
       - ./data:/usr/src/app_boletim_diario/data
