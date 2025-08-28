@@ -41,6 +41,9 @@ from folium import Popup
 from fpdf import FPDF
 from html2image import Html2Image
 import platform
+from concurrent.futures import ThreadPoolExecutor
+import json
+from dateutil.relativedelta import relativedelta
 
 class PDF(FPDF):
     def __init__(self, orientation='L'):  # 'L' para Landscape (Paisagem)
@@ -1510,7 +1513,6 @@ def capturar_saisp():
         driver.quit()
         shutil.rmtree(dir_path, ignore_errors=True)
 
-
 def capturar_ssd():
     driver, dir_path = iniciar_chrome_com_diretorio_unico()
     try:
@@ -1537,6 +1539,125 @@ def capturar_ssd():
         driver.quit()
         shutil.rmtree(dir_path, ignore_errors=True)
 
+def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_12dias_str):
+
+    url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
+    response = requests.get(url_ano_atual, verify=False)
+
+    if response.status_code == 200:
+
+        data = response.json()
+        print('response ano atual', datetime.now())
+        if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
+            df_sistemas_ano_atual = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
+
+            json_data = data['ReturnObj']
+            path = os.path.join("results", "sabesp_sistemas_all_data.json")
+            print(path)
+
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, indent=4, ensure_ascii=False)
+
+        else:
+            print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
+
+
+    url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
+    response = requests.get(url_ano_anteior, verify=False)
+
+    if response.status_code == 200:
+
+        data = response.json()
+
+        if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
+            df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
+            ano_anterior = df_sistemas_ano_anterior[["SistemaId", "VolumePorcentagem"]]
+            ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
+            
+            json_data = data['ReturnObj']
+            path = os.path.join("results", "sabesp_sistemas_all_data_anoanterior.json")
+            print(path)
+
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(json_data, f, indent=4, ensure_ascii=False)
+
+        else:
+            print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
+    
+
+    url_7_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_7dias_str}"
+    response = requests.get(url_7_dias, verify=False)
+
+    if response.status_code == 200:
+
+        data_7dias = response.json()
+        print('response ano anterior', datetime.now())
+        if 'ReturnObj' in data_7dias and 'dadosSistemas' in data_7dias['ReturnObj']:
+
+            json_data_7dias = data_7dias['ReturnObj']
+            path = os.path.join("results", "sabesp_sistemas_all_data_7dias.json")
+
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(json_data_7dias, f, indent=4, ensure_ascii=False)
+                
+        else:
+            print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
+
+    url_14_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_14dias_str}"
+    response = requests.get(url_14_dias, verify=False)
+
+    if response.status_code == 200:
+
+        data_14dias = response.json()
+        print('response ano anterior', datetime.now())
+        if 'ReturnObj' in data and 'dadosSistemas' in data_14dias['ReturnObj']:
+            df_sistemas_14_dias = pd.DataFrame(data_14dias['ReturnObj']['dadosSistemas'])
+            print(df_sistemas_14_dias.columns)
+            dados_14dias = df_sistemas_14_dias[["SistemaId", "VolumePorcentagem"]]
+            dados_14dias = dados_14dias.rename(columns={"VolumePorcentagem": "Volume -14 dias"})
+
+            json_data_14dias = data_14dias['ReturnObj']
+            path = os.path.join("results", "sabesp_sistemas_all_data_14dias.json")
+
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(json_data_14dias, f, indent=4, ensure_ascii=False)
+            
+        else:
+            print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
+
+    url_21_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_12dias_str}"
+    response = requests.get(url_21_dias, verify=False)
+
+    if response.status_code == 200:
+
+        data_21dias = response.json()
+        print('response ano anterior', datetime.now())
+        if 'ReturnObj' in data_21dias and 'dadosSistemas' in data_21dias['ReturnObj']:
+            df_sistemas_21_dias = pd.DataFrame(data_21dias['ReturnObj']['dadosSistemas'])
+            dados_21dias = df_sistemas_21_dias[["SistemaId", "VolumePorcentagem"]]
+            dados_21dias = dados_21dias.rename(columns={"VolumePorcentagem": "Volume -21 dias"})
+
+            json_data_21dias = data_21dias['ReturnObj']
+            path = os.path.join("results", "sabesp_sistemas_all_data_21dias.json")
+
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(json_data_21dias, f, indent=4, ensure_ascii=False)
+
+        else:
+            print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
+
+
+  
 def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
     url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
@@ -1599,7 +1720,6 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
 
     merged_data_sistemas.to_json(caminho_arquivo_json, orient='records', force_ascii=False, indent=2)
-
 
 def capturar_tela(url):
 
@@ -2775,6 +2895,7 @@ async def slide1():
                         </div>
                         """,
                     unsafe_allow_html=True) 
+                    
 
                     prefixos_selecionados = st.multiselect(
                         label="",
@@ -4310,12 +4431,19 @@ async def slide6():
 
         coluna1, coluna2, coluna3 = st.columns([0.2, 1.5, 0.2])
 
-
-
         data_atual = datetime.today()
         data_ano_anterior = datetime.today() - timedelta(days=365)
+        data_7dias = datetime.today() - timedelta(days=7)
+        data_14dias = datetime.today() - timedelta(days=14)
+        data_21dias = datetime.today() - timedelta(days=21)
+
         data_atual_str = data_atual.strftime('%Y-%m-%d')
         data_ano_anterior_str = data_ano_anterior.strftime('%Y-%m-%d')
+        data_7dias_str = data_7dias.strftime('%Y-%m-%d')
+        data_14dias_str = data_14dias.strftime('%Y-%m-%d')
+        data_12dias_str = data_21dias.strftime('%Y-%m-%d')
+
+
 
         with coluna2:
             
@@ -4865,6 +4993,7 @@ async def slide8():
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
         url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        print(url)
         response = requests.get(url, verify=False)
         if response.status_code == 200:
 
@@ -5546,86 +5675,533 @@ async def slide6_seca():
         st.write(" ")
 
         return user_input
-     
+
+
+async def dashboard_reservatorios(): 
+    with slide6_container:
+        col1, col2, col3 = st.columns([1.2, 1.2, 0.30])
+
+        with col1:
+            st.write("""
+                <div class="align-left-center">
+                    <div style="color: black;">
+                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                    </div>
+                </div>
+                """,
+                    unsafe_allow_html=True)
+
+        with col3:
+            st.markdown('<div class="align-right">', unsafe_allow_html=True)
+            st.image("SP-4.png", caption="", width=300)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col2:
+            st.write("""
+            <div style="color: black;">
+                <h1  style="font-size: 18px;">Sistema Produtores da RMSP</h1>
+            </div>
+            """,
+            unsafe_allow_html=True)
+
+
+        coluna1, coluna2, coluna3 = st.columns([0.2, 1.5, 0.2])
+
+
+        data_atual = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        dia = data_atual.day
+        data_ano_anterior = datetime.today() - timedelta(days=365)
+        data_7dias = datetime.today() - timedelta(days=7)
+        data_14dias = datetime.today() - timedelta(days=14)
+        data_21dias = datetime.today() - timedelta(days=21)
+
+        data_atual_str = data_atual.strftime('%Y-%m-%d')
+        data_ano_anterior_str = data_ano_anterior.strftime('%Y-%m-%d')
+        data_7dias_str = data_7dias.strftime('%Y-%m-%d')
+        data_14dias_str = data_14dias.strftime('%Y-%m-%d')
+        data_21dias_str = data_21dias.strftime('%Y-%m-%d')
+
+
+        data_fim = pd.to_datetime(data_atual).to_period("y").to_timestamp()
+        lista_anos = pd.date_range(start="2000", end=data_fim, freq="Y")
+        lista_anos_int = lista_anos.year.tolist()
+        lista_anos_int.sort(reverse=True)  # do maior para o menor
+        lista_anos_str = list(map(str, lista_anos_int))
+
+        # if 'data_filter' not in st.session_state:
+        #     st.session_state.data_filter = []
+
+
+        datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
+
+        json_sistemas = 'results/sabesp_sistemas_all_data.json'
+        json_sistemas_1d = 'results/sabesp_sistemas_all_data_anoanterior.json'
+        json_sistemas_7d = 'results/sabesp_sistemas_all_data_7dias.json'
+        json_sistemas_14d = 'results/sabesp_sistemas_all_data_14dias.json'
+        json_sistemas_21d = 'results/sabesp_sistemas_all_data_21dias.json'
+
+        nomes_sistema = {
+            "Cantareira": 0,
+            "Alto Tietê": 1,
+            "Guarapiranga": 2,
+            "Cotia": 3,
+            "Rio Grande": 4, 
+            "Rio Claro":5,
+            "São Lourenço": 17,
+            "SIM": 459
+        }
+        sistemas_esperados = {0, 1, 2, 3, 4, 5, 17}
+
+        if os.path.exists(json_sistemas):
+            with open(json_sistemas, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            dados_sistemas = data.get("dadosSistemas", [])
+            df_dados_sistemas = pd.DataFrame(dados_sistemas)
+            df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
+            data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
+
+            sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique())
+
+            if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
+                get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+                with open(json_sistemas, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                dados_sistemas = data.get("dadosSistemas", [])
+                df_dados_sistemas = pd.DataFrame(dados_sistemas)
+        
+        else:
+            get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+            with open(json_sistemas, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            dados_sistemas = data.get("dadosSistemas", [])
+            df_dados_sistemas = pd.DataFrame(dados_sistemas)
+            
+        with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
+            data_1d = json.load(f)
+            json_sistemas_1d = data_1d.get("dadosSistemas", [])
+            df_dados_sistemas_1d = pd.DataFrame(json_sistemas_1d)
+            ano_anterior = df_dados_sistemas_1d[["SistemaId", "VolumePorcentagem"]]
+            ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
+
+
+        with open(json_sistemas_7d, 'r', encoding='utf-8') as f:
+            data_7d = json.load(f)
+            json_sistemas_7d = data_7d.get("dadosSistemas", [])
+            df_dados_sistemas_7d = pd.DataFrame(json_sistemas_7d)
+            sistemas_7d = df_dados_sistemas_7d[["SistemaId", "VolumePorcentagem"]]
+            sistemas_7d = sistemas_7d.rename(columns={"VolumePorcentagem": "Volume -7 dias (%)"})
+
+        with open(json_sistemas_14d, 'r', encoding='utf-8') as f:
+            data_14d = json.load(f)
+            json_sistemas_14d = data_14d.get("dadosSistemas", [])
+            df_dados_sistemas_14d = pd.DataFrame(json_sistemas_14d)
+            sistemas_14d = df_dados_sistemas_14d[["SistemaId", "VolumePorcentagem"]]
+            sistemas_14d = sistemas_14d.rename(columns={"VolumePorcentagem": "Volume -14 dias (%)"})
+
+        with open(json_sistemas_21d, 'r', encoding='utf-8') as f:
+            data_21d = json.load(f)
+            json_sistemas_21d = data_21d.get("dadosSistemas", [])
+            df_dados_sistemas_21d = pd.DataFrame(json_sistemas_21d)
+            sistemas_21d = df_dados_sistemas_21d[["SistemaId", "VolumePorcentagem"]]
+            sistemas_21d = sistemas_21d.rename(columns={"VolumePorcentagem": "Volume -21 dias (%)"})
+
+        sistemas_atual = df_dados_sistemas[["SistemaId", "VolumePorcentagem"]]
+        sistemas_atual = sistemas_atual.rename(columns={"VolumePorcentagem": "Volume atual (%)"})
+        
+        start_sim = '2025-08-19'
+        url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_21dias_str}/{data_atual_str}'
+        response = requests.get(url_sim, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+            print('response ano atual', datetime.now())
+            if "dataCollection" in data:
+                df_sim_atual_all = pd.DataFrame(data["dataCollection"])
+                print(df_sim_atual_all)
+                df_sim_atual = df_sim_atual_all.copy()
+                df_sim_atual['SistemaId'] = 459
+
+                valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
+                valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
+                valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
+                df_sim_atual["Volume -7 dias (%)"] = valor_7dias
+                df_sim_atual["Volume -14 dias (%)"] = valor_14dias
+                df_sim_atual["Volume -21 dias (%)"] = valor_21dias
+
+                df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
+                df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
+                df_sim_atual = df_sim_atual.drop(columns={"dateTime", "deliveredAt"})
+                print(df_sim_atual)
+
+        merged_data_sistemas = pd.merge(sistemas_atual, sistemas_7d, on='SistemaId', how='left')
+        merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_14d, on='SistemaId', how='left')
+        merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_21d, on='SistemaId', how='left')
+
+
+        url_sim_ano_anterior = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
+        response = requests.get(url_sim_ano_anterior, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+            print('response ano atual', datetime.now())
+            if "dataCollection" in data:
+                df_sim_ano_anterior = pd.DataFrame(data["dataCollection"])
+                df_sim_ano_anterior['SistemaId'] = 459
+                df_sim_ano_anterior = df_sim_ano_anterior.drop(columns={"dateTime", "deliveredAt"})
+                df_sim_ano_anterior = df_sim_ano_anterior.rename(columns={"value": "Volume Ano Anterior (%)"})
+                print(df_sim_ano_anterior)
+
+        merged_data_sistemas = pd.concat([merged_data_sistemas, df_sim_atual], ignore_index=True)
+        ano_anterior = pd.concat([ano_anterior, df_sim_ano_anterior], ignore_index=True)
+
+        df_nome_sistemas = pd.DataFrame(list(nomes_sistema.items()), columns=["Sistema", "SistemaId"])
+        merged_data_sistemas = pd.merge(merged_data_sistemas, df_nome_sistemas, on='SistemaId', how='left')
+        merged_data_sistemas = merged_data_sistemas[merged_data_sistemas['Sistema'].notna()]
+        print(merged_data_sistemas)
+
+        merged_data_sistemas = pd.merge(merged_data_sistemas, ano_anterior, on='SistemaId', how='left')
+        merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
+        merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
+        merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
+        print(merged_data_sistemas)
+
+
+
+
+
+        # if st.session_state.data_filter:
+        #     data_ano_anterior_str = st.session_state.data_filter
+
+        #     prefixos_selecionados = st.multiselect(
+        #         label="",
+        #         options=lista_meses,
+        #         default=st.session_state.data_filter,
+        #         placeholder="Excluir prefixos",
+        #         label_visibility="collapsed"
+        #     )
+
+        #     # Se mudar a seleção, atualiza o estado e recarrega
+        # if set(prefixos_selecionados) != set(st.session_state.data_filter):
+        #     st.session_state.data_filter = prefixos_selecionados
+        #     st.rerun()
+
+
+
+        colun1, colun2, coluna3= st.columns([0.2, 2.0, 0.2])
+        with colun2:
+            
+            html_perc_blocks = f"""
+                <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[0]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[0]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[0]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[0]:.2f} {merged_data_sistemas['simbolo'].iloc[0]}%</div>
+                    </div>
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[1]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[1]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[1]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[1]:.2f} {merged_data_sistemas['simbolo'].iloc[1]}%</div>
+                    </div>
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[2]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[2]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[2]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[2]:.2f} {merged_data_sistemas['simbolo'].iloc[2]}%</div>
+                    </div>
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[3]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[3]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[3]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[3]:.2f} {merged_data_sistemas['simbolo'].iloc[3]}%</div>
+                    </div>
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[4]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[4]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[4]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[4]:.2f} {merged_data_sistemas['simbolo'].iloc[4]}%</div>
+                    </div>
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[5]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[5]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[5]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[5]:.2f} {merged_data_sistemas['simbolo'].iloc[5]}%</div>
+                    </div>
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[6]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[6]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[6]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[6]:.2f} {merged_data_sistemas['simbolo'].iloc[6]}%</div>
+                    </div>
+                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[7]}</strong></div>
+                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[7]:.2f}%</div>
+                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[7]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[7]:.2f} {merged_data_sistemas['simbolo'].iloc[7]}%</div>
+                    </div>
+                </div>
+                """
+            st.markdown(html_perc_blocks, unsafe_allow_html=True)
+
+
+            for col in ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']:
+                merged_data_sistemas[col] = merged_data_sistemas[col].astype(float)
+
+                fig, ax = plt.subplots(figsize=(9, 4)) 
+
+                # Configurações das barras
+                n = len(merged_data_sistemas) 
+                largura_barra = 0.19 
+                espacamento = 0.05
+                indice = np.arange(n) 
+
+                # Offset calculado corretamente
+                offset = np.array([-1.5, -0.5, 0.5, 1.5]) * (largura_barra + espacamento/2)
+                cores = ["#3567f0", "#425692", "#6976A0", "#535F88"]
+
+                # Ajuste do eixo Y
+                max_valor = merged_data_sistemas[['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']].max().max()
+                
+                ax.set_ylim(0, max_valor * 1.2)
+
+                # Plotagem das barras
+                for i, (coluna, cor) in enumerate(zip(
+                    ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)'],
+                    cores
+                )):
+                    valores = merged_data_sistemas[coluna]
+                    posicoes_x = indice + offset[i]
+                    
+                    barras = ax.bar(
+                        posicoes_x,
+                        valores,
+                        largura_barra,
+                        color=cor,
+                        alpha=0.8,
+                        label=coluna
+                    )
+                    
+                    # Adicionando os valores dentro das barras, perto do topo
+                    for x, y in zip(posicoes_x, valores):
+                        ax.text(
+                            x,
+                            y - max_valor * 0.02,  # Um pouco abaixo do topo
+                            f'{y:.0f}',           # Número inteiro com símbolo de porcentagem
+                            ha='center',
+                            va='top',
+                            fontsize=8,
+                            color="#1E1E20",
+                            zorder=4
+                        )
+
+                # Personalização do gráfico
+                ax.set_title(' ', fontsize=10, pad=30)
+                ax.set_xlabel('Mananciais', fontsize=8)
+                ax.set_ylabel('Volume (%)', fontsize=8)
+                ax.set_xticks(indice)
+                ax.set_xticklabels(merged_data_sistemas['Sistema'], rotation=45, ha='right', fontsize=8)
+                ax.grid(axis='y', linestyle=':', alpha=0.3)
+                
+
+                # Legenda fora do gráfico
+                ax.legend(
+                    frameon=True,
+                    facecolor='#f0f0f0',
+                    fontsize=7,
+                    bbox_to_anchor=(0.5, 1.1),  # (posição horizontal, posição vertical)
+                    loc='upper center',  # Âncora no centro superior
+                    ncol=4  # Número de colunas para distribuir os itens
+                )
+
+            plt.tight_layout()
+            st.pyplot(fig)
+            ax.set_title("")
+
+        df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
+
+        data_atual_2meses = datetime.today() + relativedelta(months=2)
+
+        projecao_sim = pd.read_csv("serie_diaria.csv")
+        projecao_sim["Data"] = pd.to_datetime(projecao_sim["Data"])
+        projecao_sim =  projecao_sim[projecao_sim["Data"] >= data_atual_2meses]
+
+        colunas = ['QN100 (20-25)', 'QN100 MLT', 'QN70 MLT', 'QN (2021)', 'QN (2014)']
+        for c in colunas:
+            projecao_sim[c] = pd.to_numeric(projecao_sim[c], errors='coerce')
+            projecao_sim[c].fillna(0, inplace=True)
+
+
+        fig_sim = go.Figure()
+
+        fig_sim.add_trace(go.Scatter(x=df_sim_atual_all["dateTime"], y=df_sim_atual_all['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
+
+        # Adicionando as linhas horizontais para os níveis
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
+                                    mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=2)))
+            
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 MLT'], 
+                                    mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=2)))
+
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN70 MLT'], 
+                                    mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=2)))
+
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2021)'], 
+                                    mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=2)))
+        
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2014)'], 
+                                    mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=2)))
+    
+        # Atualizando o layout do gráfico
+        fig_sim.update_layout(
+            title=dict(
+                text="Projeção de Volume do SIM",
+                font=dict(size=24, color='black')  # tamanho e cor do título
+            ),
+            # title_x=0.3,
+            xaxis_title="",
+            yaxis_title="Volume (%)",
+            plot_bgcolor='white',    # Cor de fundo do gráfico
+            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
+            font=dict(color='black'),  # Cor das fontes para preto
+            title_font=dict(color='black'),  # Cor do título
+            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
+            yaxis_title_font=dict(color='black'), 
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+        )
+
+        st.plotly_chart(fig_sim)
+
+        co1, co2 = st.columns([1.50, 0.50])
+
+        with co1:
+            gov_base64 = get_base64_image("regua.png")
+            st.markdown(
+                f"""
+                <style>
+                    .relative-container {{
+                        position: relative;
+                        min-height: 620px;
+                        overflow: visible;
+                    }}
+
+                    .background-image {{
+                        position: absolute;
+                        top: -170px;
+                        left: 400px;
+                        height: 100%;
+                        object-fit: cover;
+                        opacity: 0.15;
+                        z-index: 0;
+                    }}
+
+                    .text-content {{
+                        position: relative;
+                        z-index: 1;
+                        color: black;
+                        padding: 20px;
+                    }}
+                </style>
+                <div style="position: absolute; bottom: -100px; right: -380px; display: flex; gap: 20px; z-index: 1;">
+                    <img src="data:image/png;base64,{gov_base64}" width="600" height="80">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        return None
 
 async def main():
-    
-    if 'boletim' not in st.session_state:
-        # Se ainda não tiver boletim escolhido, exibe a tela de seleção
-        await capa_boletim()
-    else:
-        # Limpar a tela de seleção e exibir os slides
-        st.empty()
-        
-        # Executa todas as tasks simultaneamente
-        if st.session_state.boletim == 'chuvas':
-            capa_data, slide1_data, slide2_data, slide3_data, slide5_data, slide6_data, slide7_data, slide8_data = await asyncio.gather(
-                capa(),
-                slide1(),
-                slide2(),
-                slide3(),
-                slide5(),
-                slide6(),
-                slide7(),
-                slide8()
-            )
+    st.sidebar.title("Selecionar visualização")
 
-            user_input1 = slide1_data
-            user_input3 = slide3_data
-            user_input5, all_extravasamento = slide5_data
-            user_input6 = slide6_data
-            user_input7 = slide7_data
-            image, user_input8 = slide8_data
 
-            if image.mode == 'P':
-                image_convert = image.convert('RGB')
+    if 'sidebar_visual' not in st.session_state:
+        st.session_state.sidebar_visual = None
 
-            if st.button("Exportar para PDF"):
+    sidebar_option = st.sidebar.radio(
+        "Escolha o tipo visualização:",
+        ("Dashboard Reservatórios", "Boletins"),
+        index=0 if st.session_state.sidebar_visual is None else ("Dashboard Reservatórios").index(st.session_state.sidebar_visual)
+    )
 
-                pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8)
-                
-                pdf_bytes = pdf.output(dest='S').encode('latin1')
+    st.session_state.sidebar_visual = sidebar_option
 
-                st.download_button(
-                    label="Baixar PDF",
-                    data=pdf_bytes,
-                    file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
-                    mime="application/pdf",
+    if st.session_state.sidebar_visual == 'Boletins':
+        if 'boletim' not in st.session_state:
+                # Se ainda não tiver boletim escolhido, exibe a tela de seleção
+                await capa_boletim()
+        else:
+            # Limpar a tela de seleção e exibir os slides
+            st.empty()
+            
+            # Executa todas as tasks simultaneamente
+            if st.session_state.boletim == 'chuvas':
+                capa_data, slide1_data, slide2_data, slide3_data, slide5_data, slide6_data, slide7_data, slide8_data = await asyncio.gather(
+                    capa(),
+                    slide1(),
+                    slide2(),
+                    slide3(),
+                    slide5(),
+                    slide6(),
+                    slide7(),
+                    slide8()
                 )
 
-        elif st.session_state.boletim == 'secas':
-            capa_data, slide1_data_seca, slide1_data, slide2_data, slide5_data_seca, slide6_data, slide6_data_seca, slide8_data_seca = await asyncio.gather(
-                capa(),    
-                slide1_seca(),
-                slide1(),
-                slide2(),
-                slide5_seca(),
-                slide6(),
-                slide6_seca(),
-                slide8_seca()
-            )
-            user_input1_seca = slide1_data_seca
-            user_input1 = slide1_data
-            user_input5_seca = slide5_data_seca
-            user_input6 = slide6_data
-            user_input6_seca = slide6_data_seca
-            image, user_input8_seca = slide8_data_seca
+                user_input1 = slide1_data
+                user_input3 = slide3_data
+                user_input5, all_extravasamento = slide5_data
+                user_input6 = slide6_data
+                user_input7 = slide7_data
+                image, user_input8 = slide8_data
 
-            if image.mode == 'P':
-                image_convert = image.convert('RGB')
+                if image.mode == 'P':
+                    image_convert = image.convert('RGB')
 
-            if st.button("Exportar para PDF"):
+                if st.button("Exportar para PDF"):
 
-                pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca)
-                
-                pdf_bytes = pdf.output(dest='S').encode('latin1')
+                    pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8)
+                    
+                    pdf_bytes = pdf.output(dest='S').encode('latin1')
 
-                st.download_button(
-                    label="Baixar PDF",
-                    data=pdf_bytes,
-                    file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
-                    mime="application/pdf",
+                    st.download_button(
+                        label="Baixar PDF",
+                        data=pdf_bytes,
+                        file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                        mime="application/pdf",
+                    )
+
+            elif st.session_state.boletim == 'secas':
+                capa_data, slide1_data_seca, slide1_data, slide2_data, slide5_data_seca, slide6_data, slide6_data_seca, slide8_data_seca = await asyncio.gather(
+                    capa(),    
+                    slide1_seca(),
+                    slide1(),
+                    slide2(),
+                    slide5_seca(),
+                    slide6(),
+                    slide6_seca(),
+                    slide8_seca()
                 )
+                user_input1_seca = slide1_data_seca
+                user_input1 = slide1_data
+                user_input5_seca = slide5_data_seca
+                user_input6 = slide6_data
+                user_input6_seca = slide6_data_seca
+                image, user_input8_seca = slide8_data_seca
+
+                if image.mode == 'P':
+                    image_convert = image.convert('RGB')
+
+                if st.button("Exportar para PDF"):
+
+                    pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca)
+                    
+                    pdf_bytes = pdf.output(dest='S').encode('latin1')
+
+                    st.download_button(
+                        label="Baixar PDF",
+                        data=pdf_bytes,
+                        file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                        mime="application/pdf",
+                    )
+
+    elif st.session_state.sidebar_visual == 'Dashboard Reservatórios':
+        dashboards = await asyncio.gather(
+            dashboard_reservatorios()
+        )
+
 
     
 if __name__ == "__main__":
