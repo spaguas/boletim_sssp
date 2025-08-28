@@ -45,6 +45,8 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 from dateutil.relativedelta import relativedelta
 
+
+
 class PDF(FPDF):
     def __init__(self, orientation='L'):  # 'L' para Landscape (Paisagem)
         super().__init__(orientation=orientation, unit='mm', format='A4')
@@ -89,6 +91,10 @@ slide8_container = st.container()
 slide8_secas = st.container()
 
 load_dotenv()
+
+users = os.environ.get('USERS').split(";")
+users = os.environ.get('USERS').split(";")
+users_dict = {u.split(":")[0]: u.split(":")[1] for u in users}
 
 def conection_postgres():
     host = os.environ.get('DATABASE_HOST')
@@ -6136,91 +6142,114 @@ async def main():
     if 'sidebar_visual' not in st.session_state:
         st.session_state.sidebar_visual = None
 
+    opcoes = ("Dashboard Reservatórios", "Boletins")
+
     sidebar_option = st.sidebar.radio(
         "Escolha o tipo visualização:",
-        ("Dashboard Reservatórios", "Boletins"),
-        index=0 if st.session_state.sidebar_visual is None else ("Dashboard Reservatórios").index(st.session_state.sidebar_visual)
+        opcoes,
+        index=0 if "sidebar_visual" not in st.session_state or st.session_state.sidebar_visual not in opcoes 
+            else opcoes.index(st.session_state.sidebar_visual)
     )
 
     st.session_state.sidebar_visual = sidebar_option
 
     if st.session_state.sidebar_visual == 'Boletins':
-        if 'boletim' not in st.session_state:
-                # Se ainda não tiver boletim escolhido, exibe a tela de seleção
-                await capa_boletim()
+
+        # Se ainda não logou
+        if "logged_in" not in st.session_state:
+            st.session_state.logged_in = False
+
+        if not st.session_state.logged_in:
+            st.title("🔒 Login")
+            username = st.text_input("Usuário")
+            password = st.text_input("Senha", type="password")
+            if st.button("Entrar"):
+                if username in users_dict and users_dict[username] == password:
+                    st.session_state.logged_in = True
+                    st.session_state.username = username
+                    st.success("Login bem-sucedido ✅")
+                    st.rerun()
+                else:
+                    st.error("Usuário ou senha incorretos")
         else:
-            # Limpar a tela de seleção e exibir os slides
-            st.empty()
+            st.sidebar.success(f"Bem-vindo, {st.session_state.username}")
             
-            # Executa todas as tasks simultaneamente
-            if st.session_state.boletim == 'chuvas':
-                capa_data, slide1_data, slide2_data, slide3_data, slide5_data, slide6_data, slide7_data, slide8_data = await asyncio.gather(
-                    capa(),
-                    slide1(),
-                    slide2(),
-                    slide3(),
-                    slide5(),
-                    slide6(),
-                    slide7(),
-                    slide8()
-                )
-
-                user_input1 = slide1_data
-                user_input3 = slide3_data
-                user_input5, all_extravasamento = slide5_data
-                user_input6 = slide6_data
-                user_input7 = slide7_data
-                image, user_input8 = slide8_data
-
-                if image.mode == 'P':
-                    image_convert = image.convert('RGB')
-
-                if st.button("Exportar para PDF"):
-
-                    pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8)
-                    
-                    pdf_bytes = pdf.output(dest='S').encode('latin1')
-
-                    st.download_button(
-                        label="Baixar PDF",
-                        data=pdf_bytes,
-                        file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
-                        mime="application/pdf",
+            if 'boletim' not in st.session_state:
+                    # Se ainda não tiver boletim escolhido, exibe a tela de seleção
+                    await capa_boletim()
+            else:
+                # Limpar a tela de seleção e exibir os slides
+                st.empty()
+                
+                # Executa todas as tasks simultaneamente
+                if st.session_state.boletim == 'chuvas':
+                    capa_data, slide1_data, slide2_data, slide3_data, slide5_data, slide6_data, slide7_data, slide8_data = await asyncio.gather(
+                        capa(),
+                        slide1(),
+                        slide2(),
+                        slide3(),
+                        slide5(),
+                        slide6(),
+                        slide7(),
+                        slide8()
                     )
 
-            elif st.session_state.boletim == 'secas':
-                capa_data, slide1_data_seca, slide1_data, slide2_data, slide5_data_seca, slide6_data, slide6_data_seca, slide8_data_seca = await asyncio.gather(
-                    capa(),    
-                    slide1_seca(),
-                    slide1(),
-                    slide2(),
-                    slide5_seca(),
-                    slide6(),
-                    slide6_seca(),
-                    slide8_seca()
-                )
-                user_input1_seca = slide1_data_seca
-                user_input1 = slide1_data
-                user_input5_seca = slide5_data_seca
-                user_input6 = slide6_data
-                user_input6_seca = slide6_data_seca
-                image, user_input8_seca = slide8_data_seca
+                    user_input1 = slide1_data
+                    user_input3 = slide3_data
+                    user_input5, all_extravasamento = slide5_data
+                    user_input6 = slide6_data
+                    user_input7 = slide7_data
+                    image, user_input8 = slide8_data
 
-                if image.mode == 'P':
-                    image_convert = image.convert('RGB')
+                    if image.mode == 'P':
+                        image_convert = image.convert('RGB')
 
-                if st.button("Exportar para PDF"):
+                    if st.button("Exportar para PDF"):
 
-                    pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca)
-                    
-                    pdf_bytes = pdf.output(dest='S').encode('latin1')
+                        pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8)
+                        
+                        pdf_bytes = pdf.output(dest='S').encode('latin1')
 
-                    st.download_button(
-                        label="Baixar PDF",
-                        data=pdf_bytes,
-                        file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
-                        mime="application/pdf",
+                        st.download_button(
+                            label="Baixar PDF",
+                            data=pdf_bytes,
+                            file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                            mime="application/pdf",
+                        )
+
+                elif st.session_state.boletim == 'secas':
+                    capa_data, slide1_data_seca, slide1_data, slide2_data, slide5_data_seca, slide6_data, slide6_data_seca, slide8_data_seca = await asyncio.gather(
+                        capa(),    
+                        slide1_seca(),
+                        slide1(),
+                        slide2(),
+                        slide5_seca(),
+                        slide6(),
+                        slide6_seca(),
+                        slide8_seca()
                     )
+                    user_input1_seca = slide1_data_seca
+                    user_input1 = slide1_data
+                    user_input5_seca = slide5_data_seca
+                    user_input6 = slide6_data
+                    user_input6_seca = slide6_data_seca
+                    image, user_input8_seca = slide8_data_seca
+
+                    if image.mode == 'P':
+                        image_convert = image.convert('RGB')
+
+                    if st.button("Exportar para PDF"):
+
+                        pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca)
+                        
+                        pdf_bytes = pdf.output(dest='S').encode('latin1')
+
+                        st.download_button(
+                            label="Baixar PDF",
+                            data=pdf_bytes,
+                            file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                            mime="application/pdf",
+                        )
 
     elif st.session_state.sidebar_visual == 'Dashboard Reservatórios':
         dashboards = await asyncio.gather(
