@@ -1562,11 +1562,9 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
             print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
     else:
         print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
-
-
+    
     url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
     response = requests.get(url_ano_anteior, verify=False)
-
     if response.status_code == 200:
 
         data = response.json()
@@ -1587,7 +1585,6 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
             print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
     else:
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
-    
 
     url_7_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_7dias_str}"
     response = requests.get(url_7_dias, verify=False)
@@ -5722,15 +5719,17 @@ async def dashboard_reservatorios():
         data_21dias_str = data_21dias.strftime('%Y-%m-%d')
 
 
-        data_fim = pd.to_datetime(data_atual).to_period("y").to_timestamp()
+        data_fim = str(data_ano_anterior.year + 1)
         lista_anos = pd.date_range(start="2000", end=data_fim, freq="Y")
         lista_anos_int = lista_anos.year.tolist()
         lista_anos_int.sort(reverse=True)  # do maior para o menor
         lista_anos_str = list(map(str, lista_anos_int))
 
         # if 'data_filter' not in st.session_state:
-        #     st.session_state.data_filter = []
+        #     st.session_state.data_filter = [str(data_ano_anterior.year)]
 
+        # ano_usado = st.session_state.data_filter
+        # st.write(f"🔹 Gerando cards para ano(s): {ano_usado}")
 
         datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
 
@@ -5768,13 +5767,48 @@ async def dashboard_reservatorios():
                     data = json.load(f)
                 dados_sistemas = data.get("dadosSistemas", [])
                 df_dados_sistemas = pd.DataFrame(dados_sistemas)
+
+
+        # if os.path.exists(json_sistemas_1d):
+        #     with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
+        #         data = json.load(f)
+        #     sistemas_1d = data.get("dadosSistemas", [])
+        #     dados_sistemas_1d = pd.DataFrame(sistemas_1d)
+        #     dados_sistemas_1d["Data"] = pd.to_datetime(dados_sistemas_1d["Data"])
+        #     data_existe_1d = data_ano_anterior == dados_sistemas_1d["Data"].iloc[0]
+
+        #     sistemas_presentes_1d = set(dados_sistemas_1d["SistemaId"].unique())
+
+        #     if not data_existe_1d and sistemas_esperados.issubset(sistemas_presentes_1d):
+        #         url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
+        #         response = requests.get(url_ano_anteior, verify=False)
+        #         if response.status_code == 200:
+
+        #             data = response.json()
+
+        #             if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
+        #                 df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
+        #                 ano_anterior = df_sistemas_ano_anterior[["SistemaId", "VolumePorcentagem"]]
+        #                 ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
+                        
+        #                 json_data = data['ReturnObj']
+        #                 path = os.path.join("results", "sabesp_sistemas_all_data_anoanterior.json")
+        #                 print(path)
+
+        #                 with open(path, "w", encoding="utf-8") as f:
+        #                     json.dump(json_data, f, indent=4, ensure_ascii=False)
+
+        #             else:
+        #                 print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+        #         else:
+        #             print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
         
-        else:
-            get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
-            with open(json_sistemas, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            dados_sistemas = data.get("dadosSistemas", [])
-            df_dados_sistemas = pd.DataFrame(dados_sistemas)
+        # else:
+        #     get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+        #     with open(json_sistemas, 'r', encoding='utf-8') as f:
+        #         data = json.load(f)
+        #     dados_sistemas = data.get("dadosSistemas", [])
+        #     df_dados_sistemas = pd.DataFrame(dados_sistemas)
             
         with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
             data_1d = json.load(f)
@@ -5808,7 +5842,7 @@ async def dashboard_reservatorios():
         sistemas_atual = df_dados_sistemas[["SistemaId", "VolumePorcentagem"]]
         sistemas_atual = sistemas_atual.rename(columns={"VolumePorcentagem": "Volume atual (%)"})
         
-        start_sim = '2025-08-19'
+
         url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_21dias_str}/{data_atual_str}'
         response = requests.get(url_sim, verify=False)
 
@@ -5817,7 +5851,6 @@ async def dashboard_reservatorios():
             print('response ano atual', datetime.now())
             if "dataCollection" in data:
                 df_sim_atual_all = pd.DataFrame(data["dataCollection"])
-                print(df_sim_atual_all)
                 df_sim_atual = df_sim_atual_all.copy()
                 df_sim_atual['SistemaId'] = 459
 
@@ -5843,13 +5876,11 @@ async def dashboard_reservatorios():
 
         if response.status_code == 200:
             data = response.json()
-            print('response ano atual', datetime.now())
             if "dataCollection" in data:
                 df_sim_ano_anterior = pd.DataFrame(data["dataCollection"])
                 df_sim_ano_anterior['SistemaId'] = 459
                 df_sim_ano_anterior = df_sim_ano_anterior.drop(columns={"dateTime", "deliveredAt"})
                 df_sim_ano_anterior = df_sim_ano_anterior.rename(columns={"value": "Volume Ano Anterior (%)"})
-                print(df_sim_ano_anterior)
 
         merged_data_sistemas = pd.concat([merged_data_sistemas, df_sim_atual], ignore_index=True)
         ano_anterior = pd.concat([ano_anterior, df_sim_ano_anterior], ignore_index=True)
@@ -5857,34 +5888,11 @@ async def dashboard_reservatorios():
         df_nome_sistemas = pd.DataFrame(list(nomes_sistema.items()), columns=["Sistema", "SistemaId"])
         merged_data_sistemas = pd.merge(merged_data_sistemas, df_nome_sistemas, on='SistemaId', how='left')
         merged_data_sistemas = merged_data_sistemas[merged_data_sistemas['Sistema'].notna()]
-        print(merged_data_sistemas)
 
         merged_data_sistemas = pd.merge(merged_data_sistemas, ano_anterior, on='SistemaId', how='left')
         merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
         merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
         merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
-        print(merged_data_sistemas)
-
-
-
-
-
-        # if st.session_state.data_filter:
-        #     data_ano_anterior_str = st.session_state.data_filter
-
-        #     prefixos_selecionados = st.multiselect(
-        #         label="",
-        #         options=lista_meses,
-        #         default=st.session_state.data_filter,
-        #         placeholder="Excluir prefixos",
-        #         label_visibility="collapsed"
-        #     )
-
-        #     # Se mudar a seleção, atualiza o estado e recarrega
-        # if set(prefixos_selecionados) != set(st.session_state.data_filter):
-        #     st.session_state.data_filter = prefixos_selecionados
-        #     st.rerun()
-
 
 
         colun1, colun2, coluna3= st.columns([0.2, 2.0, 0.2])
@@ -5935,6 +5943,18 @@ async def dashboard_reservatorios():
                 </div>
                 """
             st.markdown(html_perc_blocks, unsafe_allow_html=True)
+
+            # ano_selecionado = st.selectbox(
+            #     "Selecione o(s) ano(s):",
+            #     options=lista_anos_str,
+            #     default=st.session_state.data_filter,
+            #     label_visibility="visible"
+            # )
+
+            #     # Se mudar a seleção, atualiza o estado e recarrega
+            # if set(ano_selecionado) != set(st.session_state.data_filter):
+            #     st.session_state.data_filter = ano_selecionado
+            #     st.rerun()
 
 
             for col in ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']:
@@ -6010,13 +6030,18 @@ async def dashboard_reservatorios():
             st.pyplot(fig)
             ax.set_title("")
 
-        df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
 
-        data_atual_2meses = datetime.today() + relativedelta(months=2)
+
+        start_sim = '2025-08-19'
+        start_sim_dt = pd.to_datetime(start_sim)
+        df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
+        df_sim_atual_filtrado=df_sim_atual_all[df_sim_atual_all["dateTime"] >= start_sim_dt]
+
+        data_atual_1meses = datetime.today() + relativedelta(months=1)
 
         projecao_sim = pd.read_csv("serie_diaria.csv")
         projecao_sim["Data"] = pd.to_datetime(projecao_sim["Data"])
-        projecao_sim =  projecao_sim[projecao_sim["Data"] >= data_atual_2meses]
+        projecao_sim =  projecao_sim[projecao_sim["Data"] <= data_atual_1meses]
 
         colunas = ['QN100 (20-25)', 'QN100 MLT', 'QN70 MLT', 'QN (2021)', 'QN (2014)']
         for c in colunas:
@@ -6026,23 +6051,23 @@ async def dashboard_reservatorios():
 
         fig_sim = go.Figure()
 
-        fig_sim.add_trace(go.Scatter(x=df_sim_atual_all["dateTime"], y=df_sim_atual_all['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
+        fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
 
         # Adicionando as linhas horizontais para os níveis
         fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
-                                    mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=2)))
+                                    mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=1.5)))
             
         fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 MLT'], 
-                                    mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=2)))
+                                    mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=1.5)))
 
         fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN70 MLT'], 
-                                    mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=2)))
+                                    mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=1.5)))
 
         fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2021)'], 
-                                    mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=2)))
+                                    mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=1.5)))
         
         fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2014)'], 
-                                    mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=2)))
+                                    mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=1.5)))
     
         # Atualizando o layout do gráfico
         fig_sim.update_layout(
@@ -6060,7 +6085,7 @@ async def dashboard_reservatorios():
             xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
             yaxis_title_font=dict(color='black'), 
             legend=dict(font=dict(color='black')),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m"),# Cor dos valores no eixo X
+            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
             yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
         )
 
