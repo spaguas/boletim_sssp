@@ -5167,7 +5167,7 @@ async def slide8_seca():
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
         url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
-        url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
+        url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_6.jpg'
         print(url)
         try:
             response = requests.get(url, verify=False, timeout=10)
@@ -5780,37 +5780,24 @@ async def slide6_seca():
 
 async def dashboard_reservatorios(): 
     with slide6_container:
-        col1, col2, col3 = st.columns([1.2, 1.2, 0.30])
+        col1, col2, col3 = st.columns([0.30, 1.5, 0.30])
 
-        with col1:
-            st.write("""
-                <div class="align-left-center">
-                    <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
-                    </div>
-                </div>
-                """,
-                    unsafe_allow_html=True)
 
         with col3:
             st.markdown('<div class="align-right">', unsafe_allow_html=True)
             st.image("SP-4.png", caption="", width=300)
             st.markdown('</div>', unsafe_allow_html=True)
 
-        with col2:
-            st.write("""
-            <div style="color: black;">
-                <h1  style="font-size: 18px;">Sistema Produtores da RMSP</h1>
-            </div>
-            """,
-            unsafe_allow_html=True)
+
 
 
         coluna1, coluna2, coluna3 = st.columns([0.2, 1.5, 0.2])
 
 
         data_atual = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
+        data_formatada = data_atual.strftime("%d/%m/%Y")
         dia = data_atual.day
+        mes = data_atual.month
         data_ano_anterior = datetime.today() - timedelta(days=365)
         data_7dias = datetime.today() - timedelta(days=7)
         data_14dias = datetime.today() - timedelta(days=14)
@@ -5829,11 +5816,26 @@ async def dashboard_reservatorios():
         lista_anos_int.sort(reverse=True)  # do maior para o menor
         lista_anos_str = list(map(str, lista_anos_int))
 
-        # if 'data_filter' not in st.session_state:
-        #     st.session_state.data_filter = [str(data_ano_anterior.year)]
+        with col2:
+            st.write(f"""
+            <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                <h1  style="font-size: 22px;">Situação dos Reservatórios da RMSP em {data_formatada}</h1>
+            </div>
+            """,
+            unsafe_allow_html=True)
 
-        # ano_usado = st.session_state.data_filter
-        # st.write(f"🔹 Gerando cards para ano(s): {ano_usado}")
+
+        if 'data_filter' not in st.session_state:
+            st.session_state.data_filter = str(data_ano_anterior.year)
+
+        ano_usado = st.session_state.data_filter
+        ano_filtro = f'{ano_usado}-{mes:02d}-{dia:02d}'
+        if ano_filtro != data_ano_anterior_str:
+            fetch_and_save_json(ano_filtro, "sabesp_sistemas_all_data_anoanterior.json")
+
+
+        print(ano_usado)
+        print(ano_filtro)
 
         datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
 
@@ -5867,8 +5869,6 @@ async def dashboard_reservatorios():
             else:
                 data_existe = False
 
-            print("-----------------------data_existe--------------------")
-            print(data_existe)
             sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
 
             if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
@@ -5883,41 +5883,6 @@ async def dashboard_reservatorios():
                     data = json.load(f)
                 dados_sistemas = data.get("dadosSistemas", [])
                 df_dados_sistemas = pd.DataFrame(dados_sistemas)
-
-
-        # if os.path.exists(json_sistemas_1d):
-        #     with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
-        #         data = json.load(f)
-        #     sistemas_1d = data.get("dadosSistemas", [])
-        #     dados_sistemas_1d = pd.DataFrame(sistemas_1d)
-        #     dados_sistemas_1d["Data"] = pd.to_datetime(dados_sistemas_1d["Data"])
-        #     data_existe_1d = data_ano_anterior == dados_sistemas_1d["Data"].iloc[0]
-
-        #     sistemas_presentes_1d = set(dados_sistemas_1d["SistemaId"].unique())
-
-        #     if not data_existe_1d and sistemas_esperados.issubset(sistemas_presentes_1d):
-        #         url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
-        #         response = requests.get(url_ano_anteior, verify=False)
-        #         if response.status_code == 200:
-
-        #             data = response.json()
-
-        #             if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
-        #                 df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
-        #                 ano_anterior = df_sistemas_ano_anterior[["SistemaId", "VolumePorcentagem"]]
-        #                 ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
-                        
-        #                 json_data = data['ReturnObj']
-        #                 path = os.path.join("results", "sabesp_sistemas_all_data_anoanterior.json")
-        #                 print(path)
-
-        #                 with open(path, "w", encoding="utf-8") as f:
-        #                     json.dump(json_data, f, indent=4, ensure_ascii=False)
-
-        #             else:
-        #                 print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
-        #         else:
-        #             print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
         
         else:
             # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
@@ -5931,6 +5896,8 @@ async def dashboard_reservatorios():
                 data = json.load(f)
             dados_sistemas = data.get("dadosSistemas", [])
             df_dados_sistemas = pd.DataFrame(dados_sistemas)
+
+
             
         with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
             data_1d = json.load(f)
@@ -6017,7 +5984,17 @@ async def dashboard_reservatorios():
         merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
 
         colun1, colun2, coluna3= st.columns([0.2, 2.0, 0.2])
+
         with colun2:
+
+            st.write(f"""
+                <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                    <p style="font-size: 16px; text-align: center;">
+                        Comparação entre volume(%) atual e o volume em {dia:02d}/{mes:02d}/{ano_usado}
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+            
             
             html_perc_blocks = f"""
                 <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
@@ -6065,18 +6042,21 @@ async def dashboard_reservatorios():
                 """
             st.markdown(html_perc_blocks, unsafe_allow_html=True)
 
-            # ano_selecionado = st.selectbox(
-            #     "Selecione o(s) ano(s):",
-            #     options=lista_anos_str,
-            #     default=st.session_state.data_filter,
-            #     label_visibility="visible"
-            # )
+            con1, con2, con3= st.columns([1.0, 1.0, 1.0])
+            with con2:
+                ano_selecionado = st.selectbox(
+                    "Selecione novo ano para compação ",
+                    options=lista_anos_str,
+                    index=lista_anos_str.index(st.session_state.data_filter),
+                    label_visibility="visible"
+                )
+                print(ano_selecionado)
+                    # Se mudar a seleção, atualiza o estado e recarrega
+                if set(ano_selecionado) != set(st.session_state.data_filter):
+                    st.session_state.data_filter = ano_selecionado
+                    st.rerun()
 
-            #     # Se mudar a seleção, atualiza o estado e recarrega
-            # if set(ano_selecionado) != set(st.session_state.data_filter):
-            #     st.session_state.data_filter = ano_selecionado
-            #     st.rerun()
-
+           
 
             for col in ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']:
                 merged_data_sistemas[col] = merged_data_sistemas[col].astype(float)
