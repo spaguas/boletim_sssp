@@ -1711,17 +1711,55 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
         "Rio Grande": 4, 
         "Rio Claro":5,
         "São Lourenço": 17,
+        "SIM": 459
     }
 
     df_sistemas = pd.DataFrame(list(dados_sistema.items()), columns=["Sistema", "SistemaId"])
 
+
+
+    url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_atual_str}'
+    response = requests.get(url_sim, verify=False)
+
+    if response.status_code == 200:
+        data = response.json()
+        print('response ano atual', datetime.now())
+        if "dataCollection" in data:
+            df_sim_atual_all = pd.DataFrame(data["dataCollection"])
+            df_sim_atual = df_sim_atual_all.copy()
+            df_sim_atual['SistemaId'] = 459
+
+            valor_atual = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_atual_str, 'value'].iloc[0]
+            valor_ano_anterior = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
+
+            df_sim_atual["VolumePorcentagem"] = valor_atual
+            df_sim_atual["Volume Ano Anterior (%)"] = valor_ano_anterior
+
+
+            df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
+            df_sim_atual = df_sim_atual.drop(columns={"deliveredAt", "value"})
+            print(df_sim_atual)
+
+    merged_data = pd.concat([merged_data, df_sim_atual], ignore_index=True)
     merged_data_sistemas = pd.merge(merged_data, df_sistemas, on='SistemaId', how='left')
     merged_data_sistemas = merged_data_sistemas.dropna(subset=['Sistema'])
+    print(merged_data_sistemas)
+
+
     merged_data_sistemas['Diferença Vol. Anual (%)'] = merged_data_sistemas['VolumePorcentagem'] - merged_data_sistemas['Volume Ano Anterior (%)']
 
     merged_data_sistemas = merged_data_sistemas.rename(columns={'VolumePorcentagem': 'VolumeAtual (%)', 'Precipitacao': 'Chuva (mm)', 'PrecipitacaoAcumuladaNoMes': 'Acumulado no Mês (mm)', 'PMLTMensal':'Média Histórica (mm)'})
 
     merged_data_sistemas = merged_data_sistemas[['Sistema', 'VolumeAtual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
+    print(merged_data_sistemas)
+
+    cols = ['Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']
+
+    # Arredonda primeiro
+    merged_data_sistemas[cols] = merged_data_sistemas[cols].round(1)
+
+    # Formata cada elemento como string
+    merged_data_sistemas[cols] = merged_data_sistemas[cols].applymap(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
 
     data_atual_str = datetime.today().strftime("%Y-%m-%d")
     merged_data_sistemas["Data"] = data_atual_str
@@ -3139,7 +3177,7 @@ async def slide2():
                     LEFT JOIN avg_rainfall_cities rc ON rc.cod_ibge::text = c.cod_ibge::text
                 WHERE disponibilidade_diaria > 80 AND disponibilidade_mensal > 60::numeric AND ac_diario IS NOT null and c.name!='Município não Existente ou Incorporado por Outro' {filtro_prefixo}
                 GROUP BY city_name, media_historica
-                ORDER BY (avg(ac_diario)) DESC LIMIT 10;"""
+                ORDER BY (max(ac_diario)) DESC LIMIT 10;"""
 
         tabela_df= execute_query(query_cities)
 
@@ -3161,14 +3199,16 @@ async def slide2():
             
         tabela_ugrhis_df= execute_query(query_ugrhis)
 
+        # tabela_df = tabela_df.sort_values(by='Chuva Máximo (mm)')
+
         first_column_name = tabela_df.columns[0]
         with coluna1:
 
             styled_df = tabela_df.style\
             .format({
-                    'Chuva Máximo (mm)': '{:.0f}', 
-                    'Chuva Média (mm)': '{:.0f}', 
-                    'Acum. média mês (mm)': '{:.0f}' 
+                    'Chuva Máximo (mm)': '{:.1f}', 
+                    'Chuva Média (mm)': '{:.1f}', 
+                    'Acum. média mês (mm)': '{:.1f}' 
                     })\
             .hide(axis="index")\
             .set_caption("Municípios com os maiores acumulados de chuvas observadas nas últimas 24h (mm) (Rede Telemétrica)")\
@@ -4500,16 +4540,16 @@ async def slide6():
         sistemas_esperados = {"Cantareira", "Alto Tietê", "Guarapiranga", "Cotia", "Rio Grande", "Rio Claro", "São Lourenço"}
 
         if os.path.exists(json_sistemas):
-            merged_data_sistemas = pd.read_json(json_sistemas)
+            # merged_data_sistemas = pd.read_json(json_sistemas)
             
-            data_existe = data_atual_str in merged_data_sistemas["Data"].values
-            sistemas_presentes = set(merged_data_sistemas["Sistema"].unique())
-            if data_existe and sistemas_esperados.issubset(sistemas_presentes):
-                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
-            else:
-                get_sabesp_api(data_atual_str, data_ano_anterior_str)
-                merged_data_sistemas = pd.read_json(json_sistemas)
-                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+            # data_existe = data_atual_str in merged_data_sistemas["Data"].values
+            # sistemas_presentes = set(merged_data_sistemas["Sistema"].unique())
+            # if data_existe and sistemas_esperados.issubset(sistemas_presentes):
+            #     merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+            # else:
+            get_sabesp_api(data_atual_str, data_ano_anterior_str)
+            merged_data_sistemas = pd.read_json(json_sistemas)
+            merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
         else:
             get_sabesp_api(data_atual_str, data_ano_anterior_str)
             merged_data_sistemas = pd.read_json(json_sistemas)
@@ -4630,10 +4670,7 @@ async def slide6():
             .format({
                     'VolumeAtual (%)': '{:.2f}', 
                     'Volume Ano Anterior (%)': '{:.2f}', 
-                    'Diferença Vol. Anual (%)': '{:.2f}', 
-                    'Chuva (mm)': '{:.0f}',
-                    'Acumulado no Mês (mm)': '{:.0f}', 
-                    'Média Histórica (mm)': '{:.0f}'
+                    'Diferença Vol. Anual (%)': '{:.2f}'
                 })\
             .hide(axis="index")\
             .set_caption("Volume dos Sistemas Produtores (Sabesp)")\
@@ -6237,7 +6274,7 @@ async def main():
                         st.download_button(
                             label="Baixar PDF",
                             data=pdf_bytes,
-                            file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                            file_name=f"boletim_diario_{datetime.today().strftime('%Y%m%d')}.pdf",
                             mime="application/pdf",
                         )
 
@@ -6271,7 +6308,7 @@ async def main():
                         st.download_button(
                             label="Baixar PDF",
                             data=pdf_bytes,
-                            file_name=f"previsao_tempo_{datetime.today().strftime('%Y%m%d')}.pdf",
+                            file_name=f"boletim_diario_{datetime.today().strftime('%Y%m%d')}.pdf",
                             mime="application/pdf",
                         )
 
