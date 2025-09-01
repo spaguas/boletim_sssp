@@ -5762,10 +5762,14 @@ async def dashboard_reservatorios():
                 data = json.load(f)
             dados_sistemas = data.get("dadosSistemas", [])
             df_dados_sistemas = pd.DataFrame(dados_sistemas)
-            df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
-            data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
+            
+            if "Data" in df_dados_sistemas.columns and not df_dados_sistemas.empty:
+                df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
+                data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
+            else:
+                data_existe = False
 
-            sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique())
+            sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
 
             if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
                 get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
