@@ -1545,17 +1545,16 @@ def capturar_ssd():
         driver.quit()
         shutil.rmtree(dir_path, ignore_errors=True)
 
-def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_12dias_str):
+def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str):
 
     url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
-    response = requests.get(url_ano_atual, verify=False)
+    response = requests.get(url_ano_atual, verify=False, timeout=120)
 
     if response.status_code == 200:
 
         data = response.json()
         print('response ano atual', datetime.now())
         if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
-            df_sistemas_ano_atual = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
 
             json_data = data['ReturnObj']
             path = os.path.join("results", "sabesp_sistemas_all_data.json")
@@ -1570,22 +1569,19 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
         print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
     
     url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
-    response = requests.get(url_ano_anteior, verify=False)
-    if response.status_code == 200:
+    response_1 = requests.get(url_ano_anteior, verify=False, timeout=120)
+    if response_1.status_code == 200:
 
-        data = response.json()
+        data_1 = response_1.json()
 
-        if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
-            df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['dadosSistemas'])
-            ano_anterior = df_sistemas_ano_anterior[["SistemaId", "VolumePorcentagem"]]
-            ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
-            
-            json_data = data['ReturnObj']
+        if 'ReturnObj' in data_1 and 'dadosSistemas' in data_1['ReturnObj']:
+
+            json_data_1 = data_1['ReturnObj']
             path = os.path.join("results", "sabesp_sistemas_all_data_anoanterior.json")
             print(path)
 
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(json_data, f, indent=4, ensure_ascii=False)
+                json.dump(json_data_1, f, indent=4, ensure_ascii=False)
 
         else:
             print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
@@ -1593,11 +1589,11 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
     url_7_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_7dias_str}"
-    response = requests.get(url_7_dias, verify=False)
+    response_7 = requests.get(url_7_dias, verify=False, timeout=120)
 
-    if response.status_code == 200:
+    if response_7.status_code == 200:
 
-        data_7dias = response.json()
+        data_7dias = response_7.json()
         print('response ano anterior', datetime.now())
         if 'ReturnObj' in data_7dias and 'dadosSistemas' in data_7dias['ReturnObj']:
 
@@ -1613,18 +1609,13 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
     url_14_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_14dias_str}"
-    response = requests.get(url_14_dias, verify=False)
+    response_14 = requests.get(url_14_dias, verify=False, timeout=120)
 
-    if response.status_code == 200:
+    if response_14.status_code == 200:
 
-        data_14dias = response.json()
+        data_14dias = response_14.json()
         print('response ano anterior', datetime.now())
-        if 'ReturnObj' in data and 'dadosSistemas' in data_14dias['ReturnObj']:
-            df_sistemas_14_dias = pd.DataFrame(data_14dias['ReturnObj']['dadosSistemas'])
-            print(df_sistemas_14_dias.columns)
-            dados_14dias = df_sistemas_14_dias[["SistemaId", "VolumePorcentagem"]]
-            dados_14dias = dados_14dias.rename(columns={"VolumePorcentagem": "Volume -14 dias"})
-
+        if 'ReturnObj' in data_14dias and 'dadosSistemas' in data_14dias['ReturnObj']:
             json_data_14dias = data_14dias['ReturnObj']
             path = os.path.join("results", "sabesp_sistemas_all_data_14dias.json")
 
@@ -1636,18 +1627,13 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
     else:
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
-    url_21_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_12dias_str}"
-    response = requests.get(url_21_dias, verify=False)
+    url_21_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_21dias_str}"
+    response_21 = requests.get(url_21_dias, verify=False, timeout=120)
 
-    if response.status_code == 200:
+    if response_21.status_code == 200:
 
-        data_21dias = response.json()
-        print('response ano anterior', datetime.now())
-        if 'ReturnObj' in data_21dias and 'dadosSistemas' in data_21dias['ReturnObj']:
-            df_sistemas_21_dias = pd.DataFrame(data_21dias['ReturnObj']['dadosSistemas'])
-            dados_21dias = df_sistemas_21_dias[["SistemaId", "VolumePorcentagem"]]
-            dados_21dias = dados_21dias.rename(columns={"VolumePorcentagem": "Volume -21 dias"})
-
+        data_21dias = response_21.json()
+        if 'ReturnObj' in data and 'dadosSistemas' in data_14dias['ReturnObj']:
             json_data_21dias = data_21dias['ReturnObj']
             path = os.path.join("results", "sabesp_sistemas_all_data_21dias.json")
 
@@ -1660,7 +1646,28 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
 
-  
+
+
+def fetch_and_save_json(data_str, filename):
+    print(data_str, filename)
+    url = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_str}"
+    try:
+        response = requests.get(url, verify=False, timeout=120)
+        if response.status_code == 200:
+            print("retornou_response")
+            data = response.json()
+            if 'ReturnObj' in data and 'dadosSistemas' in data['ReturnObj']:
+                path = os.path.join("results", filename)
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(data['ReturnObj'], f, indent=4, ensure_ascii=False)
+                print(f"{filename} salvo com sucesso.")
+            else:
+                print(f"'dadosSistemas' não encontrado para {data_str}.")
+        else:
+            print(f"Erro {response.status_code} para {data_str}.")
+    except requests.exceptions.RequestException as e:
+        print(f"Erro na requisição {data_str}: {e}")
+        
 def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
     url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
@@ -5762,17 +5769,25 @@ async def dashboard_reservatorios():
                 data = json.load(f)
             dados_sistemas = data.get("dadosSistemas", [])
             df_dados_sistemas = pd.DataFrame(dados_sistemas)
-            
+
             if "Data" in df_dados_sistemas.columns and not df_dados_sistemas.empty:
                 df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
                 data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
             else:
                 data_existe = False
 
+            print("-----------------------data_existe--------------------")
+            print(data_existe)
             sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
 
             if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
-                get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+                # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+                fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
+                fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
+                fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
+                fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
+                fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
+
                 with open(json_sistemas, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 dados_sistemas = data.get("dadosSistemas", [])
@@ -5813,12 +5828,18 @@ async def dashboard_reservatorios():
         #         else:
         #             print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
         
-        # else:
-        #     get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
-        #     with open(json_sistemas, 'r', encoding='utf-8') as f:
-        #         data = json.load(f)
-        #     dados_sistemas = data.get("dadosSistemas", [])
-        #     df_dados_sistemas = pd.DataFrame(dados_sistemas)
+        else:
+            # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+            fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
+            fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
+            fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
+            fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
+            fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
+
+            with open(json_sistemas, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            dados_sistemas = data.get("dadosSistemas", [])
+            df_dados_sistemas = pd.DataFrame(dados_sistemas)
             
         with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
             data_1d = json.load(f)
@@ -5903,7 +5924,6 @@ async def dashboard_reservatorios():
         merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
         merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
         merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
-
 
         colun1, colun2, coluna3= st.columns([0.2, 2.0, 0.2])
         with colun2:
