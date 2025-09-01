@@ -217,7 +217,7 @@ def remove_transparency(image_path):
     else:
         im.convert("RGB").save(image_path)    
                 
-def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento, user_input6, user_input7, user_input8):
+def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento, user_input6, user_input7, user_input8, url):
     # Cria PDF em modo paisagem
     pdf = PDF(orientation='L')
 
@@ -638,6 +638,20 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     pdf.image(f"imagens/tabela_ppdc.png", x=30, y=117, w=238)
 
     #________________________________________________________________________Slide 8
+    data_inicial = datetime.today()
+    data_inicial_str = data_inicial.strftime('%Y-%m-%d')
+
+    url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+    url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
+
+
+    if url == url_inmet:
+        fonte = "INMET"
+        url_fonte = "https://vime.inmet.gov.br/"
+    elif url == url_imgs:
+        fonte = "Climatempo"
+        url_fonte = "https://imgs.somarmeteorologia.com.br"
+
     pdf.show_header = True 
     pdf.add_page()
 
@@ -678,7 +692,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
     pdf.set_xy(70, 184)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=10, style='I')
-    pdf.cell(0, 10, txt="Fonte: INMET", ln=1, link="https://vime.inmet.gov.br/")
+    pdf.cell(0, 10, txt=f"Fonte: {fonte}", ln=1, link=url_fonte)
     
     # Remover arquivo temporário
     import os
@@ -687,7 +701,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
     return pdf
 
-def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_input6, user_input6_seca , image, user_input8_seca):
+def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_input6, user_input6_seca , image, user_input8_seca, url):
     # Cria PDF em modo paisagem
     pdf = PDF(orientation='L')
 
@@ -1137,6 +1151,22 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
 
     #________________________________________________________________________Slide 8
+
+    data_inicial = datetime.today()
+    data_inicial_str = data_inicial.strftime('%Y-%m-%d')
+
+    url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+    url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
+
+
+    if url == url_inmet:
+        fonte = "INMET"
+        url_fonte = "https://vime.inmet.gov.br/"
+    elif url == url_imgs:
+        fonte = "Climatempo"
+        url_fonte = "https://imgs.somarmeteorologia.com.br"
+
+
     pdf.show_header = True 
     pdf.add_page()
 
@@ -1176,7 +1206,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     
     pdf.set_xy(70, 184)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=10, style='I')
-    pdf.cell(0, 10, txt="Fonte: INMET", ln=1, link="https://vime.inmet.gov.br/")
+    pdf.cell(0, 10, txt=f"Fonte: {fonte}", ln=1, link=url_fonte)
     
     if os.path.exists(temp_img_path):
         os.remove(temp_img_path)
@@ -4540,16 +4570,16 @@ async def slide6():
         sistemas_esperados = {"Cantareira", "Alto Tietê", "Guarapiranga", "Cotia", "Rio Grande", "Rio Claro", "São Lourenço"}
 
         if os.path.exists(json_sistemas):
-            # merged_data_sistemas = pd.read_json(json_sistemas)
-            
-            # data_existe = data_atual_str in merged_data_sistemas["Data"].values
-            # sistemas_presentes = set(merged_data_sistemas["Sistema"].unique())
-            # if data_existe and sistemas_esperados.issubset(sistemas_presentes):
-            #     merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
-            # else:
-            get_sabesp_api(data_atual_str, data_ano_anterior_str)
             merged_data_sistemas = pd.read_json(json_sistemas)
-            merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+            
+            data_existe = data_atual_str in merged_data_sistemas["Data"].values
+            sistemas_presentes = set(merged_data_sistemas["Sistema"].unique())
+            if data_existe and sistemas_esperados.issubset(sistemas_presentes):
+                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+            else:
+                get_sabesp_api(data_atual_str, data_ano_anterior_str)
+                merged_data_sistemas = pd.read_json(json_sistemas)
+                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
         else:
             get_sabesp_api(data_atual_str, data_ano_anterior_str)
             merged_data_sistemas = pd.read_json(json_sistemas)
@@ -5040,23 +5070,35 @@ async def slide8():
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
         url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
         print(url)
-        response = requests.get(url, verify=False)
-        if response.status_code == 200:
+        try:
+            response = requests.get(url, verify=False, timeout=10)
 
-            data = response.json()
+            if response.status_code == 200:
+                data = response.json()
+                image_data = next((item for item in data if item["validade"] == 36), None)
 
-            image_data = next((item for item in data if item["validade"] == 36), None)
+                if image_data:
+                    # Extrai e decodifica a string base64 da imagem
+                    img_base64 = image_data["base64"].split("base64,")[-1]
+                    img_data = base64.b64decode(img_base64)
+                    image = Image.open(BytesIO(img_data))
+                else:
+                    # Se não achou no JSON, pega direto a imagem alternativa
+                    print("Imagem não encontrada no JSON. Usando imagem alternativa.")
+                    image = Image.open(BytesIO(requests.get(url_imgs).content))
+            else:
+                # Se a API não respondeu com sucesso, pega a imagem alternativa
+                print("API não disponível. Usando imagem alternativa.")
+                image = Image.open(BytesIO(requests.get(url_imgs).content))
+                url = url_imgs
 
-            if image_data:
-                # Extrai a string base64 da imagem
-                img_base64 = image_data["base64"].split("base64,")[-1]  # Remove a parte inicial 'data:image/jpg;base64,'
+        except Exception as e:
+            # Se deu erro na requisição, usa a imagem alternativa
+            print(f"Erro ao buscar a imagem da API: {e}. Usando imagem alternativa.")
+            image = Image.open(BytesIO(requests.get(url_imgs, verify=False).content))
 
-                # Decodifica a imagem
-                img_data = base64.b64decode(img_base64)
-
-                # Abre a imagem usando PIL
-                image = Image.open(BytesIO(img_data))
 
 
         with coluna1:
@@ -5087,7 +5129,7 @@ async def slide8():
             
             user_input = st.text_area("Previsão personalizada", value=st.session_state.user_input_slide8, height=100, label_visibility="collapsed")
 
-        return image, user_input
+        return image, user_input, url
             
 
 async def slide8_seca():
@@ -5124,23 +5166,35 @@ async def slide8_seca():
         data_inicial = datetime.today()
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
-        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec7dias/{data_inicial_str}H00:00"
-        response = requests.get(url, verify=False)
-        if response.status_code == 200:
+        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
+        print(url)
+        try:
+            response = requests.get(url, verify=False, timeout=10)
 
-            data = response.json()
+            if response.status_code == 200:
+                data = response.json()
+                image_data = next((item for item in data if item["validade"] == 120), None)
 
-            image_data = next((item for item in data if item["validade"] == 120), None)
+                if image_data:
+                    # Extrai e decodifica a string base64 da imagem
+                    img_base64 = image_data["base64"].split("base64,")[-1]
+                    img_data = base64.b64decode(img_base64)
+                    image = Image.open(BytesIO(img_data))
+                else:
+                    # Se não achou no JSON, pega direto a imagem alternativa
+                    print("Imagem não encontrada no JSON. Usando imagem alternativa.")
+                    image = Image.open(BytesIO(requests.get(url_imgs).content))
+            else:
+                # Se a API não respondeu com sucesso, pega a imagem alternativa
+                print("API não disponível. Usando imagem alternativa.")
+                image = Image.open(BytesIO(requests.get(url_imgs).content))
+                url = url_imgs
 
-            if image_data:
-                # Extrai a string base64 da imagem
-                img_base64 = image_data["base64"].split("base64,")[-1]  # Remove a parte inicial 'data:image/jpg;base64,'
-
-                # Decodifica a imagem
-                img_data = base64.b64decode(img_base64)
-
-                # Abre a imagem usando PIL
-                image = Image.open(BytesIO(img_data))
+        except Exception as e:
+            # Se deu erro na requisição, usa a imagem alternativa
+            print(f"Erro ao buscar a imagem da API: {e}. Usando imagem alternativa.")
+            image = Image.open(BytesIO(requests.get(url_imgs, verify=False).content))
 
         with coluna1:
 
@@ -5173,7 +5227,7 @@ async def slide8_seca():
             if user_input != st.session_state.user_input:
                 st.session_state.user_input = user_input
         
-        return image, user_input
+        return image, user_input, url
 
 async def slide5_seca(): 
     with slide5_secas:
@@ -6260,14 +6314,16 @@ async def main():
                     user_input5, all_extravasamento = slide5_data
                     user_input6 = slide6_data
                     user_input7 = slide7_data
-                    image, user_input8 = slide8_data
+                    image, user_input8, url = slide8_data
 
                     if image.mode == 'P':
                         image_convert = image.convert('RGB')
+                    else:
+                        image_convert = image
 
                     if st.button("Exportar para PDF"):
 
-                        pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8)
+                        pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8, url = url)
                         
                         pdf_bytes = pdf.output(dest='S').encode('latin1')
 
@@ -6294,14 +6350,16 @@ async def main():
                     user_input5_seca = slide5_data_seca
                     user_input6 = slide6_data
                     user_input6_seca = slide6_data_seca
-                    image, user_input8_seca = slide8_data_seca
+                    image, user_input8_seca, url = slide8_data_seca
 
                     if image.mode == 'P':
                         image_convert = image.convert('RGB')
+                    else:
+                        image_convert = image
 
                     if st.button("Exportar para PDF"):
 
-                        pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca)
+                        pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca, url = url)
                         
                         pdf_bytes = pdf.output(dest='S').encode('latin1')
 
