@@ -76,6 +76,7 @@ class PDF(FPDF):
 st.set_page_config(layout="wide")
 
 capa_boletim_container = st.container()
+escolha_reservatorio_container = st.container()
 capa_container = st.container()
 slide1_secas = st.container()
 slide1_container = st.container()
@@ -1747,7 +1748,6 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
     df_sistemas = pd.DataFrame(list(dados_sistema.items()), columns=["Sistema", "SistemaId"])
 
 
-
     url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_atual_str}'
     response = requests.get(url_sim, verify=False)
 
@@ -1798,6 +1798,613 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
 
     merged_data_sistemas.to_json(caminho_arquivo_json, orient='records', force_ascii=False, indent=2)
+
+def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str):
+    dados_sistema = {
+        "Cantareira": 0,
+        "Alto Tietê": 1,
+        "Guarapiranga": 2,
+        "Cotia": 3,
+        "Rio Grande": 4, 
+        "Rio Claro":5,
+        "São Lourenço": 17,
+        "SIM": 459
+    }
+
+
+
+    #Chuva total no período
+    chuva_sistemas_ssd = {
+        "Cantareira": 369,
+        "Alto Tietê": 345,
+        "Guarapiranga":122,
+        "Cotia": 381,
+        "Rio Grande": 429, 
+        "Rio Claro": 417,  
+        "São Lourenço": 441,
+        "SIM": 453  
+    }   
+
+    chuva_acumulada = {
+        "Cantareira": 370,
+        "Alto Tietê": 346,
+        "Guarapiranga": 123,
+        "Cotia": 382, 
+        "Rio Grande": 430,
+        "Rio Claro": 418,  
+        "São Lourenço": 442,
+        "SIM": 454
+    }
+
+    df_sistemas_chuva = pd.DataFrame(list(chuva_acumulada.items()), columns=["Sistema", "SistemaId"])
+
+    # all_chuva =[]
+    # for _,data_chuva in df_sistemas_chuva.iterrows():
+    #     id_chuva = data_chuva["SistemaId"]
+
+    #     url_chuva = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id_chuva}/Data/{data_atual_str}/{data_atual_str}'
+    #     response = requests.get(url_chuva, verify=False)
+
+    #     if response.status_code == 200:
+    #         data = response.json()
+
+    #         if "dataCollection" in data:
+    #             df_atual_chuva = pd.DataFrame(data["dataCollection"])
+    #             df_atual_all_chuva = df_atual_chuva.copy()
+    #             df_atual_all_chuva['SistemaId'] = id_chuva
+
+    #             # valor_atual = df_atual_all_chuva.loc[df_atual_all_chuva['dateTime'] == data_atual_str, 'value'].iloc[0]
+    #             valor_atual = (
+    #                 df_atual_all_chuva.loc[df_atual_all_chuva["dateTime"] <= data_atual_str, "value"]
+    #                 .sort_index()
+    #                 .iloc[-1]  # pega o último disponível
+    #             )
+    #             print(id_chuva," - ", valor_atual)
+    #             df_atual_all_chuva["Precipitacao"] = valor_atual
+    #             print(df_atual_all_chuva)
+
+    #             df_atual_all_chuva = df_atual_all_chuva[df_atual_all_chuva['dateTime'] == data_atual_str]
+    #             df_atual_all_chuva = df_atual_all_chuva.drop(columns={"deliveredAt", "value"})
+    #             all_chuva.append(df_atual_all_chuva)
+
+    # df_final_chuva = pd.concat(all_chuva, ignore_index=True)
+    # merged_df_final_chuva= pd.merge(df_final_chuva, df_sistemas_volume, on='SistemaId', how='left')
+    # print(merged_df_final_chuva)
+
+
+    volume_sistema_ssd = {
+        "Cantareira": 375,
+        "Alto Tietê": 351,
+        "Guarapiranga": 399,
+        "Cotia": 387,
+        "Rio Grande": 435, 
+        "Rio Claro":423,
+        "São Lourenço": 447,
+        "SIM": 459
+    }
+
+    df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
+
+    all_volume =[]
+    for _,data_volume in df_sistemas_volume.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_21dias_str}/{data_atual_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_atual = pd.DataFrame(data["dataCollection"])
+                df_atual_all = df_atual.copy()
+                df_atual_all['SistemaId'] = id
+
+                # valor_atual = df_atual_all.loc[df_atual_all['dateTime'] == data_atual_str, 'value'].iloc[0]
+                valor_atual = (
+                    df_atual_all.loc[df_atual_all["dateTime"] <= data_atual_str, "value"]
+                    .sort_index()
+                    .iloc[-1]  # pega o último disponível
+                )
+                valor_7_dias = df_atual_all.loc[df_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
+                valor_14_dias = df_atual_all.loc[df_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
+                valor_21_dias = df_atual_all.loc[df_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
+
+                df_atual_all["Volume atual (%)"] = valor_atual
+                df_atual_all["Volume -7 dias (%)"] = valor_7_dias
+                df_atual_all["Volume -14 dias (%)"] = valor_14_dias
+                df_atual_all["Volume -21 dias (%)"] = valor_21_dias
+
+
+                # df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_atual_str]
+                df_atual_all = df_atual_all.drop(columns={"deliveredAt", "value"})
+                all_volume.append(df_atual_all)
+
+    df_final = pd.concat(all_volume, ignore_index=True)
+    merged_df_final= pd.merge(df_final, df_sistemas_volume, on='SistemaId', how='left')
+
+    return merged_df_final
+
+    # chuva_media_historica = {
+    #     "Cantareira": 851,
+    #     "Alto Tietê": 827,
+    #     "Guarapiranga": 875,
+    #     "Cotia": 863, 
+    #     "Rio Grande": 911,
+    #     "Rio Claro": 899,  
+    #     "São Lourenço": 571
+    # }
+
+    # df_sistemas_historica = pd.DataFrame(list(chuva_media_historica.items()), columns=["Sistema", "SistemaId"])
+    # for data in df_sistemas_historica:
+    #     id = data["SistemaId"]
+    #     url_media = f"https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/1991-01-01/2020-12-31"
+    #     response_medias = requests.get(url_media, verify=False)
+    #     if response_medias.status_code == 200:
+    #         data_media = response_medias.json()
+
+
+    # merged_data = pd.concat([merged_data, df_sim_atual], ignore_index=True)
+    # merged_data_sistemas = pd.merge(merged_data, df_sistemas, on='SistemaId', how='left')
+    # merged_data_sistemas = merged_data_sistemas.dropna(subset=['Sistema'])
+    # print(merged_data_sistemas)
+
+def get_ssd_api_comparacao(data_ano_anterior_str):
+    dados_sistema = {
+        "Cantareira": 0,
+        "Alto Tietê": 1,
+        "Guarapiranga": 2,
+        "Cotia": 3,
+        "Rio Grande": 4, 
+        "Rio Claro":5,
+        "São Lourenço": 17,
+        "SIM": 459
+    }
+
+    chuva_sistemas_ssd = {
+        "Cantareira": 369,
+        "Alto Tietê": 345,
+        "Guarapiranga":122,
+        "Cotia": 381,
+        "Rio Grande": 429, 
+        "Rio Claro": 417,  
+        "São Lourenço": 441,
+        "SIM": 453  
+    }   
+
+    chuva_acumulada = {
+        "Cantareira": 370,
+        "Alto Tietê": 346,
+        "Guarapiranga": 123,
+        "Cotia": 382, 
+        "Rio Grande": 430,
+        "Rio Claro": 418,  
+        "São Lourenço": 442,
+        "SIM": 454
+    }
+
+    volume_sistema_ssd = {
+        "Cantareira": 375,
+        "Alto Tietê": 351,
+        "Guarapiranga": 399,
+        "Cotia": 387,
+        "Rio Grande": 435, 
+        "Rio Claro":423,
+        "São Lourenço": 447,
+        "SIM": 459
+    }
+
+    df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
+
+    all_volume =[]
+    for _,data_volume in df_sistemas_volume.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_atual = pd.DataFrame(data["dataCollection"])
+                df_atual_all = df_atual.copy()
+                df_atual_all['SistemaId'] = id
+
+                valor_ano_anterior = df_atual_all.loc[df_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
+
+                df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
+
+                df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_ano_anterior_str]
+                df_atual_all = df_atual_all.drop(columns={"deliveredAt", "value"})
+                all_volume.append(df_atual_all)
+
+    df_final = pd.concat(all_volume, ignore_index=True)
+
+    return df_final
+
+
+def get_ssd_vazao_natural(data_atual_str):
+
+    vazao_natural = {
+        "Cantareira": 855, 
+        "SIM": 939,
+    }
+
+    df_sistemas_vazao = pd.DataFrame(list(vazao_natural.items()), columns=["Sistema", "SistemaId"]).copy()
+
+    data_base = '1953-01-01'
+
+    all_volume =[]
+    for _,data_volume in df_sistemas_vazao.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_atual = pd.DataFrame(data["dataCollection"])
+                df_atual_all = df_atual.copy()
+                df_atual_all['SistemaId'] = id
+
+                df_atual_all["dateTime"] = pd.to_datetime(df_atual_all["dateTime"])
+
+                # criar coluna só com mês e dia (formato "01-01")
+                df_atual_all["mes_dia"] = df_atual_all["dateTime"].dt.strftime("%m-%d")
+
+                df_atual_all["ano"] = df_atual_all["dateTime"].dt.strftime("%Y")
+
+                # df_grouped = df_atual_all.groupby("mes_ano")["Volume"].sum().reset_index()
+                df_grouped = df_atual_all.groupby(['mes_dia', 'SistemaId'], as_index=False).agg(
+                    min_value=('value', 'min'),
+                    mean_value=('value', 'mean')
+                )
+
+                df_atual_all = pd.merge(df_atual_all, df_grouped, on=['mes_dia', 'SistemaId'], how='left')
+                all_volume.append(df_atual_all)
+
+            
+    df_final = pd.concat(all_volume, ignore_index=True)
+
+    df_final = pd.merge(df_final, df_sistemas_vazao, on='SistemaId', how='left')
+
+    return df_final
+
+
+def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado):
+    colun1, colun2, coluna3= st.columns([0.2, 2.0, 0.2])
+
+    with colun2:
+
+        st.write(f"""
+            <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                <p style="font-size: 16px; text-align: center;">
+                    Comparação entre volume(%) atual e o volume em {dia:02d}/{mes:02d}/{ano_usado}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+        vazao_natural = get_ssd_vazao_natural(data_atual_str)
+        sistemas_list = vazao_natural['Sistema'].unique().tolist()
+
+        if "sistema_filter" not in st.session_state:
+            st.session_state.sistema_filter = "SIM"
+
+        
+        con1, con2, con3, con4= st.columns([1.0, 1.5, 1.5, 1.0])
+        with con2:
+            ano_selecionado = st.selectbox(
+                "Selecione novo ano para compação ",
+                options=lista_anos_str,
+                index=lista_anos_str.index(st.session_state.data_filter),
+                label_visibility="visible"
+            )
+            print(ano_selecionado)
+                # Se mudar a seleção, atualiza o estado e recarrega
+            if set(ano_selecionado) != set(st.session_state.data_filter):
+                st.session_state.data_filter = ano_selecionado
+                st.rerun()
+
+        with con3:
+            sistema_selecionado = st.selectbox(
+                "Selecione sistema",
+                options=sistemas_list,
+                index=sistemas_list.index(st.session_state.sistema_filter),
+                label_visibility="visible"
+            )
+            print(sistema_selecionado)
+            
+            if set(sistema_selecionado) != set(st.session_state.sistema_filter):
+                st.session_state.sistema_filter = sistema_selecionado
+                st.rerun()
+
+
+        html_blocks = []
+
+        for i, row in merged_data_sistemas.iterrows():
+            bloco = f"""
+                <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; 
+                            width: 180px; height: 80px; display: flex; flex-direction: column; 
+                            justify-content: center; align-items: center;">
+                    <div style="color: #1E1E20; font-size: 18px;">
+                        <strong>{row['Sistema']}</strong>
+                    </div>
+                    <div style="color: #1E1E20; font-size: 16px;">
+                        {row['Volume atual (%)']:.2f}%
+                    </div>
+                    <div style="color: {row['cor_diferença']}; font-size: 12px;">
+                        {row['diferença']:.2f} {row['simbolo']}%
+                    </div>
+                </div>
+            """
+            html_blocks.append(bloco)
+
+        html_perc_blocks = f"""
+            <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
+                {''.join(html_blocks)}
+            </div>
+        """
+
+        # print(html_perc_blocks)
+        st.components.v1.html(html_perc_blocks, height=300, scrolling=True)
+        
+        
+        # html_perc_blocks = f"""
+        #     <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
+        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[0]}</strong></div>
+        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[0]:.2f}%</div>
+        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[0]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[0]:.2f} {merged_data_sistemas['simbolo'].iloc[0]}%</div>
+        #         </div>
+        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[1]}</strong></div>
+        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[1]:.2f}%</div>
+        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[1]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[1]:.2f} {merged_data_sistemas['simbolo'].iloc[1]}%</div>
+        #         </div>
+        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[2]}</strong></div>
+        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[2]:.2f}%</div>
+        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[2]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[2]:.2f} {merged_data_sistemas['simbolo'].iloc[2]}%</div>
+        #         </div>
+        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[3]}</strong></div>
+        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[3]:.2f}%</div>
+        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[3]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[3]:.2f} {merged_data_sistemas['simbolo'].iloc[3]}%</div>
+        #         </div>
+        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[4]}</strong></div>
+        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[4]:.2f}%</div>
+        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[4]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[4]:.2f} {merged_data_sistemas['simbolo'].iloc[4]}%</div>
+        #         </div>
+        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[5]}</strong></div>
+        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[5]:.2f}%</div>
+        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[5]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[5]:.2f} {merged_data_sistemas['simbolo'].iloc[5]}%</div>
+        #         </div>
+        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
+        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[6]}</strong></div>
+        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[6]:.2f}%</div>
+        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[6]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[6]:.2f} {merged_data_sistemas['simbolo'].iloc[6]}%</div>
+        #         </div>
+        #     </div>
+        #     """
+        # st.markdown(html_perc_blocks, unsafe_allow_html=True)
+
+
+        vazao_natural['ano'] = vazao_natural['ano'].astype(int)
+        vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
+        print(vazao_natural_atual)
+
+        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
+        ano_atual = datetime.today().year
+
+        vazao_natural_comparacao = vazao_natural[(vazao_natural["ano"] == ano_comparacao) & (vazao_natural['Sistema']==sistema_selecionado)]
+        vazao_natural_comparacao['data_atual'] = pd.to_datetime(
+            vazao_natural_comparacao['dateTime'].dt.strftime(f"{ano_atual}-%m-%d")
+        )
+        print(vazao_natural_comparacao)
+
+        fig_vazao = go.Figure()
+
+        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1"))
+
+        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158"))
+        
+        fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["dateTime"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline'))
+
+        fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline'))
+
+        fig_vazao.update_layout(
+            title=dict(
+                text=f"Evolução das médias mensais da Vazão Natural (m³/s) - {vazao_natural_atual['Sistema'].iloc[0]}",
+                font=dict(size=24, color='black')  # tamanho e cor do título
+            ),
+            barmode='stack',
+            # title_x=0.3,
+            xaxis_title="",
+            yaxis_title="Vazão Natural m³/s",
+            plot_bgcolor='white',    # Cor de fundo do gráfico
+            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
+            font=dict(color='black'),  # Cor das fontes para preto
+            title_font=dict(color='black'),  # Cor do título
+            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
+            yaxis_title_font=dict(color='black'), 
+            legend=dict(font=dict(color='black')),
+            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+        )
+
+        st.plotly_chart(fig_vazao)
+
+
+        for col in ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']:
+            merged_data_sistemas[col] = merged_data_sistemas[col].astype(float)
+
+            fig, ax = plt.subplots(figsize=(9, 4)) 
+
+            # Configurações das barras
+            n = len(merged_data_sistemas) 
+            largura_barra = 0.19 
+            espacamento = 0.05
+            indice = np.arange(n) 
+
+            # Offset calculado corretamente
+            offset = np.array([-1.5, -0.5, 0.5, 1.5]) * (largura_barra + espacamento/2)
+            cores = ["#3567f0", "#425692", "#6976A0", "#535F88"]
+
+            # Ajuste do eixo Y
+            max_valor = merged_data_sistemas[['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']].max().max()
+            
+            ax.set_ylim(0, max_valor * 1.2)
+
+            # Plotagem das barras
+            for i, (coluna, cor) in enumerate(zip(
+                ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)'],
+                cores
+            )):
+                valores = merged_data_sistemas[coluna]
+                posicoes_x = indice + offset[i]
+                
+                barras = ax.bar(
+                    posicoes_x,
+                    valores,
+                    largura_barra,
+                    color=cor,
+                    alpha=0.8,
+                    label=coluna
+                )
+                
+                # Adicionando os valores dentro das barras, perto do topo
+                for x, y in zip(posicoes_x, valores):
+                    ax.text(
+                        x,
+                        y - max_valor * 0.02,  # Um pouco abaixo do topo
+                        f'{y:.0f}',           # Número inteiro com símbolo de porcentagem
+                        ha='center',
+                        va='top',
+                        fontsize=8,
+                        color="#1E1E20",
+                        zorder=4
+                    )
+
+            # Personalização do gráfico
+            ax.set_title(' ', fontsize=10, pad=30)
+            ax.set_xlabel('Mananciais', fontsize=8)
+            ax.set_ylabel('Volume (%)', fontsize=8)
+            ax.set_xticks(indice)
+            ax.set_xticklabels(merged_data_sistemas['Sistema'], rotation=45, ha='right', fontsize=8)
+            ax.grid(axis='y', linestyle=':', alpha=0.3)
+            
+            # Legenda fora do gráfico
+            ax.legend(
+                frameon=True,
+                facecolor='#f0f0f0',
+                fontsize=7,
+                bbox_to_anchor=(0.5, 1.1),  # (posição horizontal, posição vertical)
+                loc='upper center',  # Âncora no centro superior
+                ncol=4  # Número de colunas para distribuir os itens
+            )
+
+        plt.tight_layout()
+        st.pyplot(fig)
+        ax.set_title("")
+
+    start_sim = '2025-08-19'
+    start_sim_dt = pd.to_datetime(start_sim)
+    df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
+    df_sim_atual_filtrado=df_sim_atual_all[df_sim_atual_all["dateTime"] >= start_sim_dt]
+
+    data_atual_1meses = datetime.today() + relativedelta(months=1)
+
+    projecao_sim = pd.read_csv("serie_diaria.csv")
+    projecao_sim["Data"] = pd.to_datetime(projecao_sim["Data"])
+    projecao_sim =  projecao_sim[projecao_sim["Data"] <= data_atual_1meses]
+
+    colunas = ['QN100 (20-25)', 'QN100 MLT', 'QN70 MLT', 'QN (2021)', 'QN (2014)']
+    for c in colunas:
+        projecao_sim[c] = pd.to_numeric(projecao_sim[c], errors='coerce')
+        projecao_sim[c].fillna(0, inplace=True)
+
+    fig_sim = go.Figure()
+
+    fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
+
+    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
+                                mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=1.5)))
+        
+    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 MLT'], 
+                                mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=1.5)))
+
+    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN70 MLT'], 
+                                mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=1.5)))
+
+    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2021)'], 
+                                mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=1.5)))
+    
+    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2014)'], 
+                                mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=1.5)))
+
+    # Atualizando o layout do gráfico
+    fig_sim.update_layout(
+        title=dict(
+            text="Projeção de Volume do SIM",
+            font=dict(size=24, color='black')  # tamanho e cor do título
+        ),
+        # title_x=0.3,
+        xaxis_title="",
+        yaxis_title="Volume (%)",
+        plot_bgcolor='white',    # Cor de fundo do gráfico
+        paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
+        font=dict(color='black'),  # Cor das fontes para preto
+        title_font=dict(color='black'),  # Cor do título
+        xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
+        yaxis_title_font=dict(color='black'), 
+        legend=dict(font=dict(color='black')),
+        xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+        yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+    )
+
+    st.plotly_chart(fig_sim)
+
+    co1, co2 = st.columns([1.50, 0.50])
+
+    with co1:
+        gov_base64 = get_base64_image("regua.png")
+        st.markdown(
+            f"""
+            <style>
+                .relative-container {{
+                    position: relative;
+                    min-height: 620px;
+                    overflow: visible;
+                }}
+
+                .background-image {{
+                    position: absolute;
+                    top: -170px;
+                    left: 400px;
+                    height: 100%;
+                    object-fit: cover;
+                    opacity: 0.15;
+                    z-index: 0;
+                }}
+
+                .text-content {{
+                    position: relative;
+                    z-index: 1;
+                    color: black;
+                    padding: 20px;
+                }}
+            </style>
+            <div style="position: absolute; bottom: -100px; right: -380px; display: flex; gap: 20px; z-index: 1;">
+                <img src="data:image/png;base64,{gov_base64}" width="600" height="80">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 def capturar_tela(url):
 
@@ -4585,7 +5192,9 @@ async def slide6():
             merged_data_sistemas = pd.read_json(json_sistemas)
             merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
 
-
+        sistemas = {
+            "Águas Claras": 1
+        }
 
         colun_grafico1, colun_grafico2, colun_grafico3 = st.columns([1.2, 1.5, 0.15])
         with colun_grafico1:
@@ -4675,8 +5284,6 @@ async def slide6():
                 ax.set_xticklabels(merged_data_sistemas['Sistema'], rotation=45, ha='right', fontsize=8)
                 ax.grid(axis='y', linestyle=':', alpha=0.3)
                 
-
-
                 # Legenda fora do gráfico
                 ax.legend(
                     frameon=True,
@@ -4691,9 +5298,6 @@ async def slide6():
             st.pyplot(fig)
             ax.set_title("")
             fig.savefig("imagens/grafico_rmsp.png", dpi=300, bbox_inches="tight")
-
-
-
 
         with colun2: 
             styled_df = merged_data_sistemas.style\
@@ -5777,9 +6381,40 @@ async def slide6_seca():
 
         return user_input
 
+async def escolha_reservatorio():
+    with escolha_reservatorio_container:
+        button_style = """
+                <style>
+                    .stButton>button {
+                        background-color: white;
+                        border: 2px solid blue;
+                        color: blue;
+                        font-size: 16px;
+                        font-weight: bold;
+                        border-radius: 5px;
+                        padding: 10px 20px;
+                        cursor: pointer;
+                    }
+                    .stButton>button:hover {
+                        background-color: lightblue;
+                    }
+                </style>
+            """
+
+            # Adicionando o CSS à página
+        st.markdown(button_style, unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+        if col1.button("Mananciais Sabesp", use_container_width=True):
+            st.session_state.reservatorio = "Sabesp"
+            st.session_state.selecionado = True
+            
+        if col2.button("Dados SSD", use_container_width=True):
+            st.session_state.reservatorio = "SSD"
+            st.session_state.selecionado = True
 
 async def dashboard_reservatorios(): 
-    with slide6_container:
+    with escolha_reservatorio_container:
         col1, col2, col3 = st.columns([0.30, 1.5, 0.30])
 
 
@@ -5787,7 +6422,6 @@ async def dashboard_reservatorios():
             st.markdown('<div class="align-right">', unsafe_allow_html=True)
             st.image("SP-4.png", caption="", width=300)
             st.markdown('</div>', unsafe_allow_html=True)
-
 
 
 
@@ -5816,6 +6450,8 @@ async def dashboard_reservatorios():
         lista_anos_int.sort(reverse=True)  # do maior para o menor
         lista_anos_str = list(map(str, lista_anos_int))
 
+        
+
         with col2:
             st.write(f"""
             <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
@@ -5830,48 +6466,90 @@ async def dashboard_reservatorios():
 
         ano_usado = st.session_state.data_filter
         ano_filtro = f'{ano_usado}-{mes:02d}-{dia:02d}'
-        if ano_filtro != data_ano_anterior_str:
-            fetch_and_save_json(ano_filtro, "sabesp_sistemas_all_data_anoanterior.json")
+
+        button_style = """
+            <style>
+                .stButton>button {
+                    background-color: white;
+                    border: 2px solid blue;
+                    color: blue;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 5px;
+                    padding: 10px 20px;
+                    cursor: pointer;
+                }
+                .stButton>button:hover {
+                    background-color: lightblue;
+                }
+            </style>
+        """
+        st.markdown(button_style, unsafe_allow_html=True)
+
+        # Botões lado a lado
+        col1, col2, col3, col4 = st.columns(4)
+        if col3.button("Mananciais Sabesp", use_container_width=True):
+            st.session_state.reservatorio = "Sabesp"
+        if col2.button("Dados SSD", use_container_width=True):
+            st.session_state.reservatorio = "SSD"
+
+        if "reservatorio" not in st.session_state:
+            st.session_state.reservatorio = None
 
 
-        print(ano_usado)
-        print(ano_filtro)
+        if st.session_state.reservatorio == 'Sabesp':
 
-        datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
+            if ano_filtro != data_ano_anterior_str:
+                fetch_and_save_json(ano_filtro, "sabesp_sistemas_all_data_anoanterior.json")
 
-        json_sistemas = 'results/sabesp_sistemas_all_data.json'
-        json_sistemas_1d = 'results/sabesp_sistemas_all_data_anoanterior.json'
-        json_sistemas_7d = 'results/sabesp_sistemas_all_data_7dias.json'
-        json_sistemas_14d = 'results/sabesp_sistemas_all_data_14dias.json'
-        json_sistemas_21d = 'results/sabesp_sistemas_all_data_21dias.json'
+            datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
 
-        nomes_sistema = {
-            "Cantareira": 0,
-            "Alto Tietê": 1,
-            "Guarapiranga": 2,
-            "Cotia": 3,
-            "Rio Grande": 4, 
-            "Rio Claro":5,
-            "São Lourenço": 17,
-            "SIM": 459
-        }
-        sistemas_esperados = {0, 1, 2, 3, 4, 5, 17}
+            json_sistemas = 'results/sabesp_sistemas_all_data.json'
+            json_sistemas_1d = 'results/sabesp_sistemas_all_data_anoanterior.json'
+            json_sistemas_7d = 'results/sabesp_sistemas_all_data_7dias.json'
+            json_sistemas_14d = 'results/sabesp_sistemas_all_data_14dias.json'
+            json_sistemas_21d = 'results/sabesp_sistemas_all_data_21dias.json'
 
-        if os.path.exists(json_sistemas):
-            with open(json_sistemas, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            dados_sistemas = data.get("dadosSistemas", [])
-            df_dados_sistemas = pd.DataFrame(dados_sistemas)
+            nomes_sistema = {
+                "Cantareira": 0,
+                "Alto Tietê": 1,
+                "Guarapiranga": 2,
+                "Cotia": 3,
+                "Rio Grande": 4, 
+                "Rio Claro":5,
+                "São Lourenço": 17,
+                "SIM": 459
+            }
+            sistemas_esperados = {0, 1, 2, 3, 4, 5, 17}
 
-            if "Data" in df_dados_sistemas.columns and not df_dados_sistemas.empty:
-                df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
-                data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
+            if os.path.exists(json_sistemas):
+                with open(json_sistemas, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                dados_sistemas = data.get("dadosSistemas", [])
+                df_dados_sistemas = pd.DataFrame(dados_sistemas)
+
+                if "Data" in df_dados_sistemas.columns and not df_dados_sistemas.empty:
+                    df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
+                    data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
+                else:
+                    data_existe = False
+
+                sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
+
+                if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
+                    # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+                    fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
+                    fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
+                    fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
+                    fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
+                    fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
+
+                    with open(json_sistemas, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    dados_sistemas = data.get("dadosSistemas", [])
+                    df_dados_sistemas = pd.DataFrame(dados_sistemas)
+            
             else:
-                data_existe = False
-
-            sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
-
-            if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
                 # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
                 fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
                 fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
@@ -5883,351 +6561,150 @@ async def dashboard_reservatorios():
                     data = json.load(f)
                 dados_sistemas = data.get("dadosSistemas", [])
                 df_dados_sistemas = pd.DataFrame(dados_sistemas)
-        
-        else:
-            # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
-            fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
-            fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
-            fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
-            fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
-            fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
 
-            with open(json_sistemas, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            dados_sistemas = data.get("dadosSistemas", [])
-            df_dados_sistemas = pd.DataFrame(dados_sistemas)
-
-
-            
-        with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
-            data_1d = json.load(f)
-            json_sistemas_1d = data_1d.get("dadosSistemas", [])
-            df_dados_sistemas_1d = pd.DataFrame(json_sistemas_1d)
-            ano_anterior = df_dados_sistemas_1d[["SistemaId", "VolumePorcentagem"]]
-            ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
-
-
-        with open(json_sistemas_7d, 'r', encoding='utf-8') as f:
-            data_7d = json.load(f)
-            json_sistemas_7d = data_7d.get("dadosSistemas", [])
-            df_dados_sistemas_7d = pd.DataFrame(json_sistemas_7d)
-            sistemas_7d = df_dados_sistemas_7d[["SistemaId", "VolumePorcentagem"]]
-            sistemas_7d = sistemas_7d.rename(columns={"VolumePorcentagem": "Volume -7 dias (%)"})
-
-        with open(json_sistemas_14d, 'r', encoding='utf-8') as f:
-            data_14d = json.load(f)
-            json_sistemas_14d = data_14d.get("dadosSistemas", [])
-            df_dados_sistemas_14d = pd.DataFrame(json_sistemas_14d)
-            sistemas_14d = df_dados_sistemas_14d[["SistemaId", "VolumePorcentagem"]]
-            sistemas_14d = sistemas_14d.rename(columns={"VolumePorcentagem": "Volume -14 dias (%)"})
-
-        with open(json_sistemas_21d, 'r', encoding='utf-8') as f:
-            data_21d = json.load(f)
-            json_sistemas_21d = data_21d.get("dadosSistemas", [])
-            df_dados_sistemas_21d = pd.DataFrame(json_sistemas_21d)
-            sistemas_21d = df_dados_sistemas_21d[["SistemaId", "VolumePorcentagem"]]
-            sistemas_21d = sistemas_21d.rename(columns={"VolumePorcentagem": "Volume -21 dias (%)"})
-
-        sistemas_atual = df_dados_sistemas[["SistemaId", "VolumePorcentagem"]]
-        sistemas_atual = sistemas_atual.rename(columns={"VolumePorcentagem": "Volume atual (%)"})
-        
-
-        url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_21dias_str}/{data_atual_str}'
-        response = requests.get(url_sim, verify=False)
-
-        if response.status_code == 200:
-            data = response.json()
-            print('response ano atual', datetime.now())
-            if "dataCollection" in data:
-                df_sim_atual_all = pd.DataFrame(data["dataCollection"])
-                df_sim_atual = df_sim_atual_all.copy()
-                df_sim_atual['SistemaId'] = 459
-
-                valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
-                valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
-                valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
-                df_sim_atual["Volume -7 dias (%)"] = valor_7dias
-                df_sim_atual["Volume -14 dias (%)"] = valor_14dias
-                df_sim_atual["Volume -21 dias (%)"] = valor_21dias
-
-                df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
-                df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
-                df_sim_atual = df_sim_atual.drop(columns={"dateTime", "deliveredAt"})
-                print(df_sim_atual)
-
-        merged_data_sistemas = pd.merge(sistemas_atual, sistemas_7d, on='SistemaId', how='left')
-        merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_14d, on='SistemaId', how='left')
-        merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_21d, on='SistemaId', how='left')
-
-
-        url_sim_ano_anterior = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
-        response = requests.get(url_sim_ano_anterior, verify=False)
-
-        if response.status_code == 200:
-            data = response.json()
-            if "dataCollection" in data:
-                df_sim_ano_anterior = pd.DataFrame(data["dataCollection"])
-                df_sim_ano_anterior['SistemaId'] = 459
-                df_sim_ano_anterior = df_sim_ano_anterior.drop(columns={"dateTime", "deliveredAt"})
-                df_sim_ano_anterior = df_sim_ano_anterior.rename(columns={"value": "Volume Ano Anterior (%)"})
-
-        merged_data_sistemas = pd.concat([merged_data_sistemas, df_sim_atual], ignore_index=True)
-        ano_anterior = pd.concat([ano_anterior, df_sim_ano_anterior], ignore_index=True)
-
-        df_nome_sistemas = pd.DataFrame(list(nomes_sistema.items()), columns=["Sistema", "SistemaId"])
-        merged_data_sistemas = pd.merge(merged_data_sistemas, df_nome_sistemas, on='SistemaId', how='left')
-        merged_data_sistemas = merged_data_sistemas[merged_data_sistemas['Sistema'].notna()]
-
-        merged_data_sistemas = pd.merge(merged_data_sistemas, ano_anterior, on='SistemaId', how='left')
-        merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
-        merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
-        merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
-
-        colun1, colun2, coluna3= st.columns([0.2, 2.0, 0.2])
-
-        with colun2:
-
-            st.write(f"""
-                <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
-                    <p style="font-size: 16px; text-align: center;">
-                        Comparação entre volume(%) atual e o volume em {dia:02d}/{mes:02d}/{ano_usado}
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            
-            html_perc_blocks = f"""
-                <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[0]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[0]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[0]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[0]:.2f} {merged_data_sistemas['simbolo'].iloc[0]}%</div>
-                    </div>
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[1]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[1]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[1]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[1]:.2f} {merged_data_sistemas['simbolo'].iloc[1]}%</div>
-                    </div>
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[2]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[2]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[2]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[2]:.2f} {merged_data_sistemas['simbolo'].iloc[2]}%</div>
-                    </div>
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[3]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[3]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[3]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[3]:.2f} {merged_data_sistemas['simbolo'].iloc[3]}%</div>
-                    </div>
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[4]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[4]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[4]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[4]:.2f} {merged_data_sistemas['simbolo'].iloc[4]}%</div>
-                    </div>
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[5]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[5]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[5]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[5]:.2f} {merged_data_sistemas['simbolo'].iloc[5]}%</div>
-                    </div>
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[6]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[6]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[6]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[6]:.2f} {merged_data_sistemas['simbolo'].iloc[6]}%</div>
-                    </div>
-                    <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-                        <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[7]}</strong></div>
-                        <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[7]:.2f}%</div>
-                        <div style="color: {merged_data_sistemas['cor_diferença'].iloc[7]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[7]:.2f} {merged_data_sistemas['simbolo'].iloc[7]}%</div>
-                    </div>
-                </div>
-                """
-            st.markdown(html_perc_blocks, unsafe_allow_html=True)
-
-            con1, con2, con3= st.columns([1.0, 1.0, 1.0])
-            with con2:
-                ano_selecionado = st.selectbox(
-                    "Selecione novo ano para compação ",
-                    options=lista_anos_str,
-                    index=lista_anos_str.index(st.session_state.data_filter),
-                    label_visibility="visible"
-                )
-                print(ano_selecionado)
-                    # Se mudar a seleção, atualiza o estado e recarrega
-                if set(ano_selecionado) != set(st.session_state.data_filter):
-                    st.session_state.data_filter = ano_selecionado
-                    st.rerun()
-
-           
-
-            for col in ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']:
-                merged_data_sistemas[col] = merged_data_sistemas[col].astype(float)
-
-                fig, ax = plt.subplots(figsize=(9, 4)) 
-
-                # Configurações das barras
-                n = len(merged_data_sistemas) 
-                largura_barra = 0.19 
-                espacamento = 0.05
-                indice = np.arange(n) 
-
-                # Offset calculado corretamente
-                offset = np.array([-1.5, -0.5, 0.5, 1.5]) * (largura_barra + espacamento/2)
-                cores = ["#3567f0", "#425692", "#6976A0", "#535F88"]
-
-                # Ajuste do eixo Y
-                max_valor = merged_data_sistemas[['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)']].max().max()
                 
-                ax.set_ylim(0, max_valor * 1.2)
+            with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
+                data_1d = json.load(f)
+                json_sistemas_1d = data_1d.get("dadosSistemas", [])
+                df_dados_sistemas_1d = pd.DataFrame(json_sistemas_1d)
+                ano_anterior = df_dados_sistemas_1d[["SistemaId", "VolumePorcentagem"]]
+                ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
 
-                # Plotagem das barras
-                for i, (coluna, cor) in enumerate(zip(
-                    ['Volume atual (%)', 'Volume -7 dias (%)', 'Volume -14 dias (%)', 'Volume -21 dias (%)'],
-                    cores
-                )):
-                    valores = merged_data_sistemas[coluna]
-                    posicoes_x = indice + offset[i]
-                    
-                    barras = ax.bar(
-                        posicoes_x,
-                        valores,
-                        largura_barra,
-                        color=cor,
-                        alpha=0.8,
-                        label=coluna
-                    )
-                    
-                    # Adicionando os valores dentro das barras, perto do topo
-                    for x, y in zip(posicoes_x, valores):
-                        ax.text(
-                            x,
-                            y - max_valor * 0.02,  # Um pouco abaixo do topo
-                            f'{y:.0f}',           # Número inteiro com símbolo de porcentagem
-                            ha='center',
-                            va='top',
-                            fontsize=8,
-                            color="#1E1E20",
-                            zorder=4
-                        )
 
-                # Personalização do gráfico
-                ax.set_title(' ', fontsize=10, pad=30)
-                ax.set_xlabel('Mananciais', fontsize=8)
-                ax.set_ylabel('Volume (%)', fontsize=8)
-                ax.set_xticks(indice)
-                ax.set_xticklabels(merged_data_sistemas['Sistema'], rotation=45, ha='right', fontsize=8)
-                ax.grid(axis='y', linestyle=':', alpha=0.3)
+            with open(json_sistemas_7d, 'r', encoding='utf-8') as f:
+                data_7d = json.load(f)
+                json_sistemas_7d = data_7d.get("dadosSistemas", [])
+                df_dados_sistemas_7d = pd.DataFrame(json_sistemas_7d)
+                sistemas_7d = df_dados_sistemas_7d[["SistemaId", "VolumePorcentagem"]]
+                sistemas_7d = sistemas_7d.rename(columns={"VolumePorcentagem": "Volume -7 dias (%)"})
+
+            with open(json_sistemas_14d, 'r', encoding='utf-8') as f:
+                data_14d = json.load(f)
+                json_sistemas_14d = data_14d.get("dadosSistemas", [])
+                df_dados_sistemas_14d = pd.DataFrame(json_sistemas_14d)
+                sistemas_14d = df_dados_sistemas_14d[["SistemaId", "VolumePorcentagem"]]
+                sistemas_14d = sistemas_14d.rename(columns={"VolumePorcentagem": "Volume -14 dias (%)"})
+
+            with open(json_sistemas_21d, 'r', encoding='utf-8') as f:
+                data_21d = json.load(f)
+                json_sistemas_21d = data_21d.get("dadosSistemas", [])
+                df_dados_sistemas_21d = pd.DataFrame(json_sistemas_21d)
+                sistemas_21d = df_dados_sistemas_21d[["SistemaId", "VolumePorcentagem"]]
+                sistemas_21d = sistemas_21d.rename(columns={"VolumePorcentagem": "Volume -21 dias (%)"})
+
+            sistemas_atual = df_dados_sistemas[["SistemaId", "VolumePorcentagem"]]
+            sistemas_atual = sistemas_atual.rename(columns={"VolumePorcentagem": "Volume atual (%)"})
+            url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_21dias_str}/{data_atual_str}'
+            response = requests.get(url_sim, verify=False)
+
+            if response.status_code == 200:
+                data = response.json()
+
+                if "dataCollection" in data:
+                    df_sim_atual_all = pd.DataFrame(data["dataCollection"])
+                    df_sim_atual = df_sim_atual_all.copy()
+                    df_sim_atual['SistemaId'] = 459
+
+                    valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
+                    valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
+                    valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
+                    df_sim_atual["Volume -7 dias (%)"] = valor_7dias
+                    df_sim_atual["Volume -14 dias (%)"] = valor_14dias
+                    df_sim_atual["Volume -21 dias (%)"] = valor_21dias
+
+                    df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
+                    df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
+                    df_sim_atual = df_sim_atual.drop(columns={"dateTime", "deliveredAt"})
+
+
+            merged_data_sistemas = pd.merge(sistemas_atual, sistemas_7d, on='SistemaId', how='left')
+            merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_14d, on='SistemaId', how='left')
+            merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_21d, on='SistemaId', how='left')
+
+
+            url_sim_ano_anterior = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
+            response = requests.get(url_sim_ano_anterior, verify=False)
+
+            if response.status_code == 200:
+                data = response.json()
+
+                if "dataCollection" in data:
+                    df_sim_ano_anterior = pd.DataFrame(data["dataCollection"])
+                    df_sim_ano_anterior['SistemaId'] = 459
+                    df_sim_ano_anterior = df_sim_ano_anterior.drop(columns={"dateTime", "deliveredAt"})
+                    df_sim_ano_anterior = df_sim_ano_anterior.rename(columns={"value": "Volume Ano Anterior (%)"})
+
+            merged_data_sistemas = pd.concat([merged_data_sistemas, df_sim_atual], ignore_index=True)
+            ano_anterior = pd.concat([ano_anterior, df_sim_ano_anterior], ignore_index=True)
+
+            df_nome_sistemas = pd.DataFrame(list(nomes_sistema.items()), columns=["Sistema", "SistemaId"])
+            merged_data_sistemas = pd.merge(merged_data_sistemas, df_nome_sistemas, on='SistemaId', how='left')
+            merged_data_sistemas = merged_data_sistemas[merged_data_sistemas['Sistema'].notna()]
+
+            merged_data_sistemas = pd.merge(merged_data_sistemas, ano_anterior, on='SistemaId', how='left')
+
+            merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
+            merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
+            merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
+
+            creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado)
+
+        
+        elif st.session_state.reservatorio == 'SSD':
+
+            if ano_filtro != data_ano_anterior_str:
+
+                sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
+            
+            merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
+            print(merged_data_sistemas_all)
+            sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
+            print(sistemas_ano_comparacao)
+
+            url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_21dias_str}/{data_atual_str}'
+            response = requests.get(url_sim, verify=False)
+
+            if response.status_code == 200:
+                data = response.json()
+                if "dataCollection" in data:
+                    df_sim_atual_all = pd.DataFrame(data["dataCollection"])
+                    df_sim_atual = df_sim_atual_all.copy()
+                    df_sim_atual['SistemaId'] = 459
+
+                    valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
+                    valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
+                    valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
+                    df_sim_atual["Volume -7 dias (%)"] = valor_7dias
+                    df_sim_atual["Volume -14 dias (%)"] = valor_14dias
+                    df_sim_atual["Volume -21 dias (%)"] = valor_21dias
+
+                    df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
+                    df_sim_atual = df_sim_atual.drop(columns={"deliveredAt"})
+
+            data_dia_anterior = datetime.today() - timedelta(days=1)
+            data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
+
+            if data_atual_str in merged_data_sistemas_all['dateTime'].values:
+                merged_data_sistemas = merged_data_sistemas_all[
+                    merged_data_sistemas_all['dateTime'] == data_atual_str
+                ]
+            elif data_dia_anterior_str in merged_data_sistemas_all['dateTime'].values:
+                merged_data_sistemas = merged_data_sistemas_all[
+                    merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
+                ]
+
+            merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
+            print(merged_data_sistemas)
+            
+            merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
+            merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
+            merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
+            print(merged_data_sistemas)
+
+            creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado)
+
                 
 
-                # Legenda fora do gráfico
-                ax.legend(
-                    frameon=True,
-                    facecolor='#f0f0f0',
-                    fontsize=7,
-                    bbox_to_anchor=(0.5, 1.1),  # (posição horizontal, posição vertical)
-                    loc='upper center',  # Âncora no centro superior
-                    ncol=4  # Número de colunas para distribuir os itens
-                )
-
-            plt.tight_layout()
-            st.pyplot(fig)
-            ax.set_title("")
-
-
-
-        start_sim = '2025-08-19'
-        start_sim_dt = pd.to_datetime(start_sim)
-        df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
-        df_sim_atual_filtrado=df_sim_atual_all[df_sim_atual_all["dateTime"] >= start_sim_dt]
-
-        data_atual_1meses = datetime.today() + relativedelta(months=1)
-
-        projecao_sim = pd.read_csv("serie_diaria.csv")
-        projecao_sim["Data"] = pd.to_datetime(projecao_sim["Data"])
-        projecao_sim =  projecao_sim[projecao_sim["Data"] <= data_atual_1meses]
-
-        colunas = ['QN100 (20-25)', 'QN100 MLT', 'QN70 MLT', 'QN (2021)', 'QN (2014)']
-        for c in colunas:
-            projecao_sim[c] = pd.to_numeric(projecao_sim[c], errors='coerce')
-            projecao_sim[c].fillna(0, inplace=True)
-
-
-        fig_sim = go.Figure()
-
-        fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
-
-        # Adicionando as linhas horizontais para os níveis
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
-                                    mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=1.5)))
-            
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 MLT'], 
-                                    mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=1.5)))
-
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN70 MLT'], 
-                                    mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=1.5)))
-
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2021)'], 
-                                    mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=1.5)))
-        
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2014)'], 
-                                    mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=1.5)))
-    
-        # Atualizando o layout do gráfico
-        fig_sim.update_layout(
-            title=dict(
-                text="Projeção de Volume do SIM",
-                font=dict(size=24, color='black')  # tamanho e cor do título
-            ),
-            # title_x=0.3,
-            xaxis_title="",
-            yaxis_title="Volume (%)",
-            plot_bgcolor='white',    # Cor de fundo do gráfico
-            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
-            font=dict(color='black'),  # Cor das fontes para preto
-            title_font=dict(color='black'),  # Cor do título
-            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
-            yaxis_title_font=dict(color='black'), 
-            legend=dict(font=dict(color='black')),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
-            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
-        )
-
-        st.plotly_chart(fig_sim)
-
-        co1, co2 = st.columns([1.50, 0.50])
-
-        with co1:
-            gov_base64 = get_base64_image("regua.png")
-            st.markdown(
-                f"""
-                <style>
-                    .relative-container {{
-                        position: relative;
-                        min-height: 620px;
-                        overflow: visible;
-                    }}
-
-                    .background-image {{
-                        position: absolute;
-                        top: -170px;
-                        left: 400px;
-                        height: 100%;
-                        object-fit: cover;
-                        opacity: 0.15;
-                        z-index: 0;
-                    }}
-
-                    .text-content {{
-                        position: relative;
-                        z-index: 1;
-                        color: black;
-                        padding: 20px;
-                    }}
-                </style>
-                <div style="position: absolute; bottom: -100px; right: -380px; display: flex; gap: 20px; z-index: 1;">
-                    <img src="data:image/png;base64,{gov_base64}" width="600" height="80">
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
         return None
 
 async def main():
