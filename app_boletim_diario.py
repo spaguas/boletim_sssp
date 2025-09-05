@@ -2369,7 +2369,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     with cc2:
         im1, im2, im3 = st.columns([0.5, 1.0, 0.5])
         with im2:
-            imagem = Image.open("imagens/cantareira.png")
+            imagem = Image.open("cantareira.png")
 
             # exibe no app
             st.image(imagem, caption=f" ", width=500) 
