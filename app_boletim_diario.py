@@ -2153,25 +2153,37 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
+        print(url_volume)
         response = requests.get(url_volume, verify=False)
 
         if response.status_code == 200:
             data = response.json()
 
-            if "dataCollection" in data:
+            if "dataCollection" in data and len(data["dataCollection"]) > 0:
                 df_atual = pd.DataFrame(data["dataCollection"])
                 df_atual_all = df_atual.copy()
                 df_atual_all['SistemaId'] = id
-
+                
                 valor_ano_anterior = df_atual_all.loc[df_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
 
                 df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
 
                 df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_ano_anterior_str]
+
                 df_atual_all = df_atual_all.drop(columns={"deliveredAt", "value"})
                 all_volume.append(df_atual_all)
 
+            else:
+                df_atual_all = pd.DataFrame()
+                df_atual_all['SistemaId'] = id
+                df_atual_all['dateTime'] = data_ano_anterior_str
+                df_atual_all["Volume Ano Anterior (%)"] = None
+                all_volume.append(df_atual_all)
+
+
     df_final = pd.concat(all_volume, ignore_index=True)
+
+
 
     return df_final
 
@@ -2353,8 +2365,11 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             )
             print(ano_selecionado)
                 # Se mudar a seleção, atualiza o estado e recarrega
-            if set(ano_selecionado) != set(st.session_state.data_filter):
+            if ano_selecionado != st.session_state.data_filter:
                 st.session_state.data_filter = ano_selecionado
+                # monta a nova string de data anterior com o ano selecionado
+                data_ano_anterior_str = f"{ano_selecionado}-{mes:02d}-{dia:02d}"
+                st.session_state.data_ano_anterior_str = data_ano_anterior_str
                 st.rerun()
 
         with con3:
@@ -2372,7 +2387,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
 
         html_blocks = []
-
+        print(merged_data_sistemas)
         for i, row in merged_data_sistemas.iterrows():
             bloco = f"""
                 <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; 
@@ -6741,16 +6756,12 @@ async def dashboard_reservatorios():
     with escolha_reservatorio_container:
         col1, col2, col3 = st.columns([0.30, 1.5, 0.30])
 
-
         with col3:
             st.markdown('<div class="align-right">', unsafe_allow_html=True)
             st.image("SP-4.png", caption="", width=300)
             st.markdown('</div>', unsafe_allow_html=True)
 
-
-
         coluna1, coluna2, coluna3 = st.columns([0.2, 1.5, 0.2])
-
 
         data_atual = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         data_formatada = data_atual.strftime("%d/%m/%Y")
@@ -6767,14 +6778,12 @@ async def dashboard_reservatorios():
         data_14dias_str = data_14dias.strftime('%Y-%m-%d')
         data_21dias_str = data_21dias.strftime('%Y-%m-%d')
 
-
         data_fim = str(data_ano_anterior.year + 1)
         lista_anos = pd.date_range(start="2000", end=data_fim, freq="Y")
         lista_anos_int = lista_anos.year.tolist()
         lista_anos_int.sort(reverse=True)  # do maior para o menor
         lista_anos_str = list(map(str, lista_anos_int))
 
-        
 
         with col2:
             st.write(f"""
@@ -6975,15 +6984,18 @@ async def dashboard_reservatorios():
 
         
         elif st.session_state.reservatorio == 'SSD':
-
+            print("ANO FILTROOOOOOO ", ano_filtro)
             if ano_filtro != data_ano_anterior_str:
-
+                print("Ano filtro ---------------------------------------", ano_filtro)
+                print("Ano anterior ---------------------------------------", data_ano_anterior_str)
+                sistemas_ano_comparacao = get_ssd_api_comparacao(ano_filtro)
+            else:                
+                print("Entrou else")
+                print("Ano anterior ---------------------------------------", data_ano_anterior_str)
                 sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
-            
+
+
             merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
-
-            sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
-
 
             url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_21dias_str}/{data_atual_str}'
             response = requests.get(url_sim, verify=False)
@@ -7017,13 +7029,18 @@ async def dashboard_reservatorios():
                     merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
                 ]
 
+
+            print("-----------------------------Sistemas comparaçao--------------------------------")
+            print(sistemas_ano_comparacao)
             merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
+
+            print(merged_data_sistemas)
             
             merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
             merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
             merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
 
-            creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado)
+            creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado)
 
         return None
 
