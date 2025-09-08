@@ -255,450 +255,538 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     pdf.image(imagem_logos, x=165, y=193, w=130)
 
     #________________________________________________________________Slide 1
-    pdf.show_header = True 
-    pdf.add_page()
+    try:
+        pdf.show_header = True 
+        pdf.add_page()
 
-    col1_w = 80 
-    col2_w = 120  
-    col3_w = 165  
-   
-    pdf.set_xy(col2_w, 15)
-    pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
-    pdf.set_font("Arial", size=12)
-
-    pdf.set_xy(38, 26)
-    pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Acumulado de chuva das ultimas 24h", ln=1)
-
-    mapa_html_flu = 'mapa_html_flu'
-    transform_html_image(mapa_html_flu)
-    tm.sleep(10)
-
-    imgagem_flu = Image.open("imagens/mapa_html_flu.png").convert("RGBA")
-    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
-    background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
-    background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
-    background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
-
-    pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
-    pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
-
-
-    pdf.set_xy(165, 26)
-    pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Interpolação dos pluviômetros a partir do método IDW", ln=1)
-
-    mapa_html_inter = 'mapa_html_inter'
-    transform_html_image(mapa_html_inter)
-    tm.sleep(10)
-    imgagem_inter = Image.open("imagens/mapa_html_inter.png").convert("RGBA")
-    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
-    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
-    background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
-    pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
-    pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=8, style='I')
-    pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
+        col1_w = 80 
+        col2_w = 120  
+        col3_w = 165  
     
-    x = 10
-    y = 142
-    w = 278
-    padding = 3
-    line_height = 7
+        pdf.set_xy(col2_w, 15)
+        pdf.set_font("Arial", size=14,style='B')
+        pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+        pdf.set_font("Arial", size=12)
 
-    pdf.set_xy(x, 132)
-    pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Relatos 24h", ln=1)
+        pdf.set_xy(38, 26)
+        pdf.set_font("Arial","B", size=12)
+        pdf.cell(0, 10, txt="Acumulado de chuva das ultimas 24h", ln=1)
 
-    cell_height = get_text_height(pdf, user_input1, w - 2 * padding, line_height)
-    total_height = cell_height + 2 * padding
+        mapa_html_flu = 'mapa_html_flu'
+        transform_html_image(mapa_html_flu)
+        tm.sleep(10)
 
-    pdf.set_draw_color(200, 200, 200)  # cinza claro
-    pdf.rect(x, y, w, total_height)
+        imgagem_flu = Image.open("imagens/mapa_html_flu.png").convert("RGBA")
+        # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+        background = Image.new("RGB", imgagem_flu.size, (255, 255, 255))  # fundo branco
+        background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
+        background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
 
-    pdf.set_xy(x + padding, y + padding)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input1, border=0)
+        pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
+        pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=8, style='I')
+        pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+
+
+        pdf.set_xy(165, 26)
+        pdf.set_font("Arial","B", size=12)
+        pdf.cell(0, 10, txt="Interpolação dos pluviômetros a partir do método IDW", ln=1)
+
+        mapa_html_inter = 'mapa_html_inter'
+        transform_html_image(mapa_html_inter)
+        tm.sleep(10)
+        imgagem_inter = Image.open("imagens/mapa_html_inter.png").convert("RGBA")
+        background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+        background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+        background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
+        pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
+        pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=8, style='I')
+        pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
+        
+        x = 10
+        y = 142
+        w = 278
+        padding = 3
+        line_height = 7
+
+        pdf.set_xy(x, 132)
+        pdf.set_font("Arial","B", size=12)
+        pdf.cell(0, 10, txt="Relatos 24h", ln=1)
+
+        cell_height = get_text_height(pdf, user_input1, w - 2 * padding, line_height)
+        total_height = cell_height + 2 * padding
+
+        pdf.set_draw_color(200, 200, 200)  # cinza claro
+        pdf.rect(x, y, w, total_height)
+
+        pdf.set_xy(x + padding, y + padding)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(w - 2 * padding, line_height, txt=user_input1, border=0)
+    
+    except Exception as e:
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt=f"Erro ao gerar slide 1: {e}",
+            align='C'
+        )
+        print("Erro ao gerar slide 1:", e)
+
 
     #________________________________________________________________Slide 2
-    pdf.show_header = True 
-    pdf.add_page()
+    try: 
+        pdf.show_header = True 
+        pdf.add_page()
 
-    col1_w = 80 
-    col2_w = 120  
-    col3_w = 165  
+        col1_w = 80 
+        col2_w = 120  
+        col3_w = 165  
 
-    pdf.set_xy(col2_w, 15)
-    pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
-    pdf.set_font("Arial", size=12)
+        pdf.set_xy(col2_w, 15)
+        pdf.set_font("Arial", size=14,style='B')
+        pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+        pdf.set_font("Arial", size=12)
 
-    pdf.set_xy(10, 25)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(135, 7, txt="Municípios com os maiores acumulados de chuvas observadas nas últimas 24h (mm) (Rede Telemétrica)", align='C')
-    imgagem_tabela = Image.open("imagens/tabela_chuva.png").convert("RGBA")
-    background = Image.new("RGB", imgagem_tabela.size, (255, 255, 255))
-    background.paste(imgagem_tabela, mask=imgagem_tabela.split()[3])  # usa canal alpha como máscara
-    background.save("imagens/tabela_chuva.jpg", "JPEG", quality=95)
-    pdf.image("imagens/tabela_chuva.jpg", x=6, y=38, w=153)
-    
-    pdf.set_xy(10, 113)
-    pdf.set_font("Arial", size=10)
-    texto = (
-        "1- Máximo Registrado - Volume máximo (mm) registrado por um posto pluviométrico do município.\n"
-        "2- Média Registrada - Soma do Volume (mm) de todos os postos do município / n° de postos.\n"
-        "3- Acumulado média mês - Soma da média (mm) registrada do primeiro dia do mês até o momento.\n"
-        "4- Histórico mensal - Volume médio mensal calculado a partir da série histórica disponível."
-    )
-    pdf.multi_cell(135, 5, txt=texto)
+        pdf.set_xy(10, 25)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(135, 7, txt="Municípios com os maiores acumulados de chuvas observadas nas últimas 24h (mm) (Rede Telemétrica)", align='C')
+        imgagem_tabela = Image.open("imagens/tabela_chuva.png").convert("RGBA")
+        background = Image.new("RGB", imgagem_tabela.size, (255, 255, 255))
+        background.paste(imgagem_tabela, mask=imgagem_tabela.split()[3])  # usa canal alpha como máscara
+        background.save("imagens/tabela_chuva.jpg", "JPEG", quality=95)
+        pdf.image("imagens/tabela_chuva.jpg", x=6, y=38, w=153)
+        
+        pdf.set_xy(10, 113)
+        pdf.set_font("Arial", size=10)
+        texto = (
+            "1- Máximo Registrado - Volume máximo (mm) registrado por um posto pluviométrico do município.\n"
+            "2- Média Registrada - Soma do Volume (mm) de todos os postos do município / n° de postos.\n"
+            "3- Acumulado média mês - Soma da média (mm) registrada do primeiro dia do mês até o momento.\n"
+            "4- Histórico mensal - Volume médio mensal calculado a partir da série histórica disponível."
+        )
+        pdf.multi_cell(135, 5, txt=texto)
 
-    pdf.set_xy(155, 26)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(135, 6, txt='Comparação de Precipitação por Município', align='C')
-    pdf.image("imagens/grafico_chuva.png", x=155, y=32, w=121)
+        pdf.set_xy(155, 26)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(135, 6, txt='Comparação de Precipitação por Município', align='C')
+        pdf.image("imagens/grafico_chuva.png", x=155, y=32, w=121)
 
-    pdf.set_xy(155, 115)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(135, 6, txt='Chuva média acumulada por UGRHI', align='C')
-    pdf.image("imagens/grafico_chuva2.png", x=155, y=120, w=120)
-    
+        pdf.set_xy(155, 115)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(135, 6, txt='Chuva média acumulada por UGRHI', align='C')
+        pdf.image("imagens/grafico_chuva2.png", x=155, y=120, w=120)
+
+    except:
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt=f"Erro ao gerar slide 2: {e}",
+            align='C'
+        )
+        print("Erro ao gerar slide 2:", e)    
+
     #________________________________________________________________Slide 3
-    pdf.show_header = True 
-    pdf.add_page()
+    try:
+        pdf.show_header = True 
+        pdf.add_page()
 
-    col1_w = 80 
-    col2_w = 120  
-    col3_w = 165  
-   
-    pdf.set_xy(col2_w, 15)
-    pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Acumulados dos Radares", ln=1, align='L')
-    pdf.set_font("Arial", size=12)
-
-    data_inicial = datetime.today()
-    data_str = data_inicial.strftime('%Y-%m-%d')
-    pdf.set_xy(13, 26)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(135, 6, txt='Acumulado das 24h (mm) - Radar Ipmet', align='C')
-
-    image_path = f'results/imagem_ipmet_{data_str}.png'
-    img_ipmet = Image.open(image_path).convert("RGB")
-    img_ipmet.save("imagens/imagem_ipmet_temp.jpg", "JPEG", quality=95)
-    pdf.image("imagens/imagem_ipmet_temp.jpg", x=10, y=32, w=148)
-
-    legenda_ipmet = Image.open("escala_acum.png").convert("RGB")
-    legenda_ipmet.save("imagens/escala_ipmet_temp.jpg", "JPEG", quality=95)
-    pdf.image("imagens/escala_ipmet_temp.jpg", x=50, y=100, w=60)
-
-    pdf.set_xy(42, 116)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=10, style='I')
-    pdf.cell(0, 6, txt="Produzido pelo Ipmet. Disponível em: IPMET", ln=1, link="https://www.ipmetradar.com.br/")
-
-    pdf.set_xy(163, 26)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(132, 6, txt='Acumulado das 24h (mm) - Radar SP Águas', align='C')
-
-    image_path_saisp = f'results/imagem_saisp_{data_str}.png'
-    img_saisp = Image.open(image_path_saisp).convert("RGB")
-    img_saisp.save("imagens/imagem_saisp_temp.jpg", "JPEG", quality=95)
-    pdf.image("imagens/imagem_saisp_temp.jpg", x=165, y=32, w=120)
-
-    legenda_saisp = Image.open("imagens/Imagem1.jpg").convert("RGB")
-    legenda_saisp.save("imagens/Imagem1_temp.jpg", "JPEG", quality=95)
-    pdf.image("imagens/Imagem1_temp.jpg", x=165, y=155, w=120)
-
-    pdf.set_xy(155, 164)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=10, style='I')
-    pdf.multi_cell(140, 6, txt='Produzido pelo Radar 600S-Selex, Banda S, 850 KW, Doppler, Dupla Polarização.', align='C')
-    pdf.set_xy(205, 168)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=10, style='I')
-    pdf.cell(0, 6, txt="Disponível em: SAISP", ln=1, link="https://www.saisp.br/estaticos/sitenovo/home.html")
+        col1_w = 80 
+        col2_w = 120  
+        col3_w = 165  
     
-    x = 10
-    y = 140
-    w = 148
-    padding = 3
-    line_height = 7
+        pdf.set_xy(col2_w, 15)
+        pdf.set_font("Arial", size=14,style='B')
+        pdf.cell(col2_w, txt="Acumulados dos Radares", ln=1, align='L')
+        pdf.set_font("Arial", size=12)
 
-    pdf.set_xy(x, 132)
-    pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Análise", ln=1)
+        data_inicial = datetime.today()
+        data_str = data_inicial.strftime('%Y-%m-%d')
+        pdf.set_xy(13, 26)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(135, 6, txt='Acumulado das 24h (mm) - Radar Ipmet', align='C')
 
-    cell_height = get_text_height(pdf, user_input3, w - 2 * padding, line_height)
-    total_height = cell_height + 2 * padding
+        image_path = f'results/imagem_ipmet_{data_str}.png'
+        img_ipmet = Image.open(image_path).convert("RGB")
+        img_ipmet.save("imagens/imagem_ipmet_temp.jpg", "JPEG", quality=95)
+        pdf.image("imagens/imagem_ipmet_temp.jpg", x=10, y=32, w=148)
 
-    pdf.set_draw_color(200, 200, 200)  # cinza claro
-    pdf.rect(x, y, w, total_height)
+        legenda_ipmet = Image.open("escala_acum.png").convert("RGB")
+        legenda_ipmet.save("imagens/escala_ipmet_temp.jpg", "JPEG", quality=95)
+        pdf.image("imagens/escala_ipmet_temp.jpg", x=50, y=100, w=60)
 
-    pdf.set_xy(x + padding, y + padding)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input3, border=0)
+        pdf.set_xy(42, 116)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=10, style='I')
+        pdf.cell(0, 6, txt="Produzido pelo Ipmet. Disponível em: IPMET", ln=1, link="https://www.ipmetradar.com.br/")
+
+        pdf.set_xy(163, 26)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(132, 6, txt='Acumulado das 24h (mm) - Radar SP Águas', align='C')
+
+        image_path_saisp = f'results/imagem_saisp_{data_str}.png'
+        img_saisp = Image.open(image_path_saisp).convert("RGB")
+        img_saisp.save("imagens/imagem_saisp_temp.jpg", "JPEG", quality=95)
+        pdf.image("imagens/imagem_saisp_temp.jpg", x=165, y=32, w=120)
+
+        legenda_saisp = Image.open("imagens/Imagem1.jpg").convert("RGB")
+        legenda_saisp.save("imagens/Imagem1_temp.jpg", "JPEG", quality=95)
+        pdf.image("imagens/Imagem1_temp.jpg", x=165, y=155, w=120)
+
+        pdf.set_xy(155, 164)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=10, style='I')
+        pdf.multi_cell(140, 6, txt='Produzido pelo Radar 600S-Selex, Banda S, 850 KW, Doppler, Dupla Polarização.', align='C')
+        pdf.set_xy(205, 168)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=10, style='I')
+        pdf.cell(0, 6, txt="Disponível em: SAISP", ln=1, link="https://www.saisp.br/estaticos/sitenovo/home.html")
+        
+        x = 10
+        y = 140
+        w = 148
+        padding = 3
+        line_height = 7
+
+        pdf.set_xy(x, 132)
+        pdf.set_font("Arial","B", size=12)
+        pdf.cell(0, 10, txt="Análise", ln=1)
+
+        cell_height = get_text_height(pdf, user_input3, w - 2 * padding, line_height)
+        total_height = cell_height + 2 * padding
+
+        pdf.set_draw_color(200, 200, 200)  # cinza claro
+        pdf.rect(x, y, w, total_height)
+
+        pdf.set_xy(x + padding, y + padding)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(w - 2 * padding, line_height, txt=user_input3, border=0)
+
+    except Exception as e:
+        pdf.add_page()
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt=f"Erro ao gerar slide 3: {e}",
+            align='C'
+        )
+        print("Erro ao gerar slide 3:", e)
 
 
     #________________________________________________________________________Slide 5
-    pdf.show_header = True 
-    pdf.add_page()
+    try: 
+        pdf.show_header = True 
+        pdf.add_page()
 
-    col1_w = 80 
-    col2_w = 120  
-    col3_w = 165  
-   
-    pdf.set_xy(col2_w, 15)
-    pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Dados Fluviometria", ln=1, align='L')
-    pdf.set_font("Arial", size=12)
+        col1_w = 80 
+        col2_w = 120  
+        col3_w = 165  
+    
+        pdf.set_xy(col2_w, 15)
+        pdf.set_font("Arial", size=14,style='B')
+        pdf.cell(col2_w, txt="Dados Fluviometria", ln=1, align='L')
+        pdf.set_font("Arial", size=12)
 
-    mapa_html_5 = "mapa_slide5"
-    transform_html_image(mapa_html_5)
-    tm.sleep(10)
-    imgagem_html_5 = Image.open("imagens/mapa_slide5.png").convert("RGBA")
-    # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
-    background = Image.new("RGB", imgagem_html_5.size, (255, 255, 255))  # fundo branco
-    background.paste(imgagem_html_5, mask=imgagem_html_5.split()[3])  # usa canal alpha como máscara
-    background.save("imagens/mapa_slide5.jpg", "JPEG", quality=95)
-    pdf.image("imagens/mapa_slide5.jpg", x=40, y=25, w=210)
-    pdf.set_xy(115, 158)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+        mapa_html_5 = "mapa_slide5"
+        transform_html_image(mapa_html_5)
+        tm.sleep(10)
+        imgagem_html_5 = Image.open("imagens/mapa_slide5.png").convert("RGBA")
+        # background.paste(imgagem_flu, mask=imgagem_flu.getchannel("A"))
+        background = Image.new("RGB", imgagem_html_5.size, (255, 255, 255))  # fundo branco
+        background.paste(imgagem_html_5, mask=imgagem_html_5.split()[3])  # usa canal alpha como máscara
+        background.save("imagens/mapa_slide5.jpg", "JPEG", quality=95)
+        pdf.image("imagens/mapa_slide5.jpg", x=40, y=25, w=210)
+        pdf.set_xy(115, 158)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=8, style='I')
+        pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
-    x = 10
-    y = 170
-    w = 270
-    padding = 3
-    line_height = 7
+        x = 10
+        y = 170
+        w = 270
+        padding = 3
+        line_height = 7
 
-    pdf.set_xy(x, 160)
-    pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Análise das redes Telemétrica", ln=1)
+        pdf.set_xy(x, 160)
+        pdf.set_font("Arial","B", size=12)
+        pdf.cell(0, 10, txt="Análise das redes Telemétrica", ln=1)
 
-    cell_height = get_text_height(pdf, user_input5, w - 2 * padding, line_height)
-    total_height = cell_height + 2 * padding
+        cell_height = get_text_height(pdf, user_input5, w - 2 * padding, line_height)
+        total_height = cell_height + 2 * padding
 
-    pdf.set_draw_color(200, 200, 200)  # cinza claro
-    pdf.rect(x, y, w, total_height)
+        pdf.set_draw_color(200, 200, 200)  # cinza claro
+        pdf.rect(x, y, w, total_height)
 
-    pdf.set_xy(x + padding, y + padding)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input5, border=0)
+        pdf.set_xy(x + padding, y + padding)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(w - 2 * padding, line_height, txt=user_input5, border=0)
 
 
-    if all_extravasamento != None: 
+        if all_extravasamento != None: 
 
-        for item in all_extravasamento:
+            for item in all_extravasamento:
+                    
+                cards_img = item['cards_image']
+                grafico_img = item['grafico_path']
+                tabela_img = item['tabela_resumo']
+                pdf.add_page()
                 
-            cards_img = item['cards_image']
-            grafico_img = item['grafico_path']
-            tabela_img = item['tabela_resumo']
-            pdf.add_page()
-            
-            pdf.set_xy(120, 15)
-            pdf.set_font("Arial", size=14,style='B')
-            pdf.cell(120, txt=f"Gráfico do Extravasamento", ln=1, align='L')
-            pdf.set_font("Arial", size=12)
+                pdf.set_xy(120, 15)
+                pdf.set_font("Arial", size=14,style='B')
+                pdf.cell(120, txt=f"Gráfico do Extravasamento", ln=1, align='L')
+                pdf.set_font("Arial", size=12)
 
-            
-            im = Image.open(f"imagens/{cards_img}")
-            width, height = im.size
+                
+                im = Image.open(f"imagens/{cards_img}")
+                width, height = im.size
 
-            # Define um fator de zoom (por exemplo, 1.5x)
-            remove_transparency(f"imagens/{cards_img}")
-            remove_transparency(f"imagens/{grafico_img}")
-            remove_transparency(f"imagens/{tabela_img}")
-            pdf.image(f"imagens/{cards_img}", x=10, y=22, w=275)
-            pdf.image(f"imagens/{grafico_img}", x=6, y=52, w=285)
-            pdf.image(f"imagens/{tabela_img}", x=10, y=175, w=280)
-
+                # Define um fator de zoom (por exemplo, 1.5x)
+                remove_transparency(f"imagens/{cards_img}")
+                remove_transparency(f"imagens/{grafico_img}")
+                remove_transparency(f"imagens/{tabela_img}")
+                pdf.image(f"imagens/{cards_img}", x=10, y=22, w=275)
+                pdf.image(f"imagens/{grafico_img}", x=6, y=52, w=285)
+                pdf.image(f"imagens/{tabela_img}", x=10, y=175, w=280)
+    except Exception as e:
+        pdf.add_page()
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt=f"Erro ao gerar slide 5: {e}",
+            align='C'
+        )
+        print("Erro ao gerar slide 5:", e)
     #________________________________________________________________________Slide 6
-    pdf.show_header = True 
-    pdf.add_page()
+    try:
+        pdf.show_header = True 
+        pdf.add_page()
 
-    col1_w = 80 
-    col2_w = 120  
-    col3_w = 165  
-   
-    pdf.set_xy(col2_w, 15)
-    pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
-    pdf.set_font("Arial", size=12)
+        col1_w = 80 
+        col2_w = 120  
+        col3_w = 165  
+    
+        pdf.set_xy(col2_w, 15)
+        pdf.set_font("Arial", size=14,style='B')
+        pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+        pdf.set_font("Arial", size=12)
 
-    pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
+        pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
 
-    pdf.set_xy(120, 189)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Fonte: SSD-Sistemas Produtores", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/")
-
-
-    pdf.show_header = True 
-    pdf.add_page()
-
-    col1_w = 80 
-    col2_w = 120  
-    col3_w = 165  
-   
-    pdf.set_xy(col2_w, 15)
-    pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
-    pdf.set_font("Arial", size=12)
-
-    pdf.set_xy(10, 26)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(135, 7, txt="Comparação entre volume atual x volume no ano anterior (%)", align='C')
-    remove_transparency(f"imagens/grafico_rmsp.png")
-    pdf.image(f"imagens/grafico_rmsp.png", x=8, y=32, w=134)
-
-    pdf.set_xy(150, 26)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(135, 7, txt="Volume dos Sistemas Produtores (Sabesp)", align='C')
-    remove_transparency(f"imagens/tabela_rmsp.png")
-    pdf.image(f"imagens/tabela_rmsp.png", x=147, y=32, w=160)
+        pdf.set_xy(120, 189)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=8, style='I')
+        pdf.cell(0, 10, txt="Fonte: SSD-Sistemas Produtores", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/")
 
 
-    x = 10
-    y = 150
-    w = 270
-    padding = 3
-    line_height = 7
+        pdf.show_header = True 
+        pdf.add_page()
 
-    pdf.set_xy(x, 140)
-    pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Análise dos Sistemas Produtores", ln=1)
+        col1_w = 80 
+        col2_w = 120  
+        col3_w = 165  
+    
+        pdf.set_xy(col2_w, 15)
+        pdf.set_font("Arial", size=14,style='B')
+        pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+        pdf.set_font("Arial", size=12)
 
-    cell_height = get_text_height(pdf, user_input6, w - 2 * padding, line_height)
-    total_height = cell_height + 2 * padding
+        pdf.set_xy(10, 26)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(135, 7, txt="Comparação entre volume atual x volume no ano anterior (%)", align='C')
+        remove_transparency(f"imagens/grafico_rmsp.png")
+        pdf.image(f"imagens/grafico_rmsp.png", x=8, y=32, w=134)
 
-    pdf.set_draw_color(200, 200, 200)  # cinza claro
-    pdf.rect(x, y, w, total_height)
+        pdf.set_xy(150, 26)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(135, 7, txt="Volume dos Sistemas Produtores (Sabesp)", align='C')
+        remove_transparency(f"imagens/tabela_rmsp.png")
+        pdf.image(f"imagens/tabela_rmsp.png", x=147, y=32, w=160)
 
-    pdf.set_xy(x + padding, y + padding)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input6, border=0)
 
+        x = 10
+        y = 150
+        w = 270
+        padding = 3
+        line_height = 7
+
+        pdf.set_xy(x, 140)
+        pdf.set_font("Arial","B", size=12)
+        pdf.cell(0, 10, txt="Análise dos Sistemas Produtores", ln=1)
+
+        cell_height = get_text_height(pdf, user_input6, w - 2 * padding, line_height)
+        total_height = cell_height + 2 * padding
+
+        pdf.set_draw_color(200, 200, 200)  # cinza claro
+        pdf.rect(x, y, w, total_height)
+
+        pdf.set_xy(x + padding, y + padding)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(w - 2 * padding, line_height, txt=user_input6, border=0)
+
+    except Exception as e:
+        pdf.add_page()
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt=f"Erro ao gerar slide 6: {e}",
+            align='C'
+        )
+        print("Erro ao gerar slide 6:", e)
 
     #________________________________________________________________________Slide 7
-    pdf.show_header = True 
-    pdf.add_page()
+    try:
+        pdf.show_header = True 
+        pdf.add_page()
 
-    col1_w = 80 
-    col2_w = 90  
-    col3_w = 165  
-   
-    pdf.set_xy(col2_w, 12)
-    pdf.set_font("Arial", size=14, style='B')
-    pdf.multi_cell(
-        150,  # largura da célula
-        7,  # altura da linha
-        txt="Acumulados das Últimas 72h e Limiares Críticos do PPDC dos Municípios do Estado de São Paulo",
-        align='C'
-    )
+        col1_w = 80 
+        col2_w = 90  
+        col3_w = 165  
+    
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt="Acumulados das Últimas 72h e Limiares Críticos do PPDC dos Municípios do Estado de São Paulo",
+            align='C'
+        )
 
-    mapa_html_inter = 'mapa_html_ppdc'
-    transform_html_image(mapa_html_inter)
-    tm.sleep(10)
-    imgagem_inter = Image.open("imagens/mapa_html_ppdc.png").convert("RGBA")
-    background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
-    background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
-    background.save("imagens/mapa_html_ppdc.jpg", "JPEG", quality=95)
+        mapa_html_inter = 'mapa_html_ppdc'
+        transform_html_image(mapa_html_inter)
+        tm.sleep(10)
+        imgagem_inter = Image.open("imagens/mapa_html_ppdc.png").convert("RGBA")
+        background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
+        background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
+        background.save("imagens/mapa_html_ppdc.jpg", "JPEG", quality=95)
 
-    img = Image.open("imagens/mapa_html_ppdc.jpg")
-    width, height = img.size
-    cropped_img = img.crop((0, 0, width, height - 1100))
-    cropped_img_path = "imagens/mapa_html_ppdc_crop.jpg"
-    cropped_img.save(cropped_img_path, "JPEG", quality=95)
+        img = Image.open("imagens/mapa_html_ppdc.jpg")
+        width, height = img.size
+        cropped_img = img.crop((0, 0, width, height - 1100))
+        cropped_img_path = "imagens/mapa_html_ppdc_crop.jpg"
+        cropped_img.save(cropped_img_path, "JPEG", quality=95)
 
-    # Adiciona ao PDF
-    pdf.image(cropped_img_path, x=10, y=28, w=170)
+        # Adiciona ao PDF
+        pdf.image(cropped_img_path, x=10, y=28, w=170)
 
-    pdf.set_xy(58, 108)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Fonte: SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+        pdf.set_xy(58, 108)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=8, style='I')
+        pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Fonte: SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
-    pdf.set_xy(185, 28)
-    pdf.set_font("Arial","B", size=12)
-    pdf.multi_cell(105, 7, txt="Plano Preventivo de Defesa Civil específico para escorregamentos", align='C')
+        pdf.set_xy(185, 28)
+        pdf.set_font("Arial","B", size=12)
+        pdf.multi_cell(105, 7, txt="Plano Preventivo de Defesa Civil específico para escorregamentos", align='C')
 
-    x = 185
-    y = 42
-    w = 105
-    padding = 3
-    line_height = 7
+        x = 185
+        y = 42
+        w = 105
+        padding = 3
+        line_height = 7
 
-    cell_height = get_text_height(pdf, user_input7, w - 1.5 * padding, line_height)
-    total_height = cell_height + 1.5 * padding
+        cell_height = get_text_height(pdf, user_input7, w - 1.5 * padding, line_height)
+        total_height = cell_height + 1.5 * padding
 
-    pdf.set_draw_color(200, 200, 200)  # cinza claro
-    pdf.rect(x, y, w, total_height)
-    pdf.set_xy(x + padding, y + padding)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(w - 1.5 * padding, line_height, txt=user_input7, border=0)
+        pdf.set_draw_color(200, 200, 200)  # cinza claro
+        pdf.rect(x, y, w, total_height)
+        pdf.set_xy(x + padding, y + padding)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(w - 1.5 * padding, line_height, txt=user_input7, border=0)
 
 
-    remove_transparency(f"imagens/tabela_ppdc.png")
-    pdf.image(f"imagens/tabela_ppdc.png", x=30, y=117, w=238)
+        remove_transparency(f"imagens/tabela_ppdc.png")
+        pdf.image(f"imagens/tabela_ppdc.png", x=30, y=117, w=238)
+    
+    except Exception as e:
+        pdf.add_page()
 
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt=f"Erro ao gerar slide 7: {e}",
+            align='C'
+        )
+        print("Erro ao gerar slide 7:", e)
     #________________________________________________________________________Slide 8
-    data_inicial = datetime.today()
-    data_inicial_str = data_inicial.strftime('%Y-%m-%d')
-
-    url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
-    url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
-
-
-    if url == url_inmet:
-        fonte = "INMET"
-        url_fonte = "https://vime.inmet.gov.br/"
-    elif url == url_imgs:
-        fonte = "Climatempo"
-        url_fonte = "https://imgs.somarmeteorologia.com.br"
-
-    pdf.show_header = True 
-    pdf.add_page()
-
-    col1_w = 80 
-    col2_w = 120  
-    col3_w = 165  
-   
-    pdf.set_xy(col2_w, 15)
-    pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Previsão do Tempo", ln=1, align='L')
-    pdf.set_font("Arial", size=12)
+    try:
     
-    temp_img_path = "temp_previsao.jpg"
-    image.save(temp_img_path)
-    
-    pdf.image(temp_img_path, x=10, y=32, w=148)
-    
-    pdf.set_xy(182, 32)
-    pdf.set_font("Arial","B", size=12)
-    pdf.cell(182, 10, txt="Previsão do Tempo para os dias seguintes", ln=1)
+        data_inicial = datetime.today()
+        data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
-    x = col3_w
-    y = 42
-    w = 124
-    h = 40  # Defina a altura ou calcule com base no texto
-    padding = 3
-    line_height = 7
+        url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
 
-    cell_height = get_text_height(pdf, user_input8, w - 2 * padding, line_height)
-    total_height = cell_height + 2 * padding
 
-    pdf.set_draw_color(200, 200, 200)  # cinza claro
-    pdf.rect(x, y, w, total_height)
+        if url == url_inmet:
+            fonte = "INMET"
+            url_fonte = "https://vime.inmet.gov.br/"
+        elif url == url_imgs:
+            fonte = "Climatempo"
+            url_fonte = "https://imgs.somarmeteorologia.com.br"
 
-    pdf.set_xy(x + padding, y + padding)
-    pdf.set_font("Arial", size=12)
-    pdf.multi_cell(w - 2 * padding, line_height, txt=user_input8, border=0)
+        pdf.show_header = True 
+        pdf.add_page()
+
+        col1_w = 80 
+        col2_w = 120  
+        col3_w = 165  
     
-    pdf.set_xy(70, 184)  # x=20 (imagem), y=120 (abaixo dela)
-    pdf.set_font("Arial", size=10, style='I')
-    pdf.cell(0, 10, txt=f"Fonte: {fonte}", ln=1, link=url_fonte)
-    
-    # Remover arquivo temporário
-    import os
-    if os.path.exists(temp_img_path):
-        os.remove(temp_img_path)
+        pdf.set_xy(col2_w, 15)
+        pdf.set_font("Arial", size=14,style='B')
+        pdf.cell(col2_w, txt="Previsão do Tempo", ln=1, align='L')
+        pdf.set_font("Arial", size=12)
+        
+        temp_img_path = "temp_previsao.jpg"
+        image.save(temp_img_path)
+        
+        pdf.image(temp_img_path, x=10, y=32, w=148)
+        
+        pdf.set_xy(182, 32)
+        pdf.set_font("Arial","B", size=12)
+        pdf.cell(182, 10, txt="Previsão do Tempo para os dias seguintes", ln=1)
+
+        x = col3_w
+        y = 42
+        w = 124
+        h = 40  # Defina a altura ou calcule com base no texto
+        padding = 3
+        line_height = 7
+
+        cell_height = get_text_height(pdf, user_input8, w - 2 * padding, line_height)
+        total_height = cell_height + 2 * padding
+
+        pdf.set_draw_color(200, 200, 200)  # cinza claro
+        pdf.rect(x, y, w, total_height)
+
+        pdf.set_xy(x + padding, y + padding)
+        pdf.set_font("Arial", size=12)
+        pdf.multi_cell(w - 2 * padding, line_height, txt=user_input8, border=0)
+        
+        pdf.set_xy(70, 184)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_font("Arial", size=10, style='I')
+        pdf.cell(0, 10, txt=f"Fonte: {fonte}", ln=1, link=url_fonte)
+        
+        # Remover arquivo temporário
+        import os
+        if os.path.exists(temp_img_path):
+            os.remove(temp_img_path)
+    except Exception as e:
+        pdf.add_page()
+
+        pdf.set_xy(col2_w, 12)
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.multi_cell(
+            150,  # largura da célula
+            7,  # altura da linha
+            txt=f"Erro ao gerar slide 8: {e}",
+            align='C'
+        )
+        print("Erro ao gerar slide 8:", e)
     
     return pdf
 
@@ -1702,7 +1790,7 @@ def fetch_and_save_json(data_str, filename):
 def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
     url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
-
+    print(url_ano_atual)
     response = requests.get(url_ano_atual, verify=False)
 
     if response.status_code == 200:
@@ -1785,6 +1873,70 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
     cols = ['Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']
 
+    # Arredonda primeiro
+    merged_data_sistemas[cols] = merged_data_sistemas[cols].round(1)
+
+    # Formata cada elemento como string
+    merged_data_sistemas[cols] = merged_data_sistemas[cols].applymap(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
+
+    data_atual_str = datetime.today().strftime("%Y-%m-%d")
+    merged_data_sistemas["Data"] = data_atual_str
+
+    caminho_arquivo_json = os.path.join("results", f"sabesp_sistemas.json")
+
+
+    merged_data_sistemas.to_json(caminho_arquivo_json, orient='records', force_ascii=False, indent=2)
+
+def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
+
+    url_ano_atual = f"https://mananciais.sabesp.com.br/api/Mananciais/ResumoSistemas/{data_atual_str}"
+    response = requests.get(url_ano_atual, verify=False)
+
+    if response.status_code == 200:
+        data = response.json()
+
+        if 'ReturnObj' in data and 'sistemas' in data['ReturnObj']:
+            df_sistemas = pd.DataFrame(data['ReturnObj']['sistemas'])
+            df_sim = pd.DataFrame([data['ReturnObj']['total']])
+            df_sistemas_ano_atual  = pd.concat([df_sistemas, df_sim], ignore_index=True)
+
+        else:
+            print("A chave 'sistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
+
+    url_ano_anteior = f"https://mananciais.sabesp.com.br/api/Mananciais/ResumoSistemas/{data_ano_anterior_str}"
+    response = requests.get(url_ano_anteior, verify=False)
+
+    if response.status_code == 200:
+
+        data = response.json()
+        print('response ano anterior', datetime.now())
+        if 'ReturnObj' in data and 'sistemas' in data['ReturnObj']:
+            df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['sistemas'])
+            df_sim_ano_anterior = pd.DataFrame([data['ReturnObj']['total']])
+            df_concat = pd.concat([df_sistemas_ano_anterior, df_sim_ano_anterior], ignore_index=True)
+            ano_anterior = df_concat[["SistemaId", "VolumePorcentagem"]]
+            ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
+        else:
+            print("A chave 'sistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
+    else:
+        print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
+
+    merged_data_sistemas = pd.merge(df_sistemas_ano_atual, ano_anterior, on='SistemaId', how='left')
+
+    merged_data_sistemas['Diferença Vol. Anual (%)'] = merged_data_sistemas['VolumePorcentagem'] - merged_data_sistemas['Volume Ano Anterior (%)']
+
+    merged_data_sistemas = merged_data_sistemas.rename(columns={'VolumePorcentagem': 'VolumeAtual (%)', 'PrecDia': 'Chuva (mm)', 'PrecMensal': 'Acumulado no Mês (mm)', 'PrecHist':'Média Histórica (mm)', 'Nome':'Sistema' })
+
+    merged_data_sistemas = merged_data_sistemas[['Sistema', 'VolumeAtual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
+
+    cols = ['Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']
+
+    merged_data_sistemas[cols] = merged_data_sistemas[cols].replace(',', '.', regex=True)
+    merged_data_sistemas[cols] = merged_data_sistemas[cols].apply(
+        lambda col: pd.to_numeric(col, errors='coerce')
+    )
     # Arredonda primeiro
     merged_data_sistemas[cols] = merged_data_sistemas[cols].round(1)
 
@@ -2240,7 +2392,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             html_blocks.append(bloco)
 
         html_perc_blocks = f"""
-            <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
+            <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;
+                        width: 100%; max-width: 100%; box-sizing: border-box;">
                 {''.join(html_blocks)}
             </div>
         """
@@ -3476,7 +3629,7 @@ async def slide1():
 
         coluna1, coluna2 = st.columns([1.0, 1.0])
 
-        cmap1, cmap2, coluna3 = st.columns([1.0, 1.0, 0.2])
+        cmap1, cmap2, cmap3 = st.columns([0.5, 1.0, 0.5])
 
         colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
 
@@ -3722,6 +3875,20 @@ async def slide1():
                 mapa.get_root().header.add_child(Element(zoom_css))
                 mapa.save("mapa_html_flu.html")
 
+                css_responsivo = """
+                    <style>
+                        .folium-map {
+                            width: 100% !important;
+                            height: 100% !important;
+                        }
+                        .folium-container, .leaflet-container {
+                            width: 100% !important;
+                            height: 100% !important;
+                        }
+                    </style>
+                    """
+                mapa.get_root().header.add_child(Element(css_responsivo))
+
                 with coluna1:
                     # folium_static(mapa, width=350, height=300)
 
@@ -3732,7 +3899,7 @@ async def slide1():
                         """,
                         unsafe_allow_html=True)
                        
-                    st.components.v1.html(mapa_html_flu, width=600, height=350)
+                    st.components.v1.html(mapa_html_flu, height=500)
                     
                     url_sib = "https://cth.daee.sp.gov.br/sibh/chuva_agora"
                     st.write(f"""
@@ -3869,7 +4036,8 @@ async def slide1():
                     mapa.get_root().header.add_child(Element(zoom_css))
                     mapa.save("mapa_html_inter.html")
 
-                    st.components.v1.html(mapa_html_inter, width=600, height=350)
+                    mapa.get_root().header.add_child(Element(css_responsivo))
+                    st.components.v1.html(mapa_html_inter, height=500)
 
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
@@ -5288,11 +5456,6 @@ async def slide6():
 
         data_atual_str = data_atual.strftime('%Y-%m-%d')
         data_ano_anterior_str = data_ano_anterior.strftime('%Y-%m-%d')
-        data_7dias_str = data_7dias.strftime('%Y-%m-%d')
-        data_14dias_str = data_14dias.strftime('%Y-%m-%d')
-        data_12dias_str = data_21dias.strftime('%Y-%m-%d')
-
-
 
         with coluna2:
             
@@ -5300,7 +5463,6 @@ async def slide6():
 
             data_inicial = datetime.today()
             data_str = data_inicial.strftime('%Y-%m-%d')
-
 
             image_path = f'results/imagem_rmsp.png'
 
@@ -5346,11 +5508,11 @@ async def slide6():
             if data_existe and sistemas_esperados.issubset(sistemas_presentes):
                 merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
             else:
-                get_sabesp_api(data_atual_str, data_ano_anterior_str)
+                get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str)
                 merged_data_sistemas = pd.read_json(json_sistemas)
                 merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
         else:
-            get_sabesp_api(data_atual_str, data_ano_anterior_str)
+            get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str)
             merged_data_sistemas = pd.read_json(json_sistemas)
             merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
 
@@ -6863,9 +7025,11 @@ async def dashboard_reservatorios():
 
             creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado)
 
-                
-
         return None
+
+
+def safe(result, default=None):
+    return result if not isinstance(result, Exception) else default
 
 async def main():
     st.sidebar.title("Selecionar visualização")
@@ -6915,7 +7079,8 @@ async def main():
                 
                 # Executa todas as tasks simultaneamente
                 if st.session_state.boletim == 'chuvas':
-                    capa_data, slide1_data, slide2_data, slide3_data, slide5_data, slide6_data, slide7_data, slide8_data = await asyncio.gather(
+
+                    results = await asyncio.gather(
                         capa(),
                         slide1(),
                         slide2(),
@@ -6923,8 +7088,27 @@ async def main():
                         slide5(),
                         slide6(),
                         slide7(),
-                        slide8()
+                        slide8(),
+                        return_exceptions=True
                     )
+                    (
+                        capa_data, 
+                        slide1_data, 
+                        slide2_data, 
+                        slide3_data, 
+                        slide5_data, 
+                        slide6_data, 
+                        slide7_data, 
+                        slide8_data
+                    ) = results
+
+                    slide1_data = safe(slide1_data)
+                    slide2_data = safe(slide2_data)
+                    slide3_data = safe(slide3_data)
+                    slide5_data = safe(slide5_data, (None, None))  # pq esse retorna tupla
+                    slide6_data = safe(slide6_data)
+                    slide7_data = safe(slide7_data)
+                    slide8_data = safe(slide8_data, (None, None, None))  # pq retorna triplo
 
                     user_input1 = slide1_data
                     user_input3 = slide3_data
@@ -6952,7 +7136,7 @@ async def main():
                         )
 
                 elif st.session_state.boletim == 'secas':
-                    capa_data, slide1_data_seca, slide1_data, slide2_data, slide5_data_seca, slide6_data, slide6_data_seca, slide8_data_seca = await asyncio.gather(
+                    results = await asyncio.gather(
                         capa(),    
                         slide1_seca(),
                         slide1(),
@@ -6960,8 +7144,29 @@ async def main():
                         slide5_seca(),
                         slide6(),
                         slide6_seca(),
-                        slide8_seca()
+                        slide8_seca(),
+                        return_exceptions=True
                     )
+                    (
+                        capa_data, 
+                        slide1_data_seca, 
+                        slide1_data, 
+                        slide2_data, 
+                        slide5_data_seca, 
+                        slide6_data, 
+                        slide6_data_seca, 
+                        slide8_data_seca
+                    ) = results
+                    
+                    slide1_data_seca = safe(slide1_data_seca)
+                    slide1_data = safe(slide1_data)
+                    slide2_data = safe(slide2_data)
+                    slide5_data_seca = safe(slide5_data_seca)  # pq esse retorna tupla
+                    slide6_data = safe(slide6_data)
+                    slide6_data_seca = safe(slide6_data_seca)
+                    slide8_data_seca = safe(slide8_data_seca, (None, None, None))  # pq retorna triplo
+
+
                     user_input1_seca = slide1_data_seca
                     user_input1 = slide1_data
                     user_input5_seca = slide5_data_seca
