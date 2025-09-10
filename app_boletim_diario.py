@@ -93,8 +93,6 @@ slide8_container = st.container()
 slide8_secas = st.container()
 
 
-
-users = os.environ.get('USERS').split(";")
 users = os.environ.get('USERS').split(";")
 users_dict = {u.split(":")[0]: u.split(":")[1] for u in users}
 
@@ -6980,12 +6978,9 @@ async def dashboard_reservatorios():
         elif st.session_state.reservatorio == 'SSD':
             print("ANO FILTROOOOOOO ", ano_filtro)
             if ano_filtro != data_ano_anterior_str:
-                print("Ano filtro ---------------------------------------", ano_filtro)
-                print("Ano anterior ---------------------------------------", data_ano_anterior_str)
+
                 sistemas_ano_comparacao = get_ssd_api_comparacao(ano_filtro)
             else:                
-                print("Entrou else")
-                print("Ano anterior ---------------------------------------", data_ano_anterior_str)
                 sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
 
 
@@ -7024,12 +7019,8 @@ async def dashboard_reservatorios():
                 ]
 
 
-            print("-----------------------------Sistemas comparaçao--------------------------------")
-            print(sistemas_ano_comparacao)
             merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
 
-            print(merged_data_sistemas)
-            
             merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
             merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
             merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
@@ -7071,6 +7062,7 @@ async def main():
             username = st.text_input("Usuário")
             password = st.text_input("Senha", type="password")
             if st.button("Entrar"):
+                                    
                 if username in users_dict and users_dict[username] == password:
                     st.session_state.logged_in = True
                     st.session_state.username = username
@@ -7084,125 +7076,133 @@ async def main():
             if 'boletim' not in st.session_state:
                     # Se ainda não tiver boletim escolhido, exibe a tela de seleção
                     await capa_boletim()
-            else:
-                # Limpar a tela de seleção e exibir os slides
-                st.empty()
+
+            if "boletim" not in st.session_state or st.session_state.boletim is None:
+                st.stop()    
+            # Executa todas as tasks simultaneamente
+            if st.session_state.boletim == 'chuvas':
+
+                results = await asyncio.gather(
+                    capa(),
+                    slide1(),
+                    slide2(),
+                    slide3(),
+                    slide5(),
+                    slide6(),
+                    slide7(),
+                    slide8(),
+                    return_exceptions=True
+                )
+
+                for r in results:
+                    if isinstance(r, st.runtime.scriptrunner.RerunException):
+                        raise r
+                (
+                    capa_data, 
+                    slide1_data, 
+                    slide2_data, 
+                    slide3_data, 
+                    slide5_data, 
+                    slide6_data, 
+                    slide7_data, 
+                    slide8_data
+                ) = results
+
+                slide1_data = safe(slide1_data)
+                slide2_data = safe(slide2_data)
+                slide3_data = safe(slide3_data)
+                slide5_data = safe(slide5_data, (None, None))  # pq esse retorna tupla
+                slide6_data = safe(slide6_data)
+                slide7_data = safe(slide7_data)
+                slide8_data = safe(slide8_data, (None, None, None))  # pq retorna triplo
+
+                user_input1 = slide1_data
+                user_input3 = slide3_data
+                user_input5, all_extravasamento = slide5_data
+                user_input6 = slide6_data
+                user_input7 = slide7_data
+                image, user_input8, url = slide8_data
+
+                if image.mode == 'P':
+                    image_convert = image.convert('RGB')
+                else:
+                    image_convert = image
+
+                if st.button("Exportar para PDF"):
+
+                    pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8, url = url)
+                    
+                    pdf_bytes = pdf.output(dest='S').encode('latin1')
+
+                    st.download_button(
+                        label="Baixar PDF",
+                        data=pdf_bytes,
+                        file_name=f"boletim_diario_{datetime.today().strftime('%Y%m%d')}.pdf",
+                        mime="application/pdf",
+                    )
+
+            elif st.session_state.boletim == 'secas':
                 
-                # Executa todas as tasks simultaneamente
-                if st.session_state.boletim == 'chuvas':
+                results = await asyncio.gather(
+                    capa(),    
+                    slide1_seca(),
+                    slide1(),
+                    slide2(),
+                    slide5_seca(),
+                    slide6(),
+                    slide6_seca(),
+                    slide8_seca(),
+                    return_exceptions=True
+                )
 
-                    results = await asyncio.gather(
-                        capa(),
-                        slide1(),
-                        slide2(),
-                        slide3(),
-                        slide5(),
-                        slide6(),
-                        slide7(),
-                        slide8(),
-                        return_exceptions=True
-                    )
-                    (
-                        capa_data, 
-                        slide1_data, 
-                        slide2_data, 
-                        slide3_data, 
-                        slide5_data, 
-                        slide6_data, 
-                        slide7_data, 
-                        slide8_data
-                    ) = results
-
-                    slide1_data = safe(slide1_data)
-                    slide2_data = safe(slide2_data)
-                    slide3_data = safe(slide3_data)
-                    slide5_data = safe(slide5_data, (None, None))  # pq esse retorna tupla
-                    slide6_data = safe(slide6_data)
-                    slide7_data = safe(slide7_data)
-                    slide8_data = safe(slide8_data, (None, None, None))  # pq retorna triplo
-
-                    user_input1 = slide1_data
-                    user_input3 = slide3_data
-                    user_input5, all_extravasamento = slide5_data
-                    user_input6 = slide6_data
-                    user_input7 = slide7_data
-                    image, user_input8, url = slide8_data
-
-                    if image.mode == 'P':
-                        image_convert = image.convert('RGB')
-                    else:
-                        image_convert = image
-
-                    if st.button("Exportar para PDF"):
-
-                        pdf = create_pdf(user_input1=user_input1, image=image_convert, user_input3=user_input3, user_input5=user_input5, all_extravasamento=all_extravasamento, user_input6 = user_input6, user_input7 = user_input7, user_input8=user_input8, url = url)
-                        
-                        pdf_bytes = pdf.output(dest='S').encode('latin1')
-
-                        st.download_button(
-                            label="Baixar PDF",
-                            data=pdf_bytes,
-                            file_name=f"boletim_diario_{datetime.today().strftime('%Y%m%d')}.pdf",
-                            mime="application/pdf",
-                        )
-
-                elif st.session_state.boletim == 'secas':
+                for r in results:
+                    if isinstance(r, st.runtime.scriptrunner.RerunException):
+                        raise r
                     
-                    results = await asyncio.gather(
-                        capa(),    
-                        slide1_seca(),
-                        slide1(),
-                        slide2(),
-                        slide5_seca(),
-                        slide6(),
-                        slide6_seca(),
-                        slide8_seca(),
-                        return_exceptions=True
-                    )
-                    (
-                        capa_data, 
-                        slide1_data_seca, 
-                        slide1_data, 
-                        slide2_data, 
-                        slide5_data_seca, 
-                        slide6_data, 
-                        slide6_data_seca, 
-                        slide8_data_seca
-                    ) = results
+                (
+                    capa_data, 
+                    slide1_data_seca, 
+                    slide1_data, 
+                    slide2_data, 
+                    slide5_data_seca, 
+                    slide6_data, 
+                    slide6_data_seca, 
+                    slide8_data_seca
+                ) = results
+                
+                slide1_data_seca = safe(slide1_data_seca)
+                slide1_data = safe(slide1_data)
+                slide2_data = safe(slide2_data)
+                slide5_data_seca = safe(slide5_data_seca)  # pq esse retorna tupla
+                slide6_data = safe(slide6_data)
+                slide6_data_seca = safe(slide6_data_seca)
+                slide8_data_seca = safe(slide8_data_seca, (None, None, None))  # pq retorna triplo
+
+
+                user_input1_seca = slide1_data_seca
+                user_input1 = slide1_data
+                user_input5_seca = slide5_data_seca
+                user_input6 = slide6_data
+                user_input6_seca = slide6_data_seca
+                image, user_input8_seca, url = slide8_data_seca
+
+                if image.mode == 'P':
+                    image_convert = image.convert('RGB')
+                else:
+                    image_convert = image
+
+                if st.button("Exportar para PDF"):
+
+                    pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca, url = url)
                     
-                    slide1_data_seca = safe(slide1_data_seca)
-                    slide1_data = safe(slide1_data)
-                    slide2_data = safe(slide2_data)
-                    slide5_data_seca = safe(slide5_data_seca)  # pq esse retorna tupla
-                    slide6_data = safe(slide6_data)
-                    slide6_data_seca = safe(slide6_data_seca)
-                    slide8_data_seca = safe(slide8_data_seca, (None, None, None))  # pq retorna triplo
+                    pdf_bytes = pdf.output(dest='S').encode('latin1')
 
-
-                    user_input1_seca = slide1_data_seca
-                    user_input1 = slide1_data
-                    user_input5_seca = slide5_data_seca
-                    user_input6 = slide6_data
-                    user_input6_seca = slide6_data_seca
-                    image, user_input8_seca, url = slide8_data_seca
-
-                    if image.mode == 'P':
-                        image_convert = image.convert('RGB')
-                    else:
-                        image_convert = image
-
-                    if st.button("Exportar para PDF"):
-
-                        pdf = create_pdf_estiagem(user_input1_seca=user_input1_seca, user_input1=user_input1, user_input5_seca=user_input5_seca, user_input6 = user_input6, user_input6_seca = user_input6_seca, image=image_convert, user_input8_seca=user_input8_seca, url = url)
-                        
-                        pdf_bytes = pdf.output(dest='S').encode('latin1')
-
-                        st.download_button(
-                            label="Baixar PDF",
-                            data=pdf_bytes,
-                            file_name=f"boletim_diario_{datetime.today().strftime('%Y%m%d')}.pdf",
-                            mime="application/pdf",
-                        )
+                    st.download_button(
+                        label="Baixar PDF",
+                        data=pdf_bytes,
+                        file_name=f"boletim_diario_{datetime.today().strftime('%Y%m%d')}.pdf",
+                        mime="application/pdf",
+                    )
 
     elif st.session_state.sidebar_visual == 'Dashboard Reservatórios':
         dashboards = await asyncio.gather(
