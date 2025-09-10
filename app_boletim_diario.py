@@ -1,16 +1,29 @@
+import os
+import io
+import folium
+import requests
+import tempfile
+import shutil
 import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import requests
-import os
+import geopandas as gpd
+import plotly.express as px
+import time as tm
+import psycopg2 as pg
+import matplotlib.cm as cm
+import urllib.parse
+import base64
+import asyncio
+import json
+import plotly.graph_objects as go
+import branca.colormap as cmb
+import platform
 from osgeo import gdal, ogr, osr
 from rasterstats import zonal_stats
-import geopandas as gpd
 from datetime import datetime, timedelta, time, date
 from PIL import Image, ImageOps
-import plotly.express as px
-import folium
 from branca.element import Element
 from streamlit.components.v1 import html
 from selenium.webdriver.chrome.service import Service
@@ -18,34 +31,22 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from PIL import Image
-import io
 from io import BytesIO
-import psycopg2 as pg
-import matplotlib.cm as cm
 from matplotlib import pyplot as plt
-import time as tm
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
-import urllib.parse
-import base64
-import asyncio
-import plotly.graph_objects as go
 from matplotlib.colors import Normalize, rgb2hex
-import branca.colormap as cmb
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-import tempfile
-import shutil
 from folium import Popup
 from fpdf import FPDF
 from html2image import Html2Image
-import platform
 from concurrent.futures import ThreadPoolExecutor
-import json
 from dateutil.relativedelta import relativedelta
 
 
+load_dotenv()
 
 class PDF(FPDF):
     def __init__(self, orientation='L'):  # 'L' para Landscape (Paisagem)
@@ -91,7 +92,7 @@ slide7_container = st.container()
 slide8_container = st.container()
 slide8_secas = st.container()
 
-load_dotenv()
+
 
 users = os.environ.get('USERS').split(";")
 users = os.environ.get('USERS').split(";")
@@ -1890,6 +1891,7 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
 
     url_ano_atual = f"https://mananciais.sabesp.com.br/api/Mananciais/ResumoSistemas/{data_atual_str}"
+    print(url_ano_atual)
     response = requests.get(url_ano_atual, verify=False)
 
     if response.status_code == 200:
@@ -1898,6 +1900,7 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
         if 'ReturnObj' in data and 'sistemas' in data['ReturnObj']:
             df_sistemas = pd.DataFrame(data['ReturnObj']['sistemas'])
             df_sim = pd.DataFrame([data['ReturnObj']['total']])
+            data_value = data['ReturnObj']['Data']
             df_sistemas_ano_atual  = pd.concat([df_sistemas, df_sim], ignore_index=True)
 
         else:
@@ -1937,17 +1940,18 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
     merged_data_sistemas[cols] = merged_data_sistemas[cols].apply(
         lambda col: pd.to_numeric(col, errors='coerce')
     )
+
+    
     # Arredonda primeiro
     merged_data_sistemas[cols] = merged_data_sistemas[cols].round(1)
 
     # Formata cada elemento como string
     merged_data_sistemas[cols] = merged_data_sistemas[cols].applymap(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
-
-    data_atual_str = datetime.today().strftime("%Y-%m-%d")
+    
+    data_atual_str = data_value[:10]   # '2025-09-09'
     merged_data_sistemas["Data"] = data_atual_str
 
     caminho_arquivo_json = os.path.join("results", f"sabesp_sistemas.json")
-
 
     merged_data_sistemas.to_json(caminho_arquivo_json, orient='records', force_ascii=False, indent=2)
 
@@ -3509,6 +3513,8 @@ async def slide1_seca():
 
         all_ugrhi = execute_query(query_ugrhi)
 
+        print(all_ugrhi)
+
         tabela_ugrhis_df = pd.merge(all_ugrhi, grafico_dsc_ugrhi, on='ugrhi_id', how='left')
 
         df_long = tabela_ugrhis_df.melt(
@@ -3656,16 +3662,6 @@ async def slide1():
         data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
         hora_inicial_str = data_hora_inicial.strftime('%H:%M')
        
-        # if data_ini:
-        #     # Define horário desejado (ex: 10h00)
-        #     hora_inicial = time(10, 0)
-
-        #     # Combina a data inicial com o horário
-        #     data_hora_inicial = datetime.combine(data_ini, hora_inicial)
-
-        #     # Formata para o padrão usado na URL
-        #     data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
-        #     hora_inicial_str = data_hora_inicial.strftime('%H:%M')
 
         url = f'https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now?station_type_id=2&hours=24&from_date={data_inicial_str}T{hora_inicial_str}&serializer=complete&public=true'
         
@@ -3683,7 +3679,7 @@ async def slide1():
                 df['latitude'] = pd.to_numeric(df['latitude'], errors='coerce')
                 df['longitude'] = pd.to_numeric(df['longitude'], errors='coerce')
                 df = df.sort_values(by="value", ascending=False)
-
+                
                 prefix_list = sorted(df['prefix'].dropna().unique().tolist())
 
                 if 'excluir_prefixos' not in st.session_state:
@@ -3696,6 +3692,8 @@ async def slide1():
                 latitude =  -22.8859
                 longitude = -48.4451
 
+                shapefile_path = "data/limiteestadualsp.shp"
+                gdf = gpd.read_file(shapefile_path)
 
                 mapa = folium.Map(
                     location=[latitude, longitude],  # Centralizar no meio dos pontos
@@ -3714,9 +3712,6 @@ async def slide1():
                 ).add_to(mapa)
 
                 mapa.options['attributionControl'] = False
-                
-                shapefile_path = "data/limiteestadualsp.shp"
-                gdf = gpd.read_file(shapefile_path)
 
                 folium.GeoJson(
                     gdf,
@@ -3905,7 +3900,6 @@ async def slide1():
                 mapa.get_root().header.add_child(Element(css_responsivo))
 
                 with coluna1:
-                    # folium_static(mapa, width=350, height=300)
 
                     st.write("""
                         <div style="text-align: center; color: #333333;">
@@ -7153,6 +7147,7 @@ async def main():
                         )
 
                 elif st.session_state.boletim == 'secas':
+                    
                     results = await asyncio.gather(
                         capa(),    
                         slide1_seca(),
