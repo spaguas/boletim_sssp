@@ -2365,7 +2365,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 index=lista_anos_str.index(st.session_state.data_filter),
                 label_visibility="visible"
             )
-            print(ano_selecionado)
+
                 # Se mudar a seleção, atualiza o estado e recarrega
             if ano_selecionado != st.session_state.data_filter:
                 st.session_state.data_filter = ano_selecionado
@@ -2381,7 +2381,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 index=sistemas_list.index(st.session_state.sistema_filter),
                 label_visibility="visible"
             )
-            print(sistema_selecionado)
+
             
             if set(sistema_selecionado) != set(st.session_state.sistema_filter):
                 st.session_state.sistema_filter = sistema_selecionado
@@ -2389,7 +2389,6 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
 
         html_blocks = []
-        print(merged_data_sistemas)
         for i, row in merged_data_sistemas.iterrows():
             bloco = f"""
                 <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; 
@@ -2508,10 +2507,10 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         fig_volume = go.Figure()
 
+        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -21 dias (%)'], name='Volume -21 dias (%)', marker_color="#646968", opacity=0.6, text=merged_data_sistemas['Volume -21 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
+        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -14 dias (%)'], name='Volume -14 dias (%)', marker_color="#9699AF", opacity=0.6, text=merged_data_sistemas['Volume -14 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
+        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -7 dias (%)'], name='Volume -7 dias (%)', marker_color="#515480", opacity=0.6, text=merged_data_sistemas['Volume -7 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
         fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume atual (%)'], name='Volume atual (%)', marker_color="#08138F", text=merged_data_sistemas['Volume atual (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
-        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -7 dias (%)'], name='Volume -7 dias (%)', marker_color="#515480", text=merged_data_sistemas['Volume -7 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
-        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -14 dias (%)'], name='Volume -14 dias (%)', marker_color="#9699AF", text=merged_data_sistemas['Volume -14 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
-        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -21 dias (%)'], name='Volume -21 dias (%)', marker_color="#646968", text=merged_data_sistemas['Volume -21 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
         
 
         fig_volume.update_layout(
@@ -2520,7 +2519,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 font=dict(size=24, color='black')  # tamanho e cor do título
             ),
             # barmode='stack',
-            # title_x=0.3,
+            # title_x=0.3,v
             xaxis_title="",
             yaxis_title="Volume (%)",
             plot_bgcolor='white',    # Cor de fundo do gráfico
@@ -2537,12 +2536,38 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         st.plotly_chart(fig_volume)
     
     with cc2:
-        im1, im2, im3 = st.columns([0.5, 1.0, 0.5])
-        with im2:
-            imagem = Image.open("cantareira.png")
+        # im1, im2, im3 = st.columns([0.5, 1.0, 0.5])
 
-            # exibe no app
-            st.image(imagem, caption=f" ", width=500) 
+        # with im2:
+        gdflimite = gpd.read_file("data/limiteestadualsp.shp")
+        
+        print(gdflimite)
+        if sistema_selecionado == "SIM":
+            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
+        else:
+            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
+            gdfsistemas = gdfsistemas[gdfsistemas['sistema']==sistema_selecionado]
+
+        fig, ax = plt.subplots(figsize=(30, 30), dpi=200)
+        # Plota limite
+        gdflimite.plot(ax=ax, color="#ADADAD", edgecolor="black", alpha=0.5, label="Shapefile 1")
+        # Plota sistemas
+        gdfsistemas.plot(ax=ax, color="#2E4D37", edgecolor="black", alpha=0.8, label="Shapefile 2")
+
+        # Se tiver filtro (ou seja, não for "SIM"), aplica zoom
+        if sistema_selecionado != "SIM" and not gdfsistemas.empty:
+            bounds = gdfsistemas.total_bounds  # retorna [minx, miny, maxx, maxy]
+            ax.set_xlim(bounds[0], bounds[2])
+            ax.set_ylim(bounds[1], bounds[3])
+
+        plt.legend()
+        plt.title("Limite de São Paulo")
+        st.pyplot(fig, use_container_width=True)
+
+            # imagem = Image.open("cantareira.png")
+
+            # # exibe no app
+            # st.image(imagem, caption=f" ", width=500) 
 
         tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
         print(all_transferencia_final)
@@ -2572,7 +2597,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                             values=['Mês', 'Média (m³/s)'],
                             fill_color="#7c7b83",
                             line_color='white', 
-                            align='center',
+                            align='center',   # horizontal
                             font=dict(color='black', size=16)
                         ),
                         cells=dict(
@@ -2590,8 +2615,10 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
             fig_tgransferencia.update_layout(
                 title=dict(
-                    text=f"Transferência {transferencias['Sistema'].iloc[0]}",
-                    font=dict(color='black', size=20)  # cor e tamanho do título
+                    text=f"Transferência Mensal<br>{transferencias['Sistema'].iloc[0]}",
+                    font=dict(color='black', size=20),
+                    x=0.5,           # posição horizontal (0 = esquerda, 0.5 = centro, 1 = direita)
+                    xanchor="center"  
                 ),
                 paper_bgcolor="white",   # fundo do canvas
                 plot_bgcolor="white"     # margens menores
@@ -2616,7 +2643,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                             values=['Data', 'Vazão (m³/s)'],
                             fill_color="#7c7b83",
                             line_color='white', 
-                            align='center',
+                            align='center',   # horizontal
                             font=dict(color='black', size=16)
                         ),
                         cells=dict(
@@ -2634,8 +2661,10 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
             fig_tgransferencia_all.update_layout(
                 title=dict(
-                    text=f"Transferência {transferencias['Sistema'].iloc[0]}",
-                    font=dict(color='black', size=20)  # cor e tamanho do título
+                    text=f"Transferência Diária<br>{transferencias['Sistema'].iloc[0]}",
+                    font=dict(color='black', size=20),
+                    x=0.5,           # posição horizontal (0 = esquerda, 0.5 = centro, 1 = direita)
+                    xanchor="center"  
                 ),
                 paper_bgcolor="white",   # fundo do canvas
                 plot_bgcolor="white"     # margens menores
@@ -3154,13 +3183,27 @@ async def slide1_seca():
 
             mapa_dsc.save("mapa_html_dsc.html")
 
+            css_responsivo = """
+                <style>
+                .folium-map {
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+                .folium-container, .leaflet-container {
+                    width: 100% !important;
+                    height: auto !important;
+                }
+                </style>
+            """
+            mapa_dsc.get_root().header.add_child(Element(css_responsivo))
+
             st.write("""
                 <div style="text-align: center; color: #333333;">
                     <h1  style="font-size: 14px; margin: 0; padding: 0">Dias sem chuva no período de estiagem (01/04 a 30/09)</h1>
                 </div>
                 """,
             unsafe_allow_html=True)
-            st.components.v1.html(mapa_html_dsc, width=600, height=350)
+            st.components.v1.html(mapa_html_dsc, height=500)
 
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
@@ -3258,13 +3301,27 @@ async def slide1_seca():
             mapa.get_root().header.add_child(Element(zoom_css))
             mapa.save("mapa_html_dcsc.html")
 
+            css_responsivo = """
+                <style>
+                    .folium-map {
+                        width: 100% !important;
+                        height: 100% !important;
+                    }
+                    .folium-container, .leaflet-container {
+                        width: 100% !important;
+                        height: auto !important;
+                    }
+                </style>
+                """
+            mapa.get_root().header.add_child(Element(css_responsivo))
+
             st.write("""
                 <div style="text-align: center; color: #333333;">
                     <h1  style="font-size: 14px; margin: 0; padding: 0">Dias consecutivos sem chuva</h1>
                 </div>
                 """,
             unsafe_allow_html=True)
-            st.components.v1.html(mapa_html, width=600, height=350)
+            st.components.v1.html(mapa_html, height=500)
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
                 <div style="color: black; line-height: 1;">
@@ -6976,7 +7033,6 @@ async def dashboard_reservatorios():
 
         
         elif st.session_state.reservatorio == 'SSD':
-            print("ANO FILTROOOOOOO ", ano_filtro)
             if ano_filtro != data_ano_anterior_str:
 
                 sistemas_ano_comparacao = get_ssd_api_comparacao(ano_filtro)
