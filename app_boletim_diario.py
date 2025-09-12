@@ -44,6 +44,8 @@ from fpdf import FPDF
 from html2image import Html2Image
 from concurrent.futures import ThreadPoolExecutor
 from dateutil.relativedelta import relativedelta
+from matplotlib.patches import FancyArrowPatch
+from streamlit_folium import st_folium
 
 
 load_dotenv()
@@ -1763,9 +1765,6 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
     else:
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
-
-
-
 def fetch_and_save_json(data_str, filename):
     print(data_str, filename)
     url = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_str}"
@@ -2189,6 +2188,11 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
 
     return df_final
 
+def get_ssd_vazao_captada(data_atual_str):
+
+    vazao_captada_diaria = {
+        "Cantareira":379
+    }
 
 def get_ssd_vazao_natural(data_atual_str):
 
@@ -2196,6 +2200,7 @@ def get_ssd_vazao_natural(data_atual_str):
         "Cantareira": 855, 
         "SIM": 939,
     }
+
 
     df_sistemas_vazao = pd.DataFrame(list(vazao_natural.items()), columns=["Sistema", "SistemaId"]).copy()
 
@@ -2232,17 +2237,64 @@ def get_ssd_vazao_natural(data_atual_str):
                 df_atual_all = pd.merge(df_atual_all, df_grouped, on=['mes_dia', 'SistemaId'], how='left')
                 all_volume.append(df_atual_all)
 
-            
-    df_final = pd.concat(all_volume, ignore_index=True)
 
+    df_final = pd.concat(all_volume, ignore_index=True)
     df_final = pd.merge(df_final, df_sistemas_vazao, on='SistemaId', how='left')
 
-    return df_final
+
+    vazao_natural_diaria = {
+        "Cantareira":373
+    }
+
+    df_vazao_natural_diaria = pd.DataFrame(list(vazao_natural_diaria.items()), columns=["Sistema", "SistemaId"]).copy()
+
+    data_base = '1953-01-01'
+
+    vazao_natural_diaria_all =[]
+    for _,data_volume in df_vazao_natural_diaria.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_atual_str}/{data_atual_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_atual = pd.DataFrame(data["dataCollection"])
+                df_atual_all = df_atual.copy()
+                df_atual_all['SistemaId'] = id
+
+                df_atual_all["dateTime"] = pd.to_datetime(df_atual_all["dateTime"])
+
+                # criar coluna só com mês e dia (formato "01-01")
+                df_atual_all["mes_dia"] = df_atual_all["dateTime"].dt.strftime("%m-%d")
+
+                df_atual_all["ano"] = df_atual_all["dateTime"].dt.strftime("%Y")
+
+                # df_grouped = df_atual_all.groupby("mes_ano")["Volume"].sum().reset_index()
+                df_grouped = df_atual_all.groupby(['mes_dia', 'SistemaId'], as_index=False).agg(
+                    min_value=('value', 'min'),
+                    mean_value=('value', 'mean')
+                )
+
+                df_atual_all = pd.merge(df_atual_all, df_grouped, on=['mes_dia', 'SistemaId'], how='left')
+                vazao_natural_diaria_all.append(df_atual_all)
+
+    df_vazao_natural_diaria_all = pd.concat(vazao_natural_diaria_all, ignore_index=True)
+    df_vazao_natural_diaria_all = pd.merge(df_vazao_natural_diaria_all, df_vazao_natural_diaria, on='SistemaId', how='left')            
+
+
+    return df_final, df_vazao_natural_diaria_all
 
 def get_ssd_transferencias(data_atual_str):
 
     transferencia = {
-        "UHE Jaguari - Atibainha": 813
+        "UHE Jaguari - Atibainha": 813, 
+        "EEAB Santa Inês": 809, 
+        "Túnel 7":816,
+        "Túnel 6":815,
+        "Túnel 5":815,
     }
 
     mes = {
@@ -2296,7 +2348,12 @@ def get_ssd_transferencias(data_atual_str):
     df_final = pd.merge(df_final, df_meses, on='mes_n', how='left')
 
     transferencia_dia = {
-        "UHE Jaguari - Atibainha": 331
+        "UHE Jaguari - Atibainha": 331,
+        "EEAB Santa Inês": 327,
+        "Túnel 5": 332,
+        "Túnel 6": 333,
+        "Túnel 7":334
+
     }
 
     df_sistemas_transferencia_dia = pd.DataFrame(list(transferencia_dia.items()), columns=["Sistema", "SistemaId"]).copy()
@@ -2350,7 +2407,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             </div>
         """, unsafe_allow_html=True)
 
-        vazao_natural = get_ssd_vazao_natural(data_atual_str)
+        vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
         sistemas_list = vazao_natural['Sistema'].unique().tolist()
 
         if "sistema_filter" not in st.session_state:
@@ -2416,50 +2473,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         # print(html_perc_blocks)
         st.components.v1.html(html_perc_blocks, height=300, scrolling=True)
-        
-        
-        # html_perc_blocks = f"""
-        #     <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;">
-        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[0]}</strong></div>
-        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[0]:.2f}%</div>
-        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[0]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[0]:.2f} {merged_data_sistemas['simbolo'].iloc[0]}%</div>
-        #         </div>
-        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[1]}</strong></div>
-        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[1]:.2f}%</div>
-        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[1]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[1]:.2f} {merged_data_sistemas['simbolo'].iloc[1]}%</div>
-        #         </div>
-        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[2]}</strong></div>
-        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[2]:.2f}%</div>
-        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[2]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[2]:.2f} {merged_data_sistemas['simbolo'].iloc[2]}%</div>
-        #         </div>
-        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[3]}</strong></div>
-        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[3]:.2f}%</div>
-        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[3]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[3]:.2f} {merged_data_sistemas['simbolo'].iloc[3]}%</div>
-        #         </div>
-        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[4]}</strong></div>
-        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[4]:.2f}%</div>
-        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[4]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[4]:.2f} {merged_data_sistemas['simbolo'].iloc[4]}%</div>
-        #         </div>
-        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[5]}</strong></div>
-        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[5]:.2f}%</div>
-        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[5]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[5]:.2f} {merged_data_sistemas['simbolo'].iloc[5]}%</div>
-        #         </div>
-        #         <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; width: 180px; height: 80px; display: flex; flex-direction: column; justify-content: center; align-items: center;"">
-        #             <div style="color: #1E1E20; font-size: 18px;"><strong>{merged_data_sistemas['Sistema'].iloc[6]}</strong></div>
-        #             <div style="color: #1E1E20; font-size: 16px;">{merged_data_sistemas['Volume atual (%)'].iloc[6]:.2f}%</div>
-        #             <div style="color: {merged_data_sistemas['cor_diferença'].iloc[6]}; font-size: 12px;">{merged_data_sistemas['diferença'].iloc[6]:.2f} {merged_data_sistemas['simbolo'].iloc[6]}%</div>
-        #         </div>
-        #     </div>
-        #     """
-        # st.markdown(html_perc_blocks, unsafe_allow_html=True)
     
-
     with cc1:
         vazao_natural['ano'] = vazao_natural['ano'].astype(int)
         vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
@@ -2474,10 +2488,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         fig_vazao = go.Figure()
 
-        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1"))
-
         fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158"))
-        
+        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1"))
         fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["dateTime"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline'))
 
         fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline'))
@@ -2487,7 +2499,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 text=f"Evolução das médias mensais da Vazão Natural (m³/s) - {vazao_natural_atual['Sistema'].iloc[0]}",
                 font=dict(size=24, color='black')  # tamanho e cor do título
             ),
-            barmode='stack',
+            barmode='overlay',
             # title_x=0.3,
             xaxis_title="",
             yaxis_title="Vazão Natural m³/s",
@@ -2539,38 +2551,183 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         # im1, im2, im3 = st.columns([0.5, 1.0, 0.5])
 
         # with im2:
-        gdflimite = gpd.read_file("data/limiteestadualsp.shp")
-        
-        print(gdflimite)
-        if sistema_selecionado == "SIM":
-            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
-        else:
-            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
-            gdfsistemas = gdfsistemas[gdfsistemas['sistema']==sistema_selecionado]
-
-        fig, ax = plt.subplots(figsize=(30, 30), dpi=200)
-        # Plota limite
-        gdflimite.plot(ax=ax, color="#ADADAD", edgecolor="black", alpha=0.5, label="Shapefile 1")
-        # Plota sistemas
-        gdfsistemas.plot(ax=ax, color="#2E4D37", edgecolor="black", alpha=0.8, label="Shapefile 2")
-
-        # Se tiver filtro (ou seja, não for "SIM"), aplica zoom
-        if sistema_selecionado != "SIM" and not gdfsistemas.empty:
-            bounds = gdfsistemas.total_bounds  # retorna [minx, miny, maxx, maxy]
-            ax.set_xlim(bounds[0], bounds[2])
-            ax.set_ylim(bounds[1], bounds[3])
-
-        plt.legend()
-        plt.title("Limite de São Paulo")
-        st.pyplot(fig, use_container_width=True)
-
-            # imagem = Image.open("cantareira.png")
-
-            # # exibe no app
-            # st.image(imagem, caption=f" ", width=500) 
 
         tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
         print(all_transferencia_final)
+        print(tranferencias_all)
+        gdflimite = gpd.read_file("data/limiteestadualsp.shp")
+
+        gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
+        gdf_vazao_natural_merge = gdf_vazao_natural.merge(
+            vazao_natural_diaria,
+            how="left",             # tipo de join
+            left_on="id",           # coluna do shapefile
+            right_on="SistemaId"    # coluna do dataframe
+        )
+
+        gdf_transposicao = gpd.read_file("data/dados_sistemas.shp")
+        gdf_transposicao_merge = gdf_transposicao.merge(
+            all_transferencia_final,
+            how="left",             # tipo de join
+            left_on="id",           # coluna do shapefile
+            right_on="SistemaId"    # coluna do dataframe
+        )
+
+        if sistema_selecionado == "SIM":
+            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
+            gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
+            gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
+            
+        else:
+            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
+            gdfsistemas = gdfsistemas[gdfsistemas['sistema']==sistema_selecionado]
+            gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
+            gdf_reservatorios = gdf_reservatorios[gdf_reservatorios['sistemas']==sistema_selecionado]
+            gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
+            gdf_pariba_do_sul = gdf_pariba_do_sul[gdf_pariba_do_sul['sistema']==sistema_selecionado]
+            gdf_vazao_natural_merge = gdf_vazao_natural_merge[gdf_vazao_natural_merge['sistema']==sistema_selecionado]
+            gdf_transposicao_merge = gdf_transposicao_merge[gdf_transposicao_merge['sistema']==sistema_selecionado]
+            
+        gdf_transposicao_merge = gdf_transposicao_merge.drop(columns=["deliveredAt"])
+        gdf_vazao_natural_merge = gdf_vazao_natural_merge.drop(columns=["deliveredAt"])
+
+        gdf_transposicao_merge["dateTime"] = gdf_transposicao_merge["dateTime"].dt.strftime("%Y-%m-%d")
+        gdf_vazao_natural_merge["dateTime"] = gdf_vazao_natural_merge["dateTime"].dt.strftime("%Y-%m-%d")
+        # gdf_reservatorios = gdf_reservatorios.drop(columns=["deliveredAt"])
+
+        # fig, ax = plt.subplots(figsize=(30, 30), dpi=200)
+
+        # gdflimite.plot(ax=ax, color="#ADADAD", edgecolor="black", alpha=0.5, label="Shapefile 1")
+        # gdfsistemas.plot(ax=ax, color="#2E4D37", edgecolor="black", alpha=0.8, label="Shapefile 2")
+        # gdf_pariba_do_sul.plot(ax=ax, color="#758b7f", edgecolor="black", alpha=0.8, label="Shapefile 4")
+        # gdf_reservatorios.plot(ax=ax, color="#3871eb", edgecolor="black", alpha=0.8, label="Shapefile 3")
+        # gdf_transposicao_merge.plot(ax=ax, color="#81230c", edgecolor="black", alpha=0.8, label="Shapefile 5", linewidth=2)
+
+        # for idx, row in gdf_transposicao_merge.iterrows():
+        #     x, y = row.geometry.centroid.x, row.geometry.centroid.y
+            
+        #     valor = row["value"]  # substitua pela sua coluna
+        #     label = f"{valor:.1f}\nVazão m³/s"  # primeira linha valor, segunda linha texto
+            
+        #     ax.text(
+        #         x, y,
+        #         label,
+        #         fontsize=20,
+        #         ha="center",
+        #         va="center",
+        #         color="black",
+        #         bbox=dict(facecolor="white", edgecolor="none", alpha=0.6, boxstyle="round,pad=0.2")
+        #     )
+
+        # gdf_vazao_natural_merge.plot(ax=ax, color="#dfd332", edgecolor="black", label="Shapefile 6")
+
+        # for line in gdf_transposicao_merge.geometry:
+        #     if line.geom_type == "LineString":
+        #         x, y = line.xy
+        #         # pega o ponto inicial e final da linha
+        #         ax.add_patch(FancyArrowPatch(
+        #             (x[0], y[0]), (x[-1], y[-1]),
+        #             arrowstyle="->", 
+        #             color="#81230c",
+        #             linewidth=2
+        #         ))
+
+        # # Se tiver filtro (ou seja, não for "SIM"), aplica zoom
+
+        # bounds = gdfsistemas.total_bounds  # retorna [minx, miny, maxx, maxy]
+        # ax.set_xlim(bounds[0], bounds[2])
+        # ax.set_ylim(bounds[1], bounds[3])
+
+        # plt.legend()
+        # plt.title("Limite de São Paulo")
+        # st.pyplot(fig, use_container_width=True)
+
+        
+        # Cria o mapa centralizado no bounding box dos sistemas
+        bounds = gdfsistemas.total_bounds  # [minx, miny, maxx, maxy]
+        m = folium.Map(location=[(bounds[1]+bounds[3])/2, (bounds[0]+bounds[2])/2], zoom_start=8)
+
+        # Adiciona cada camada
+        folium.GeoJson(gdflimite, name="Limite", style_function=lambda x: {"color": "black", "fillColor": "#ADADAD",  "fillOpacity": 0.8, "weight": 1}).add_to(m)
+        folium.GeoJson(gdfsistemas, name="Sistemas", style_function=lambda x: {"color": "#397249", "fillColor": "#397249",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdf_pariba_do_sul, name="Paraíba do Sul", style_function=lambda x: {"color": "black", "fillColor": "#758b7f",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdf_reservatorios, name="Reservatórios", style_function=lambda x: {"color": "#3871eb", "fillColor": "#3871eb",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdf_transposicao_merge, name="Transposição", style_function=lambda x: {"color": "#3871eb", "fillColor": "#3871eb", "fillOpacity": 0.6, "weight": 3}).add_to(m)
+        folium.GeoJson(gdf_vazao_natural_merge, name="Vazão Natural", style_function=lambda x: {"color": "black", "fillColor": "#dfd332", "fillOpacity": 0.8,"weight": 1}).add_to(m)
+
+        # Adiciona popup com valor
+        # for _, row in gdf_transposicao_merge.iterrows():
+        #     x, y = row.geometry.centroid.y, row.geometry.centroid.x
+        #     folium.Marker(
+        #         [x, y],
+        #         popup=f"{row['value']:.1f} m³/s"
+        #     ).add_to(m)
+
+        for _, row in gdf_transposicao_merge.iterrows():
+            x, y = row.geometry.centroid.y, row.geometry.centroid.x
+            valor = f"{row['value']:.1f} m³/s"
+
+            # HTML estilizado como um card
+            card_html = f"""
+            <div style="
+                background-color: #ffffff80;
+                border-radius: 8px;
+                padding: 1px 1px;
+                width: 60px;   
+                box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+                font-size: 10px;
+                color: #333;
+                text-align: center;
+                font-weight: bold;
+                white-space: nowrap;
+            ">
+                {valor}
+            </div>
+            """
+
+            folium.Marker(
+                [x, y],
+                icon=folium.DivIcon(html=card_html)
+            ).add_to(m)
+
+        # Controle de camadas
+        folium.LayerControl().add_to(m)
+
+        st.session_state["mapa_transposicao"] = m
+
+        m_reservatorios= m._repr_html_()
+            
+
+        css_responsivo = """
+            <style>
+                .folium-map {
+                    width: 100% !important;
+                    height: 800px !important;
+                }
+                .folium-container, .leaflet-container {
+                    width: 100% !important;
+                    height: 800px !important;
+                }
+            </style>
+            """
+        
+        m.get_root().header.add_child(Element(css_responsivo))
+
+        st.write("""
+            <div style="text-align: center; color: #333333;">
+                <h1  style="font-size: 14px; margin: 0; padding: 0">Reservatórios RMSP</h1>
+            </div>
+            """,
+            unsafe_allow_html=True)
+            
+        st.components.v1.html(m_reservatorios, width=800, height=300)
+
+        # # Exibir no Streamlit
+        # # st_folium(m, width=800, height=600)
+        # st_folium(st.session_state["mapa_transposicao"], width=800, height=600)
+
+
+
         graf1, graf2 = st.columns([1.0, 1.0])
 
         with graf1:
@@ -2802,6 +2959,9 @@ st.markdown(
     /* Limita a largura máxima do contêiner para evitar overflow */
     .main .block-container {
         max-width: 100%;  /* Ajuste para garantir a largura adequada */
+    }
+    .stApp .block-container {
+        height: 80vh; 
     }
 
     /* Define o fundo da página como branco */
