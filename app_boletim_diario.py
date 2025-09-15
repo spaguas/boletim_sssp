@@ -45,8 +45,6 @@ from html2image import Html2Image
 from concurrent.futures import ThreadPoolExecutor
 from dateutil.relativedelta import relativedelta
 from matplotlib.patches import FancyArrowPatch
-from streamlit_folium import st_folium
-
 
 load_dotenv()
 
