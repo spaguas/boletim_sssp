@@ -11,6 +11,7 @@ dependencies:
   - python-dotenv
   - psycopg2
   - streamlit
+  - streamlit_folium
   - pip
   - pip:
     - rasterstats
