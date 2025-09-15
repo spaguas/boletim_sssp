@@ -2287,6 +2287,99 @@ def get_ssd_vazao_natural(data_atual_str):
 
     return df_final, df_vazao_natural_diaria_all
 
+def get_ssd_vazao_captada(data_atual_str):
+
+    vazao_captada_mensal = {
+        "Cantareira": 861, 
+        "SIM": 945,
+    }
+
+    df_sistemas_vazao = pd.DataFrame(list(vazao_captada_mensal.items()), columns=["Sistema", "SistemaId"]).copy()
+
+    data_base = '1953-01-01'
+
+    all_volume =[]
+    for _,data_volume in df_sistemas_vazao.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_atual = pd.DataFrame(data["dataCollection"])
+                df_atual_all = df_atual.copy()
+                df_atual_all['SistemaId'] = id
+
+                df_atual_all["dateTime"] = pd.to_datetime(df_atual_all["dateTime"])
+
+                # criar coluna só com mês e dia (formato "01-01")
+                df_atual_all["mes_dia"] = df_atual_all["dateTime"].dt.strftime("%m-%d")
+
+                df_atual_all["ano"] = df_atual_all["dateTime"].dt.strftime("%Y")
+
+                # df_grouped = df_atual_all.groupby("mes_ano")["Volume"].sum().reset_index()
+                df_grouped = df_atual_all.groupby(['mes_dia', 'SistemaId'], as_index=False).agg(
+                    min_value=('value', 'min'),
+                    mean_value=('value', 'mean')
+                )
+
+                df_atual_all = pd.merge(df_atual_all, df_grouped, on=['mes_dia', 'SistemaId'], how='left')
+                all_volume.append(df_atual_all)
+
+
+    df_final = pd.concat(all_volume, ignore_index=True)
+    df_final = pd.merge(df_final, df_sistemas_vazao, on='SistemaId', how='left')
+
+
+    vazao_captada_diaria = {
+        "Cantareira":379,
+        "SIM":463
+    }
+
+    df_vazao_captada_diaria = pd.DataFrame(list(vazao_captada_diaria.items()), columns=["Sistema", "SistemaId"]).copy()
+
+    data_base = '1953-01-01'
+
+    vazao_captada_diaria_all =[]
+    for _,data_volume in df_vazao_captada_diaria.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_atual_str}/{data_atual_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_atual = pd.DataFrame(data["dataCollection"])
+                df_atual_all = df_atual.copy()
+                df_atual_all['SistemaId'] = id
+
+                df_atual_all["dateTime"] = pd.to_datetime(df_atual_all["dateTime"])
+
+                # criar coluna só com mês e dia (formato "01-01")
+                df_atual_all["mes_dia"] = df_atual_all["dateTime"].dt.strftime("%m-%d")
+
+                df_atual_all["ano"] = df_atual_all["dateTime"].dt.strftime("%Y")
+
+                # df_grouped = df_atual_all.groupby("mes_ano")["Volume"].sum().reset_index()
+                df_grouped = df_atual_all.groupby(['mes_dia', 'SistemaId'], as_index=False).agg(
+                    min_value=('value', 'min'),
+                    mean_value=('value', 'mean')
+                )
+
+                df_atual_all = pd.merge(df_atual_all, df_grouped, on=['mes_dia', 'SistemaId'], how='left')
+                vazao_captada_diaria_all.append(df_atual_all)
+
+    df_vazao_captada_diaria_all = pd.concat(vazao_captada_diaria_all, ignore_index=True)
+    df_vazao_captada_diaria_all = pd.merge(df_vazao_captada_diaria_all, df_vazao_captada_diaria, on='SistemaId', how='left')            
+
+
+    return df_final, df_vazao_captada_diaria_all
+
 def get_ssd_transferencias(data_atual_str):
 
     transferencia = {
@@ -2388,14 +2481,12 @@ def get_ssd_transferencias(data_atual_str):
 
     all_transferencia_final = pd.merge(all_transferencia_final, df_sistemas_transferencia_dia, on='SistemaId', how='left')
 
-
-
     return df_final, all_transferencia_final
 
 def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado):
     colun1, colun2, colun3= st.columns([0.2, 2.0, 0.2])
 
-    cc1, cc2 = st.columns([2.0, 1.5])
+    map1, map2 = st.columns([2.5, 1.5])
 
     with colun2:
 
@@ -2408,13 +2499,20 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         """, unsafe_allow_html=True)
 
         vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
+        vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
+
         sistemas_list = vazao_natural['Sistema'].unique().tolist()
+
+        tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
+        tunel_list = tranferencias_all['Sistema'].unique().tolist()
 
         if "sistema_filter" not in st.session_state:
             st.session_state.sistema_filter = "SIM"
 
+        if "tunel_transferencia" not in st.session_state:
+            st.session_state.tunel_transferencia = "UHE Jaguari - Atibainha"
         
-        con1, con2, con3, con4= st.columns([1.0, 1.5, 1.5, 1.0])
+        con1, con2, con3, con4, con5 = st.columns([1.0, 1.5, 1.5, 1.5, 1.0])
         with con2:
             ano_selecionado = st.selectbox(
                 "Selecione novo ano para compação ",
@@ -2439,11 +2537,21 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 label_visibility="visible"
             )
 
-            
             if set(sistema_selecionado) != set(st.session_state.sistema_filter):
                 st.session_state.sistema_filter = sistema_selecionado
                 st.rerun()
-
+        
+        with con4:
+            tunel_selecionado = st.selectbox(
+                "Selecione Túnel",
+                options=tunel_list,
+                index=tunel_list.index(st.session_state.tunel_transferencia),
+                label_visibility="visible"
+            )
+            
+            if set(tunel_selecionado) != set(st.session_state.tunel_transferencia):
+                st.session_state.tunel_transferencia = tunel_selecionado
+                st.rerun()
 
         html_blocks = []
         for i, row in merged_data_sistemas.iterrows():
@@ -2474,88 +2582,12 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         # print(html_perc_blocks)
         st.components.v1.html(html_perc_blocks, height=300, scrolling=True)
     
-    with cc1:
-        vazao_natural['ano'] = vazao_natural['ano'].astype(int)
-        vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
-
-        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
-        ano_atual = datetime.today().year
-
-        vazao_natural_comparacao = vazao_natural[(vazao_natural["ano"] == ano_comparacao) & (vazao_natural['Sistema']==sistema_selecionado)]
-        vazao_natural_comparacao['data_atual'] = pd.to_datetime(
-            vazao_natural_comparacao['dateTime'].dt.strftime(f"{ano_atual}-%m-%d")
-        )
-
-        fig_vazao = go.Figure()
-
-        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158"))
-        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1"))
-        fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["dateTime"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline'))
-
-        fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline'))
-
-        fig_vazao.update_layout(
-            title=dict(
-                text=f"Evolução das médias mensais da Vazão Natural (m³/s) - {vazao_natural_atual['Sistema'].iloc[0]}",
-                font=dict(size=24, color='black')  # tamanho e cor do título
-            ),
-            barmode='overlay',
-            # title_x=0.3,
-            xaxis_title="",
-            yaxis_title="Vazão Natural m³/s",
-            plot_bgcolor='white',    # Cor de fundo do gráfico
-            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
-            font=dict(color='black'),  # Cor das fontes para preto
-            title_font=dict(color='black'),  # Cor do título
-            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
-            yaxis_title_font=dict(color='black'), 
-            legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
-            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
-        )
-
-        st.plotly_chart(fig_vazao)
-
-
-        fig_volume = go.Figure()
-
-        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -21 dias (%)'], name='Volume -21 dias (%)', marker_color="#646968", opacity=0.6, text=merged_data_sistemas['Volume -21 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
-        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -14 dias (%)'], name='Volume -14 dias (%)', marker_color="#9699AF", opacity=0.6, text=merged_data_sistemas['Volume -14 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
-        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -7 dias (%)'], name='Volume -7 dias (%)', marker_color="#515480", opacity=0.6, text=merged_data_sistemas['Volume -7 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
-        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume atual (%)'], name='Volume atual (%)', marker_color="#08138F", text=merged_data_sistemas['Volume atual (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
-        
-
-        fig_volume.update_layout(
-            title=dict(
-                text=f"Evolução do Volume Útil(%) por Sistema",
-                font=dict(size=24, color='black')  # tamanho e cor do título
-            ),
-            # barmode='stack',
-            # title_x=0.3,v
-            xaxis_title="",
-            yaxis_title="Volume (%)",
-            plot_bgcolor='white',    # Cor de fundo do gráfico
-            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
-            font=dict(color='black'),  # Cor das fontes para preto
-            title_font=dict(color='black'),  # Cor do título
-            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
-            yaxis_title_font=dict(color='black'), 
-            legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray'),# Cor dos valores no eixo X
-            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
-        )
-
-        st.plotly_chart(fig_volume)
     
-    with cc2:
-        # im1, im2, im3 = st.columns([0.5, 1.0, 0.5])
+    with map1:
 
-        # with im2:
-
-        tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
-        print(all_transferencia_final)
-        print(tranferencias_all)
         gdflimite = gpd.read_file("data/limiteestadualsp.shp")
+        gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
+        gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
 
         gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
         gdf_vazao_natural_merge = gdf_vazao_natural.merge(
@@ -2572,77 +2604,20 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             left_on="id",           # coluna do shapefile
             right_on="SistemaId"    # coluna do dataframe
         )
-
-        if sistema_selecionado == "SIM":
-            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
-            gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
-            gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
-            
-        else:
-            gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
-            gdfsistemas = gdfsistemas[gdfsistemas['sistema']==sistema_selecionado]
-            gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
-            gdf_reservatorios = gdf_reservatorios[gdf_reservatorios['sistemas']==sistema_selecionado]
-            gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
-            gdf_pariba_do_sul = gdf_pariba_do_sul[gdf_pariba_do_sul['sistema']==sistema_selecionado]
-            gdf_vazao_natural_merge = gdf_vazao_natural_merge[gdf_vazao_natural_merge['sistema']==sistema_selecionado]
-            gdf_transposicao_merge = gdf_transposicao_merge[gdf_transposicao_merge['sistema']==sistema_selecionado]
+        gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
+        gdf_reservatorios_merge = gdf_reservatorios.merge(
+            merged_data_sistemas,
+            how="left",             # tipo de join
+            left_on="sistemas",           # coluna do shapefile
+            right_on="Sistema"    # coluna do dataframe
+        )
             
         gdf_transposicao_merge = gdf_transposicao_merge.drop(columns=["deliveredAt"])
         gdf_vazao_natural_merge = gdf_vazao_natural_merge.drop(columns=["deliveredAt"])
 
         gdf_transposicao_merge["dateTime"] = gdf_transposicao_merge["dateTime"].dt.strftime("%Y-%m-%d")
         gdf_vazao_natural_merge["dateTime"] = gdf_vazao_natural_merge["dateTime"].dt.strftime("%Y-%m-%d")
-        # gdf_reservatorios = gdf_reservatorios.drop(columns=["deliveredAt"])
 
-        # fig, ax = plt.subplots(figsize=(30, 30), dpi=200)
-
-        # gdflimite.plot(ax=ax, color="#ADADAD", edgecolor="black", alpha=0.5, label="Shapefile 1")
-        # gdfsistemas.plot(ax=ax, color="#2E4D37", edgecolor="black", alpha=0.8, label="Shapefile 2")
-        # gdf_pariba_do_sul.plot(ax=ax, color="#758b7f", edgecolor="black", alpha=0.8, label="Shapefile 4")
-        # gdf_reservatorios.plot(ax=ax, color="#3871eb", edgecolor="black", alpha=0.8, label="Shapefile 3")
-        # gdf_transposicao_merge.plot(ax=ax, color="#81230c", edgecolor="black", alpha=0.8, label="Shapefile 5", linewidth=2)
-
-        # for idx, row in gdf_transposicao_merge.iterrows():
-        #     x, y = row.geometry.centroid.x, row.geometry.centroid.y
-            
-        #     valor = row["value"]  # substitua pela sua coluna
-        #     label = f"{valor:.1f}\nVazão m³/s"  # primeira linha valor, segunda linha texto
-            
-        #     ax.text(
-        #         x, y,
-        #         label,
-        #         fontsize=20,
-        #         ha="center",
-        #         va="center",
-        #         color="black",
-        #         bbox=dict(facecolor="white", edgecolor="none", alpha=0.6, boxstyle="round,pad=0.2")
-        #     )
-
-        # gdf_vazao_natural_merge.plot(ax=ax, color="#dfd332", edgecolor="black", label="Shapefile 6")
-
-        # for line in gdf_transposicao_merge.geometry:
-        #     if line.geom_type == "LineString":
-        #         x, y = line.xy
-        #         # pega o ponto inicial e final da linha
-        #         ax.add_patch(FancyArrowPatch(
-        #             (x[0], y[0]), (x[-1], y[-1]),
-        #             arrowstyle="->", 
-        #             color="#81230c",
-        #             linewidth=2
-        #         ))
-
-        # # Se tiver filtro (ou seja, não for "SIM"), aplica zoom
-
-        # bounds = gdfsistemas.total_bounds  # retorna [minx, miny, maxx, maxy]
-        # ax.set_xlim(bounds[0], bounds[2])
-        # ax.set_ylim(bounds[1], bounds[3])
-
-        # plt.legend()
-        # plt.title("Limite de São Paulo")
-        # st.pyplot(fig, use_container_width=True)
-
-        
         # Cria o mapa centralizado no bounding box dos sistemas
         bounds = gdfsistemas.total_bounds  # [minx, miny, maxx, maxy]
         m = folium.Map(location=[(bounds[1]+bounds[3])/2, (bounds[0]+bounds[2])/2], zoom_start=8)
@@ -2651,46 +2626,45 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         folium.GeoJson(gdflimite, name="Limite", style_function=lambda x: {"color": "black", "fillColor": "#ADADAD",  "fillOpacity": 0.8, "weight": 1}).add_to(m)
         folium.GeoJson(gdfsistemas, name="Sistemas", style_function=lambda x: {"color": "#397249", "fillColor": "#397249",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
         folium.GeoJson(gdf_pariba_do_sul, name="Paraíba do Sul", style_function=lambda x: {"color": "black", "fillColor": "#758b7f",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
-        folium.GeoJson(gdf_reservatorios, name="Reservatórios", style_function=lambda x: {"color": "#3871eb", "fillColor": "#3871eb",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
-        folium.GeoJson(gdf_transposicao_merge, name="Transposição", style_function=lambda x: {"color": "#3871eb", "fillColor": "#3871eb", "fillOpacity": 0.6, "weight": 3}).add_to(m)
-        folium.GeoJson(gdf_vazao_natural_merge, name="Vazão Natural", style_function=lambda x: {"color": "black", "fillColor": "#dfd332", "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdf_reservatorios_merge, name="Reservatórios", style_function=lambda x: {"color": "#3871eb", "fillColor": "#294c97",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdf_transposicao_merge, name="Transposição", style_function=lambda x: {"color": "#3871eb", "fillColor": "#21428a", "fillOpacity": 0.6, "weight": 2, "dashArray": "10, 5"}).add_to(m)
+        # folium.GeoJson(gdf_vazao_natural_merge, name="Vazão Natural", style_function=lambda x: {"color": "black", "fillColor": "#dfd332", "fillOpacity": 0.8,"weight": 1}, marker=None ).add_to(m)
 
         # Adiciona popup com valor
-        # for _, row in gdf_transposicao_merge.iterrows():
-        #     x, y = row.geometry.centroid.y, row.geometry.centroid.x
-        #     folium.Marker(
-        #         [x, y],
-        #         popup=f"{row['value']:.1f} m³/s"
-        #     ).add_to(m)
-
         for _, row in gdf_transposicao_merge.iterrows():
             x, y = row.geometry.centroid.y, row.geometry.centroid.x
-            valor = f"{row['value']:.1f} m³/s"
-
-            # HTML estilizado como um card
-            card_html = f"""
-            <div style="
-                background-color: #ffffff80;
-                border-radius: 8px;
-                padding: 1px 1px;
-                width: 60px;   
-                box-shadow: 1px 1px 4px rgba(0,0,0,0.3);
-                font-size: 10px;
-                color: #333;
-                text-align: center;
-                font-weight: bold;
-                white-space: nowrap;
-            ">
-                {valor}
-            </div>
+            popup_html = f"""
+                {row['Sistema']}<br>
+                Transferência: {row['value']:.1f} m³/s
             """
-
             folium.Marker(
-                [x, y],
-                icon=folium.DivIcon(html=card_html)
+                location=[x, y],
+                popup=popup_html,
+                icon=folium.DivIcon(html="""
+                    <div style="font-size:12px; color:blue;">
+                        <i class="fas fa-water"></i>
+                    </div>
+                """)
             ).add_to(m)
 
-        # Controle de camadas
+        # for _, row in gdf_vazao_natural_merge.iterrows():
+        #     x, y = row.geometry.centroid.y, row.geometry.centroid.x
+        #     popup_html = f"""
+        #         {row['Sistema']}<br>
+        #         Vazão Natural: {row['value']:.1f} m³/s
+        #     """
+        #     folium.Marker(
+        #         location=[x, y],
+        #         popup=popup_html,
+        #         icon=folium.DivIcon(
+        #             html=f"""
+        #                 <div style="font-size:16px; color:blue; text-align:center;">
+        #                     <i class="fa-solid fa-down-long"></i>
+        #                 </div>
+        #             """
+        #         )
+        #     ).add_to(m)
+        
         folium.LayerControl().add_to(m)
 
         st.session_state["mapa_transposicao"] = m
@@ -2715,29 +2689,28 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         st.write("""
             <div style="text-align: center; color: #333333;">
-                <h1  style="font-size: 14px; margin: 0; padding: 0">Reservatórios RMSP</h1>
+                <h1  style="font-size: 20px; margin: 0; padding: 0">Reservatórios RMSP</h1>
             </div>
             """,
             unsafe_allow_html=True)
             
-        st.components.v1.html(m_reservatorios, width=800, height=300)
+        st.components.v1.html(m_reservatorios, width=800, height=400)
 
-        # # Exibir no Streamlit
-        # # st_folium(m, width=800, height=600)
-        # st_folium(st.session_state["mapa_transposicao"], width=800, height=600)
+    with map2:
 
-
-
+        tranferencias_all_graf = tranferencias_all[tranferencias_all["Sistema"]==tunel_selecionado].copy()
+        print(tranferencias_all_graf)
+        all_transferencia_graf = all_transferencia_final[all_transferencia_final["Sistema"]==tunel_selecionado].copy()
         graf1, graf2 = st.columns([1.0, 1.0])
 
         with graf1:
 
             total = pd.DataFrame([{
                 "Mês": "Total",
-                "value": tranferencias_all["value"].mean()   # ou .mean(), depende do que você quer
+                "value": tranferencias_all_graf["value"].mean()   # ou .mean(), depende do que você quer
             }])
 
-            transferencias = pd.concat([tranferencias_all, total])
+            transferencias = pd.concat([tranferencias_all_graf, total])
             print(transferencias)
             transferencias['value'] = transferencias['value'].round(1)
             transferencias.rename(columns={"value": "Média (m³/s)"}, inplace=True)
@@ -2785,10 +2758,10 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         with graf2:
 
-            all_transferencia_final['value'] = all_transferencia_final['value'].round(3)
-            all_transferencia_final.rename(columns={"value": "Vazão (m³/s)", "mes_dia":"Data" }, inplace=True)
+            all_transferencia_graf['value'] = all_transferencia_graf['value'].round(3)
+            all_transferencia_graf.rename(columns={"value": "Vazão (m³/s)", "mes_dia":"Data" }, inplace=True)
             
-            n = len(all_transferencia_final)
+            n = len(all_transferencia_graf)
             fill_colors = ['white']*(n-1) + ['#f0f0f0']
             font_bold = ['normal']*(n-1) + ['bold']
 
@@ -2804,7 +2777,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                             font=dict(color='black', size=16)
                         ),
                         cells=dict(
-                            values=[all_transferencia_final[col] for col in ['Data', 'Vazão (m³/s)']],
+                            values=[all_transferencia_graf[col] for col in ['Data', 'Vazão (m³/s)']],
                             fill_color=[fill_colors, fill_colors],
                             line_color='lightgray',       # linhas horizontais
                             line=dict(color='white', width=0),  # linhas verticais invisíveis
@@ -2829,63 +2802,179 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
             st.plotly_chart(fig_tgransferencia_all)
 
+    cc1, cc2 = st.columns([2.0, 2.0])
+    with cc1:
+        vazao_natural['ano'] = vazao_natural['ano'].astype(int)
+        vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
 
-    start_sim = '2025-08-19'
-    start_sim_dt = pd.to_datetime(start_sim)
-    df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
-    df_sim_atual_filtrado=df_sim_atual_all[df_sim_atual_all["dateTime"] >= start_sim_dt]
+        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
+        ano_atual = datetime.today().year
 
-    data_atual_1meses = datetime.today() + relativedelta(months=1)
+        vazao_natural_comparacao = vazao_natural[(vazao_natural["ano"] == ano_comparacao) & (vazao_natural['Sistema']==sistema_selecionado)]
+        vazao_natural_comparacao['data_atual'] = pd.to_datetime(
+            vazao_natural_comparacao['dateTime'].dt.strftime(f"{ano_atual}-%m-%d")
+        )
 
-    projecao_sim = pd.read_csv("serie_diaria.csv")
-    projecao_sim["Data"] = pd.to_datetime(projecao_sim["Data"])
-    projecao_sim =  projecao_sim[projecao_sim["Data"] <= data_atual_1meses]
+        fig_vazao = go.Figure()
 
-    colunas = ['QN100 (20-25)', 'QN100 MLT', 'QN70 MLT', 'QN (2021)', 'QN (2014)']
-    for c in colunas:
-        projecao_sim[c] = pd.to_numeric(projecao_sim[c], errors='coerce')
-        projecao_sim[c].fillna(0, inplace=True)
+        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158"))
+        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1"))
+        fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["dateTime"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline'))
 
-    fig_sim = go.Figure()
+        fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline'))
 
-    fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
+        fig_vazao.update_layout(
+            title=dict(
+                text=f"Evolução das médias mensais da Vazão Natural (m³/s) - {vazao_natural_atual['Sistema'].iloc[0]}",
+                font=dict(size=20, color='black')  # tamanho e cor do título
+            ),
+            barmode='overlay',
+            # title_x=0.3,
+            xaxis_title="",
+            yaxis_title="Vazão Natural m³/s",
+            plot_bgcolor='white',    # Cor de fundo do gráfico
+            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
+            font=dict(color='black'),  # Cor das fontes para preto
+            title_font=dict(color='black'),  # Cor do título
+            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
+            yaxis_title_font=dict(color='black'), 
+            legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
+            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+        )
 
-    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
-                                mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=1.5)))
+        st.plotly_chart(fig_vazao)
+
+    with cc2:
+        vazao_captada['ano'] = vazao_captada['ano'].astype(int)
+        vazao_captada_atual = vazao_captada[(vazao_captada['ano'] == 2025) & (vazao_captada['Sistema']==sistema_selecionado)]
+
+        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
+        ano_atual = datetime.today().year
+
+        vazao_captada_comparacao = vazao_captada[(vazao_captada["ano"] == ano_comparacao) & (vazao_captada['Sistema']==sistema_selecionado)]
+        vazao_captada_comparacao['data_atual'] = pd.to_datetime(
+            vazao_captada_comparacao['dateTime'].dt.strftime(f"{ano_atual}-%m-%d")
+        )
+
+        fig_vazao_captada = go.Figure()
+
+        fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_atual"], y=vazao_captada_comparacao['mean_value'], name='Média', marker_color="#72AC7E"))
+        fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_atual"], y=vazao_captada_comparacao['min_value'], name='Mínima', marker_color="#598A9E"))
+        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_atual["dateTime"], y=vazao_captada_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline'))
+
+        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_comparacao["data_atual"], y=vazao_captada_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#C52F2F", width=2), line_shape='spline'))
+
+        fig_vazao_captada.update_layout(
+            title=dict(
+                text=f"Evolução das médias mensais da Vazão Captada (m³/s) - {vazao_captada_atual['Sistema'].iloc[0]}",
+                font=dict(size=20, color='black')  # tamanho e cor do título
+            ),
+            barmode='overlay',
+            # title_x=0.3,
+            xaxis_title="",
+            yaxis_title="Vazão Natural m³/s",
+            plot_bgcolor='white',    # Cor de fundo do gráfico
+            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
+            font=dict(color='black'),  # Cor das fontes para preto
+            title_font=dict(color='black'),  # Cor do título
+            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
+            yaxis_title_font=dict(color='black'), 
+            legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
+            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+        )
+
+        st.plotly_chart(fig_vazao_captada)
+
+    with cc1:
+        fig_volume = go.Figure()
+
+        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -21 dias (%)'], name='Volume -21 dias (%)', marker_color="#646968", opacity=0.6, text=merged_data_sistemas['Volume -21 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
+        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -14 dias (%)'], name='Volume -14 dias (%)', marker_color="#9699AF", opacity=0.6, text=merged_data_sistemas['Volume -14 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
+        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume -7 dias (%)'], name='Volume -7 dias (%)', marker_color="#515480", opacity=0.6, text=merged_data_sistemas['Volume -7 dias (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
+        fig_volume.add_trace(go.Bar(x=merged_data_sistemas['Sistema'], y=merged_data_sistemas['Volume atual (%)'], name='Volume atual (%)', marker_color="#08138F", text=merged_data_sistemas['Volume atual (%)'].map(lambda v: f"{v:.1f}"), textposition='outside'))
         
-    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 MLT'], 
-                                mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=1.5)))
 
-    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN70 MLT'], 
-                                mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=1.5)))
+        fig_volume.update_layout(
+            title=dict(
+                text=f"Evolução do Volume Útil(%) por Sistema",
+                font=dict(size=20, color='black')  # tamanho e cor do título
+            ),
+            # barmode='stack',
+            # title_x=0.3,v
+            xaxis_title="",
+            yaxis_title="Volume (%)",
+            plot_bgcolor='white',    # Cor de fundo do gráfico
+            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
+            font=dict(color='black'),  # Cor das fontes para preto
+            title_font=dict(color='black'),  # Cor do título
+            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
+            yaxis_title_font=dict(color='black'), 
+            legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
+            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray'),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+        )
 
-    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2021)'], 
-                                mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=1.5)))
-    
-    fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2014)'], 
-                                mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=1.5)))
+        st.plotly_chart(fig_volume)
 
-    # Atualizando o layout do gráfico
-    fig_sim.update_layout(
-        title=dict(
-            text="Projeção de Volume do SIM",
-            font=dict(size=24, color='black')  # tamanho e cor do título
-        ),
-        # title_x=0.3,
-        xaxis_title="",
-        yaxis_title="Volume (%)",
-        plot_bgcolor='white',    # Cor de fundo do gráfico
-        paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
-        font=dict(color='black'),  # Cor das fontes para preto
-        title_font=dict(color='black'),  # Cor do título
-        xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
-        yaxis_title_font=dict(color='black'), 
-        legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
-        xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
-        yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
-    )
+    with cc2:
+        start_sim = '2025-08-19'
+        start_sim_dt = pd.to_datetime(start_sim)
+        df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
+        df_sim_atual_filtrado=df_sim_atual_all[df_sim_atual_all["dateTime"] >= start_sim_dt]
 
-    st.plotly_chart(fig_sim)
+        data_atual_1meses = datetime.today() + relativedelta(months=1)
+
+        projecao_sim = pd.read_csv("serie_diaria.csv")
+        projecao_sim["Data"] = pd.to_datetime(projecao_sim["Data"])
+        projecao_sim =  projecao_sim[projecao_sim["Data"] <= data_atual_1meses]
+
+        colunas = ['QN100 (20-25)', 'QN100 MLT', 'QN70 MLT', 'QN (2021)', 'QN (2014)']
+        for c in colunas:
+            projecao_sim[c] = pd.to_numeric(projecao_sim[c], errors='coerce')
+            projecao_sim[c].fillna(0, inplace=True)
+
+        fig_sim = go.Figure()
+
+        fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
+
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
+                                    mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=1.5)))
+            
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 MLT'], 
+                                    mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=1.5)))
+
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN70 MLT'], 
+                                    mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=1.5)))
+
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2021)'], 
+                                    mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=1.5)))
+        
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2014)'], 
+                                    mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=1.5)))
+
+        # Atualizando o layout do gráfico
+        fig_sim.update_layout(
+            title=dict(
+                text="Projeção de Volume do SIM",
+                font=dict(size=20, color='black')  # tamanho e cor do título
+            ),
+            # title_x=0.3,
+            xaxis_title="",
+            yaxis_title="Volume (%)",
+            plot_bgcolor='white',    # Cor de fundo do gráfico
+            paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
+            font=dict(color='black'),  # Cor das fontes para preto
+            title_font=dict(color='black'),  # Cor do título
+            xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
+            yaxis_title_font=dict(color='black'), 
+            legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
+            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+        )
+
+        st.plotly_chart(fig_sim)
 
     co1, co2 = st.columns([1.50, 0.50])
 
