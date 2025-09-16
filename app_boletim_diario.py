@@ -2057,9 +2057,18 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
                     .sort_index()
                     .iloc[-1]  # pega o último disponível
                 )
-                valor_7_dias = df_atual_all.loc[df_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
-                valor_14_dias = df_atual_all.loc[df_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
-                valor_21_dias = df_atual_all.loc[df_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
+                valor_7_dias = (df_atual_all.loc[df_atual_all['dateTime'] == data_7dias_str, 'value']
+                    .reset_index(drop=True)
+                    .get(0, None)  
+                )
+                valor_14_dias = (df_atual_all.loc[df_atual_all['dateTime'] == data_14dias_str, 'value']
+                    .reset_index(drop=True)
+                    .get(0, None)  
+                )
+                valor_21_dias = (df_atual_all.loc[df_atual_all['dateTime'] == data_21dias_str, 'value']
+                    .reset_index(drop=True)
+                    .get(0, None)  
+                )
 
                 df_atual_all["Volume atual (%)"] = valor_atual
                 df_atual_all["Volume -7 dias (%)"] = valor_7_dias
@@ -2640,7 +2649,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 popup=popup_html,
                 icon=folium.DivIcon(html="""
                     <div style="font-size:12px; color:blue;">
-                        <i class="fas fa-water"></i>
+                        <i class="fa-thin fa-water"></i>
                     </div>
                 """)
             ).add_to(m)
@@ -2709,7 +2718,6 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             }])
 
             transferencias = pd.concat([tranferencias_all_graf, total])
-            print(transferencias)
             transferencias['value'] = transferencias['value'].round(1)
             transferencias.rename(columns={"value": "Média (m³/s)"}, inplace=True)
             
