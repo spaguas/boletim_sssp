@@ -3101,14 +3101,14 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     fig_media_movel_sim.add_vline(x=data_ref, line=dict(color="#6e0808", width=2, dash="solid"))
     fig_media_movel_sim.add_vline(x=data_ref_2, line=dict(color="#da1010", width=2, dash="solid"))
 
-    fig_media_movel_sim.add_annotation(x=data_ref, y=valor_captada,text=f"{valor_captada:.2f}", showarrow=True, arrowcolor="#232FE0", arrowhead=2, ax=-40, ay=-40)
-    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_captada_2,text=f"{valor_captada_2:.2f}",showarrow=True,arrowcolor="#232FE0",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref, y=valor_captada,text=f"{valor_captada:.2f}", font=dict(color="#232FE0", size=16), showarrow=True, arrowcolor="#232FE0", arrowhead=2, ax=-40, ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_captada_2,text=f"{valor_captada_2:.2f}", font=dict(color="#232FE0", size=16), showarrow=True,arrowcolor="#232FE0",arrowhead=2,ax=-40,ay=-40)
 
-    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_afluente,text=f"{valor_afluente:.2f}",showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
-    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_afluente_2,text=f"{valor_afluente_2:.2f}",showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_afluente,text=f"{valor_afluente:.2f}", font=dict(color="#387540", size=16), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_afluente_2,text=f"{valor_afluente_2:.2f}", font=dict(color="#387540", size=16), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
 
-    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_taxa,text=f"{valor_taxa:.2f}",showarrow=True,arrowcolor="#ddc700",arrowhead=2,ax=-40,ay=-40,yref="y2")
-    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_taxa_2,text=f"{valor_taxa_2:.2f}",showarrow=True,arrowcolor="#ddc700",arrowhead=2,ax=-40,ay=-40,yref="y2")
+    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_taxa,text=f"{valor_taxa:.2f}", font=dict(color="#ddc700", size=16), showarrow=True,arrowcolor="#ddc700",arrowhead=2,ax=-40,ay=-40,yref="y2")
+    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_taxa_2,text=f"{valor_taxa_2:.2f}", font=dict(color="#ddc700", size=16), showarrow=True,arrowcolor="#ddc700",arrowhead=2,ax=-40,ay=-40,yref="y2")
 
     # Anotação da vazão captada
     fig_media_movel_sim.add_annotation(
@@ -3118,7 +3118,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         showarrow=False,       # sem seta
         xanchor="left",        # fica à direita da linha
         yanchor="middle",
-        font=dict(color="#232FE0", size=12)
+        font=dict(color="#232FE0", size=16)
     )
 
     # Anotação da vazão afluente
@@ -3129,7 +3129,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         showarrow=False,
         xanchor="left",
         yanchor="middle",
-        font=dict(color="#387540", size=12)
+        font=dict(color="#387540", size=16)
     )
 
     # Anotação da taxa de variação (segundo eixo)
@@ -3140,7 +3140,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         showarrow=False,
         xanchor="left",
         yanchor="middle",
-        font=dict(color="#ddc700", size=12),
+        font=dict(color="#ddc700", size=16),
         yref="y2"   # importante: segundo eixo
     )
 
