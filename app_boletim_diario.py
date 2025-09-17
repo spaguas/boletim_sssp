@@ -3094,21 +3094,21 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     fig_media_movel_sim = go.Figure()
     fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Captada_7d'], mode='lines', name='Media Movel Vazão Captada(7d)', line=dict(color="#232FE0", width=1.5), line_shape='spline'))
     fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Afluente SIM_7d'], mode='lines', name='Media Movel Vazão Afluente SIM (7d)', line=dict( color="#387540", width=1.5)))         
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['TaxaVar_7d'], mode='lines', name='TaxaVar Var. 7d', line=dict(dash='dash', color="#ddc700", width=1.5), yaxis="y2"))
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['TaxaVar_7d'], mode='lines', name='TaxaVar Var. 7d', line=dict(dash='dash', color="#c47003", width=1.5), yaxis="y2"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#da1010", width=2),name=f"Ref: {data_ref_2.strftime('%d/%m/%Y')} (Início da RDA)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#6e0808", width=2),name=f"{data_ref.strftime('%d/%m/%Y')} (Início da GDN)"))
     
     fig_media_movel_sim.add_vline(x=data_ref, line=dict(color="#6e0808", width=2, dash="solid"))
     fig_media_movel_sim.add_vline(x=data_ref_2, line=dict(color="#da1010", width=2, dash="solid"))
 
-    fig_media_movel_sim.add_annotation(x=data_ref, y=valor_captada,text=f"{valor_captada:.2f}", font=dict(color="#232FE0", size=16), showarrow=True, arrowcolor="#232FE0", arrowhead=2, ax=-40, ay=-40)
-    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_captada_2,text=f"{valor_captada_2:.2f}", font=dict(color="#232FE0", size=16), showarrow=True,arrowcolor="#232FE0",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref, y=valor_captada,text=f"{valor_captada:.2f}", font=dict(color="#232FE0", size=18), showarrow=True, arrowcolor="#232FE0", arrowhead=2, ax=-40, ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_captada_2,text=f"{valor_captada_2:.2f}", font=dict(color="#232FE0", size=18), showarrow=True,arrowcolor="#232FE0",arrowhead=2,ax=-40,ay=-40)
 
-    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_afluente,text=f"{valor_afluente:.2f}", font=dict(color="#387540", size=16), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
-    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_afluente_2,text=f"{valor_afluente_2:.2f}", font=dict(color="#387540", size=16), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_afluente,text=f"{valor_afluente:.2f}", font=dict(color="#387540", size=18), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_afluente_2,text=f"{valor_afluente_2:.2f}", font=dict(color="#387540", size=18), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
 
-    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_taxa,text=f"{valor_taxa:.2f}", font=dict(color="#ddc700", size=16), showarrow=True,arrowcolor="#ddc700",arrowhead=2,ax=-40,ay=-40,yref="y2")
-    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_taxa_2,text=f"{valor_taxa_2:.2f}", font=dict(color="#ddc700", size=16), showarrow=True,arrowcolor="#ddc700",arrowhead=2,ax=-40,ay=-40,yref="y2")
+    fig_media_movel_sim.add_annotation(x=data_ref,y=valor_taxa,text=f"{valor_taxa:.2f}", font=dict(color="#c47003", size=18), showarrow=True,arrowcolor="#c47003",arrowhead=2,ax=-40,ay=-40,yref="y2")
+    fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_taxa_2,text=f"{valor_taxa_2:.2f}", font=dict(color="#c47003", size=18), showarrow=True,arrowcolor="#c47003",arrowhead=2,ax=-40,ay=-40,yref="y2")
 
     # Anotação da vazão captada
     fig_media_movel_sim.add_annotation(
@@ -3140,7 +3140,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         showarrow=False,
         xanchor="left",
         yanchor="middle",
-        font=dict(color="#ddc700", size=16),
+        font=dict(color="#c47003", size=16),
         yref="y2"   # importante: segundo eixo
     )
 
@@ -3168,11 +3168,11 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         yaxis2=dict(
             title=dict(
                 text="Taxa de variação de volume útil (%)",
-                font=dict(color="#ddc700")
+                font=dict(color="#c47003")
             ),
             overlaying="y",
             side="right",
-            tickfont=dict(color="#ddc700", size=16),
+            tickfont=dict(color="#c47003", size=16),
             gridcolor="#FFFFFF",
             range=[-0.35, 0],
             dtick=0.05,
@@ -3181,11 +3181,12 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         plot_bgcolor='white',
         paper_bgcolor='white',
         font=dict(color='black'),
+        height=700,
         legend=dict(
-            font=dict(color='black'),
+            font=dict(color='black', size=16),
             orientation="h",
             yanchor="top",
-            y=1.2,
+            y=1.1,
             xanchor="center",
             x=0.5
         )
