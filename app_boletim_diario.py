@@ -2163,7 +2163,7 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
-        print(url_volume)
+
         response = requests.get(url_volume, verify=False)
 
         if response.status_code == 200:
@@ -2203,6 +2203,12 @@ def get_ssd_vazao_natural(data_atual_str):
     vazao_natural = {
         "Cantareira": 855, 
         "SIM": 939,
+        "Alto Tietê": 831,
+        "Guarapiranga": 879,
+        "Cotia": 867,
+        "Rio Grande":915,
+        "Rio Claro":903,
+        "São Lourenço":927
     }
 
     df_sistemas_vazao = pd.DataFrame(list(vazao_natural.items()), columns=["Sistema", "SistemaId"]).copy()
@@ -2246,7 +2252,14 @@ def get_ssd_vazao_natural(data_atual_str):
 
 
     vazao_natural_diaria = {
-        "Cantareira":373
+        "Cantareira":373,
+        "Alto Tietê": 349,
+        "Guarapiranga": 397,
+        "Cotia": 385,
+        "Rio Grande":433,
+        "Rio Claro":421,
+        "São Lourenço":445,
+        "SIM": 457
     }
 
     df_vazao_natural_diaria = pd.DataFrame(list(vazao_natural_diaria.items()), columns=["Sistema", "SistemaId"]).copy()
@@ -2295,7 +2308,15 @@ def get_ssd_vazao_captada(data_atual_str):
     vazao_captada_mensal = {
         "Cantareira": 861, 
         "SIM": 945,
+        "Alto Tietê": 837,
+        "Guarapiranga": 885,
+        "Cotia": 873,
+        "Rio Grande":921,
+        "Rio Claro":909,
+        "São Lourenço":933
     }
+
+
 
     df_sistemas_vazao = pd.DataFrame(list(vazao_captada_mensal.items()), columns=["Sistema", "SistemaId"]).copy()
 
@@ -2339,7 +2360,14 @@ def get_ssd_vazao_captada(data_atual_str):
 
     vazao_captada_diaria = {
         "Cantareira":379,
-        "SIM":463
+        "SIM":463,
+        "Alto Tietê": 355,
+        "Guarapiranga": 403,
+        "Cotia": 391,
+        "Rio Grande":439,
+        "Rio Claro":427,
+        "São Lourenço":451
+
     }
 
     df_vazao_captada_diaria = pd.DataFrame(list(vazao_captada_diaria.items()), columns=["Sistema", "SistemaId"]).copy()
@@ -2386,7 +2414,14 @@ def get_ssd_vazao_captada(data_atual_str):
 def get_ssd_vazao_afluente(data_atual_str):
 
     vazao_afluente_diaria = {
-        "SIM":455
+        "SIM":455,
+        "Cantareira": 371,
+        "Alto Tietê": 347,
+        "Guarapiranga": 395,
+        "Cotia": 383,
+        "Rio Grande":431,
+        "Rio Claro":419,
+        "São Lourenço":443
     }
 
     df_vazao_afluente_diaria = pd.DataFrame(list(vazao_afluente_diaria.items()), columns=["Sistema", "SistemaId"]).copy()
@@ -2515,7 +2550,6 @@ def get_ssd_transferencias(data_atual_str):
         "Túnel 5": 332,
         "Túnel 6": 333,
         "Túnel 7":334
-
     }
 
     df_sistemas_transferencia_dia = pd.DataFrame(list(transferencia_dia.items()), columns=["Sistema", "SistemaId"]).copy()
@@ -2552,13 +2586,14 @@ def get_ssd_transferencias(data_atual_str):
 
     return df_final, all_transferencia_final
 
-def calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_afluente, vazao_descarregada):
-
-    vazao_captada_diaria = vazao_captada_diaria[vazao_captada_diaria["Sistema"] == "SIM"]
+def calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_afluente, vazao_descarregada, sistema_selecionado):
+    df_sim_atual_all = df_sim_atual_all[df_sim_atual_all['Sistema']==sistema_selecionado]
+    vazao_captada_diaria = vazao_captada_diaria[vazao_captada_diaria["Sistema"] == sistema_selecionado]
+    vazao_afluente = vazao_afluente[vazao_afluente["Sistema"] == sistema_selecionado]
 
     df_sim_atual_all.rename(columns={"value": "Volume"}, inplace=True)
     vazao_captada_diaria.rename(columns={"value": "Vazão Captada"}, inplace=True)
-    vazao_afluente.rename(columns={"value": "Vazão Afluente SIM"}, inplace=True)
+    vazao_afluente.rename(columns={"value": f"Vazão Afluente {sistema_selecionado}"}, inplace=True)
     vazao_descarregada.rename(columns={"value": "Vazão descarregada Cantareira"}, inplace=True)
 
     df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"]).dt.strftime("%Y-%m-%d")
@@ -2567,21 +2602,51 @@ def calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_a
     vazao_descarregada["dateTime"] = pd.to_datetime(vazao_descarregada["dateTime"]).dt.strftime("%Y-%m-%d")
 
     df_sim_atual_all = pd.merge(df_sim_atual_all, vazao_captada_diaria[["dateTime", "Vazão Captada"]], on="dateTime", how="left")
-    df_sim_atual_all = pd.merge(df_sim_atual_all, vazao_afluente[["dateTime", "Vazão Afluente SIM"]], on="dateTime", how="left")
+    df_sim_atual_all = pd.merge(df_sim_atual_all, vazao_afluente[["dateTime", f"Vazão Afluente {sistema_selecionado}"]], on="dateTime", how="left")
     df_sim_atual_all = pd.merge(df_sim_atual_all, vazao_descarregada[["dateTime", "Vazão descarregada Cantareira"]], on="dateTime", how="left") 
 
     df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"], errors="coerce")
     df_sim_atual_all = df_sim_atual_all.sort_values(by='dateTime').reset_index(drop=True)
 
     x = 7  # Média móvel de 7 dias
-    colunas_mm = ['Vazão Captada', 'Vazão Afluente SIM'] #colunas_mm = ['Vazão Captada', 'Vazão Afluente SIM', 'Vazão descarregada Cantareira']
+    colunas_mm = ['Vazão Captada', f'Vazão Afluente {sistema_selecionado}'] #colunas_mm = ['Vazão Captada', 'Vazão Afluente SIM', 'Vazão descarregada Cantareira']
     for col in colunas_mm:
         df_sim_atual_all[f'MediaMovel_{col}_{x}d'] = df_sim_atual_all[col].rolling(window=x, min_periods=1).mean()
 
     df_sim_atual_all[f'TaxaVar_{x}d'] = (df_sim_atual_all['Volume'] - df_sim_atual_all['Volume'].shift(x)) / x
 
     return df_sim_atual_all
-    
+
+def get_telemetric_stations(data_atual_str):
+
+    agora = datetime.now()
+    end_date = (agora + timedelta(days=1))
+    end_date_str = end_date.strftime("%Y/%m/%d")
+    #ajustar a lógica da data par pegar o end_date como data atual + 1 até às 03:00 da manhã
+
+    stations_id = [29592, 30846]
+    all_stations =[]
+    for id in stations_id:
+        print(id)
+        url = f"https://cth.daee.sp.gov.br/sibh/api/v2/measurements?end_date={data_atual_str}T23:59:59.999Z&group_type=minute&start_date={data_atual_str}T00:00:00.000Z&station_prefix_ids[]={id}"    
+        response = requests.get(url, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "measurements" in data:
+                df_atual = pd.DataFrame(data["measurements"])
+                df_atual["date"] = pd.to_datetime(df_atual["date"])
+                df_atual = df_atual.sort_values("date")
+                ultimo_registro = df_atual.tail(1)
+                all_stations.append(ultimo_registro)
+
+    all_stations_data = pd.concat(all_stations, ignore_index=True)
+    print(all_stations_data)
+    return all_stations_data
+
+
+
 def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado):
     colun1, colun2, colun3= st.columns([0.2, 2.0, 0.2])
 
@@ -2601,8 +2666,6 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
         vazao_afluente = get_ssd_vazao_afluente(data_atual_str)
         vazao_descarregada = get_ssd_descarregada(data_atual_str)
-
-        media_movel_captada = calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_afluente, vazao_descarregada)
 
         sistemas_list = vazao_natural['Sistema'].unique().tolist()
 
@@ -2723,6 +2786,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         # Cria o mapa centralizado no bounding box dos sistemas
         bounds = gdfsistemas.total_bounds  # [minx, miny, maxx, maxy]
+
+        # stations_monitoramento = get_telemetric_stations(data_atual_str)
         m = folium.Map(location=[(bounds[1]+bounds[3])/2, (bounds[0]+bounds[2])/2], zoom_start=8)
 
         # Adiciona cada camada
@@ -3004,8 +3069,11 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     with cc2:
         start_sim = '2025-08-19'
         start_sim_dt = pd.to_datetime(start_sim)
-        df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
-        df_sim_atual_filtrado=df_sim_atual_all[df_sim_atual_all["dateTime"] >= start_sim_dt]
+        df_sim_atual= df_sim_atual_all.copy()
+        df_sim_atual["dateTime"] = pd.to_datetime(df_sim_atual["dateTime"])
+        df_sim_atual = df_sim_atual[df_sim_atual['Sistema']=="SIM"]
+        
+        df_sim_atual_filtrado=df_sim_atual[df_sim_atual["dateTime"] >= start_sim_dt]
 
         data_atual_1meses = datetime.today() + relativedelta(months=1)
 
@@ -3018,11 +3086,9 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             projecao_sim[c] = pd.to_numeric(projecao_sim[c], errors='coerce')
             projecao_sim[c].fillna(0, inplace=True)
 
-        print(df_sim_atual_filtrado)
-
         fig_sim = go.Figure()
 
-        fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['Volume'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
+        fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
 
         fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
                                     mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=1.5)))
@@ -3061,8 +3127,10 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         st.plotly_chart(fig_sim)
 
+    media_movel_captada = calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_afluente, vazao_descarregada, sistema_selecionado)
     
-    media_movel_captada_all= media_movel_captada.rename(columns={"MediaMovel_Vazão Captada_7d":"MediaMovel_Vazão_Captada_7d", "MediaMovel_Vazão Afluente SIM_7d": "MediaMovel_Vazão_Afluente SIM_7d"})
+
+    media_movel_captada_all= media_movel_captada.rename(columns={"MediaMovel_Vazão Captada_7d":"MediaMovel_Vazão_Captada_7d", f"MediaMovel_Vazão Afluente {sistema_selecionado}_7d": f"MediaMovel_Vazão_Afluente {sistema_selecionado}_7d"})
     data_inicio = pd.to_datetime("2025-08-01")
     media_movel_captada = media_movel_captada_all[media_movel_captada_all['dateTime'] >= data_inicio]
 
@@ -3080,20 +3148,20 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
     ultima_data = media_movel_captada['dateTime'].max()
     valor_captada_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'MediaMovel_Vazão_Captada_7d'].values[0]
-    valor_afluente_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'MediaMovel_Vazão_Afluente SIM_7d'].values[0]
+    valor_afluente_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d'].values[0]
     valor_taxa_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'TaxaVar_7d'].values[0]
 
     valor_captada = media_movel_captada.loc[idx_captada, 'MediaMovel_Vazão_Captada_7d']
-    valor_afluente = media_movel_captada.loc[idx_afluente, 'MediaMovel_Vazão_Afluente SIM_7d']
+    valor_afluente = media_movel_captada.loc[idx_afluente, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
     valor_taxa = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d']
 
     valor_captada_2 = media_movel_captada.loc[idx_captada_2, 'MediaMovel_Vazão_Captada_7d']
-    valor_afluente_2 = media_movel_captada.loc[idx_afluente_2, 'MediaMovel_Vazão_Afluente SIM_7d']
+    valor_afluente_2 = media_movel_captada.loc[idx_afluente_2, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
     valor_taxa_2 = media_movel_captada.loc[idx_taxa_2, 'TaxaVar_7d']
 
     fig_media_movel_sim = go.Figure()
     fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Captada_7d'], mode='lines', name='Media Movel Vazão Captada(7d)', line=dict(color="#232FE0", width=1.5), line_shape='spline'))
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Afluente SIM_7d'], mode='lines', name='Media Movel Vazão Afluente SIM (7d)', line=dict( color="#387540", width=1.5)))         
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada[f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d'], mode='lines', name=f'Media Movel Vazão Afluente {sistema_selecionado} (7d)', line=dict( color="#387540", width=1.5)))         
     fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['TaxaVar_7d'], mode='lines', name='TaxaVar Var. 7d', line=dict(dash='dash', color="#c47003", width=1.5), yaxis="y2"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#da1010", width=2),name=f"Ref: {data_ref_2.strftime('%d/%m/%Y')} (Início da RDA)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#6e0808", width=2),name=f"{data_ref.strftime('%d/%m/%Y')} (Início da GDN)"))
@@ -3147,7 +3215,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     # Atualizando o layout do gráfico
     fig_media_movel_sim.update_layout(
         title=dict(
-            text="Médias Móveis das Vazões - SIM",
+            text=f"Médias Móveis das Vazões - {sistema_selecionado}",
             font=dict(size=20, color='black')
         ),
         xaxis=dict(
@@ -7509,27 +7577,59 @@ async def dashboard_reservatorios():
 
 
             merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
+            
+            volume_sistema_ssd = {
+                "Cantareira": 375,
+                "Alto Tietê": 351,
+                "Guarapiranga": 399,
+                "Cotia": 387,
+                "Rio Grande": 435, 
+                "Rio Claro":423,
+                "São Lourenço": 447,
+                "SIM": 459
+            }
 
+            df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
             data_inicial = '2025-06-01' 
-            url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_inicial}/{data_atual_str}'
-            response = requests.get(url_sim, verify=False)
+            all_volume =[]
+            for _,data_volume in df_sistemas_volume.iterrows():
+                id = data_volume["SistemaId"]
 
-            if response.status_code == 200:
-                data = response.json()
-                if "dataCollection" in data:
-                    df_sim_atual_all = pd.DataFrame(data["dataCollection"])
-                    df_sim_atual = df_sim_atual_all.copy()
-                    df_sim_atual['SistemaId'] = 459
+                url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
+                response = requests.get(url_volume, verify=False)
 
-                    valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
-                    valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
-                    valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
-                    df_sim_atual["Volume -7 dias (%)"] = valor_7dias
-                    df_sim_atual["Volume -14 dias (%)"] = valor_14dias
-                    df_sim_atual["Volume -21 dias (%)"] = valor_21dias
+                if response.status_code == 200:
+                    data = response.json()
 
-                    df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
-                    df_sim_atual = df_sim_atual.drop(columns={"deliveredAt"})
+                    if "dataCollection" in data:
+                        df_sim_atual = pd.DataFrame(data["dataCollection"])
+                        df_sim_atual_all = df_sim_atual.copy()
+                        df_sim_atual_all['SistemaId'] = id
+
+                        all_volume.append(df_sim_atual_all)
+
+            df_final_all = pd.concat(all_volume, ignore_index=True)
+            df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
+            
+            # url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_inicial}/{data_atual_str}'
+            # response = requests.get(url_sim, verify=False)
+
+            # if response.status_code == 200:
+            #     data = response.json()
+            #     if "dataCollection" in data:
+            #         df_sim_atual_all = pd.DataFrame(data["dataCollection"])
+            #         df_sim_atual = df_sim_atual_all.copy()
+            #         df_sim_atual['SistemaId'] = 459
+
+            #         valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
+            #         valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
+            #         valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
+            #         df_sim_atual["Volume -7 dias (%)"] = valor_7dias
+            #         df_sim_atual["Volume -14 dias (%)"] = valor_14dias
+            #         df_sim_atual["Volume -21 dias (%)"] = valor_21dias
+
+            #         df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
+            #         df_sim_atual = df_sim_atual.drop(columns={"deliveredAt"})
 
             data_dia_anterior = datetime.today() - timedelta(days=1)
             data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
@@ -7550,7 +7650,7 @@ async def dashboard_reservatorios():
             merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
             merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
 
-            creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado)
+            creat_dashboard(merged_data_sistemas, df_final_all_volume, lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado)
 
         return None
 
