@@ -46,6 +46,7 @@ from html2image import Html2Image
 from concurrent.futures import ThreadPoolExecutor
 from dateutil.relativedelta import relativedelta
 from matplotlib.patches import FancyArrowPatch
+from shapely.geometry import Point
 
 
 load_dotenv()
@@ -2621,14 +2622,14 @@ def get_telemetric_stations(data_atual_str):
 
     agora = datetime.now()
     end_date = (agora + timedelta(days=1))
-    end_date_str = end_date.strftime("%Y/%m/%d")
+    end_date_str = end_date.strftime("%Y-%m-%d")
     #ajustar a lógica da data par pegar o end_date como data atual + 1 até às 03:00 da manhã
 
     stations_id = [29592, 30846]
     all_stations =[]
     for id in stations_id:
-        print(id)
-        url = f"https://cth.daee.sp.gov.br/sibh/api/v2/measurements?end_date={data_atual_str}T23:59:59.999Z&group_type=minute&start_date={data_atual_str}T00:00:00.000Z&station_prefix_ids[]={id}"    
+
+        url = f"https://cth.daee.sp.gov.br/sibh/api/v2/measurements?end_date={end_date_str}T23:59:59.999Z&group_type=minute&start_date={data_atual_str}T00:00:00.000Z&station_prefix_ids[]={id}"    
         response = requests.get(url, verify=False)
 
         if response.status_code == 200:
@@ -2642,8 +2643,13 @@ def get_telemetric_stations(data_atual_str):
                 all_stations.append(ultimo_registro)
 
     all_stations_data = pd.concat(all_stations, ignore_index=True)
-    print(all_stations_data)
-    return all_stations_data
+    geometry = [Point(xy) for xy in zip(all_stations_data["longitude"], all_stations_data["latitude"])]
+
+    # Transformar em GeoDataFrame
+    gdf_all_stations_data = gpd.GeoDataFrame(all_stations_data, geometry=geometry, crs="EPSG:4326")
+    gdf_all_stations_data["date"] = gdf_all_stations_data["date"].dt.strftime("%Y/%m/%d %H:%M")
+
+    return gdf_all_stations_data
 
 
 
@@ -2754,6 +2760,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         gdflimite = gpd.read_file("data/limiteestadualsp.shp")
         gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
         gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
+        gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
 
         gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
         gdf_vazao_natural_merge = gdf_vazao_natural.merge(
@@ -2787,15 +2794,18 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         # Cria o mapa centralizado no bounding box dos sistemas
         bounds = gdfsistemas.total_bounds  # [minx, miny, maxx, maxy]
 
-        # stations_monitoramento = get_telemetric_stations(data_atual_str)
+        stations_monitoramento = get_telemetric_stations(data_atual_str)
+
         m = folium.Map(location=[(bounds[1]+bounds[3])/2, (bounds[0]+bounds[2])/2], zoom_start=8)
 
         # Adiciona cada camada
-        folium.GeoJson(gdflimite, name="Limite", style_function=lambda x: {"color": "black", "fillColor": "#ADADAD",  "fillOpacity": 0.8, "weight": 1}).add_to(m)
+        folium.GeoJson(gdflimite, name="Limite", style_function=lambda x: {"color": "black", "fillColor": "#D8D8D8",  "fillOpacity": 0.3, "weight": 1}).add_to(m)
         folium.GeoJson(gdfsistemas, name="Sistemas", style_function=lambda x: {"color": "#397249", "fillColor": "#397249",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
         folium.GeoJson(gdf_pariba_do_sul, name="Paraíba do Sul", style_function=lambda x: {"color": "black", "fillColor": "#758b7f",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
         folium.GeoJson(gdf_reservatorios_merge, name="Reservatórios", style_function=lambda x: {"color": "#3871eb", "fillColor": "#294c97",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
-        folium.GeoJson(gdf_transposicao_merge, name="Transposição", style_function=lambda x: {"color": "#3871eb", "fillColor": "#21428a", "fillOpacity": 0.6, "weight": 2, "dashArray": "10, 5"}).add_to(m)
+        folium.GeoJson(gdf_hidrografia, name="Hidrografia", style_function=lambda x: {"color": "#3871eb", "fillColor": "#294c97",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdf_transposicao_merge, name="Transposição", style_function=lambda x: {"color": "#3871eb", "fillColor": "#21428a", "fillOpacity": 0.6, "weight": 1, "dashArray": "10, 5"}).add_to(m)
+        # folium.GeoJson(stations_monitoramento, name="Monitoramento", style_function=lambda x: {"color": "#ebe838", "fillColor": "#21428a", "fillOpacity": 0.6, "weight": 2}, marker=None).add_to(m)
         # folium.GeoJson(gdf_vazao_natural_merge, name="Vazão Natural", style_function=lambda x: {"color": "black", "fillColor": "#dfd332", "fillOpacity": 0.8,"weight": 1}, marker=None ).add_to(m)
 
         # Adiciona popup com valor
@@ -2814,6 +2824,34 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                     </div>
                 """)
             ).add_to(m)
+
+
+        for _, row in stations_monitoramento.iterrows():
+            lat, lon = row.geometry.y, row.geometry.x
+            popup_html = f"""
+                {row['station_name']}<br>
+                Valor: {row['value']:.1f} m³/s<br>
+                Data: {row['date']}
+            """
+
+            folium.Marker(
+                location=[lat, lon],
+                popup=popup_html,
+                icon=folium.DivIcon(html="""
+                    <div style="font-size:12px; color:#ebe838;">
+                        <i class="fa fa-flag"></i>
+                    </div>
+                """)
+            ).add_to(m)
+            # folium.CircleMarker(
+            #     location=[lat, lon],
+            #     radius=4,                # tamanho do círculo
+            #     color="yellow",           # borda
+            #     fill=True,
+            #     fill_color="yellow",      # preenchimento
+            #     fill_opacity=0.8,
+            #     popup=popup_html
+            # ).add_to(m)
         
         folium.LayerControl().add_to(m)
 
