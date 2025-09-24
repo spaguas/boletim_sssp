@@ -2025,7 +2025,7 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
     # merged_df_final_chuva= pd.merge(df_final_chuva, df_sistemas_volume, on='SistemaId', how='left')
     # print(merged_df_final_chuva)
 
-
+    #"São Lourenço": 447,
     volume_sistema_ssd = {
         "Cantareira": 375,
         "Alto Tietê": 351,
@@ -2033,7 +2033,6 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
         "Cotia": 387,
         "Rio Grande": 435, 
         "Rio Claro":423,
-        "São Lourenço": 447,
         "SIM": 459
     }
 
@@ -2086,31 +2085,56 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
     df_final = pd.concat(all_volume, ignore_index=True)
     merged_df_final= pd.merge(df_final, df_sistemas_volume, on='SistemaId', how='left')
 
+
+    # key = os.environ.get('KEY')
+    # value = os.environ.get('VALUE')
+    # headers = {key: value}
+    # url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_21dias_str}/{data_atual_str}"
+    # response_sl = requests.get(url_sao_lourenco, headers=headers)
+
+    # if response_sl.status_code == 200:
+    #     dados_sl = response_sl.json()
+    #     if "data" in dados_sl:
+    #         df_atual_sl = pd.DataFrame(dados_sl["data"])
+    #         print(df_atual_sl)
+    #         df_atual_sl['SistemaId'] = 447
+    #         df_atual_sl['Sistema'] = "São Lourenço"
+
+    #         df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"]).dt.date
+            
+    #         if (df_atual_sl["data"] == data_atual_str).any():
+    #             valor_atual = (
+    #                 df_atual_sl.loc[df_atual_sl["data"] == data_atual_str, "volumeOperacional_porcentagem"]
+    #                 .sort_index()
+    #                 .iloc[-1]  # pega o último disponível
+    #             )
+    #         else: 
+    #             valor_atual = df_atual_sl["volumeOperacional_porcentagem"].iloc[-1]
+
+    #         valor_7_dias = (df_atual_sl.loc[df_atual_sl['data'] == data_7dias_str, 'volumeOperacional_porcentagem']
+    #             .reset_index(drop=True)
+    #             .get(0, None)  
+    #         )
+    #         valor_14_dias = (df_atual_sl.loc[df_atual_sl['data'] == data_14dias_str, 'volumeOperacional_porcentagem']
+    #             .reset_index(drop=True)
+    #             .get(0, None)  
+    #         )
+    #         valor_21_dias = (df_atual_sl.loc[df_atual_sl['data'] == data_21dias_str, 'volumeOperacional_porcentagem']
+    #             .reset_index(drop=True)
+    #             .get(0, None)  
+    #         )
+
+    #         df_atual_sl["Volume atual (%)"] = valor_atual
+    #         df_atual_sl["Volume -7 dias (%)"] = valor_7_dias
+    #         df_atual_sl["Volume -14 dias (%)"] = valor_14_dias
+    #         df_atual_sl["Volume -21 dias (%)"] = valor_21_dias
+
+    #         print(df_atual_sl)
+        
+    # merged_df_final = pd.concat([merged_df_final, df_atual_sl], ignore_index=True)
+
     return merged_df_final
 
-    # chuva_media_historica = {
-    #     "Cantareira": 851,
-    #     "Alto Tietê": 827,
-    #     "Guarapiranga": 875,
-    #     "Cotia": 863, 
-    #     "Rio Grande": 911,
-    #     "Rio Claro": 899,  
-    #     "São Lourenço": 571
-    # }
-
-    # df_sistemas_historica = pd.DataFrame(list(chuva_media_historica.items()), columns=["Sistema", "SistemaId"])
-    # for data in df_sistemas_historica:
-    #     id = data["SistemaId"]
-    #     url_media = f"https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/1991-01-01/2020-12-31"
-    #     response_medias = requests.get(url_media, verify=False)
-    #     if response_medias.status_code == 200:
-    #         data_media = response_medias.json()
-
-
-    # merged_data = pd.concat([merged_data, df_sim_atual], ignore_index=True)
-    # merged_data_sistemas = pd.merge(merged_data, df_sistemas, on='SistemaId', how='left')
-    # merged_data_sistemas = merged_data_sistemas.dropna(subset=['Sistema'])
-    # print(merged_data_sistemas)
 
 def get_ssd_api_comparacao(data_ano_anterior_str):
     dados_sistema = {
@@ -2819,7 +2843,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 location=[x, y],
                 popup=popup_html,
                 icon=folium.DivIcon(html="""
-                    <div style="font-size:12px; color:blue;">
+                    <div style="font-size:12px; color:#294c97;">
                         <i class="fa fa-water"></i>
                     </div>
                 """)
@@ -2838,7 +2862,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 location=[lat, lon],
                 popup=popup_html,
                 icon=folium.DivIcon(html="""
-                    <div style="font-size:12px; color:#ebe838;">
+                    <div style="font-size:12px; color:#ebe838;-webkit-text-stroke: 1px black;"">
                         <i class="fa fa-flag"></i>
                     </div>
                 """)
@@ -3193,8 +3217,18 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     valor_afluente = media_movel_captada.loc[idx_afluente, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
     valor_taxa = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d']
 
+    valor_taxa_min = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d'].min()-0.15
+    valor_taxa_max = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d'].max()
+
+    if valor_taxa_max < 0:
+        valor_taxa_max = 0
+    else:
+        valor_taxa_max = valor_taxa_max + 0.15
+
+
     valor_captada_2 = media_movel_captada.loc[idx_captada_2, 'MediaMovel_Vazão_Captada_7d']
     valor_afluente_2 = media_movel_captada.loc[idx_afluente_2, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
+    media_movel_captada['TaxaVar_7d'] = media_movel_captada['TaxaVar_7d'].replace({np.nan: None})
     valor_taxa_2 = media_movel_captada.loc[idx_taxa_2, 'TaxaVar_7d']
 
     fig_media_movel_sim = go.Figure()
@@ -3280,7 +3314,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             side="right",
             tickfont=dict(color="#c47003", size=16),
             gridcolor="#FFFFFF",
-            range=[-0.35, 0],
+            range=[valor_taxa_min, valor_taxa_max],
             dtick=0.05,
             fixedrange=True 
         ),
@@ -6730,7 +6764,7 @@ async def slide8_seca():
         data_inicial = datetime.today()
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
-        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec7dias/{data_inicial_str}H00:00"
         url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_6.jpg'
         print(url)
         try:
