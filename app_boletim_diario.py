@@ -2305,7 +2305,7 @@ def get_ssd_vazao_natural(data_atual_str):
                 df_atual = pd.DataFrame(data["dataCollection"])
                 df_atual_all = df_atual.copy()
                 df_atual_all['SistemaId'] = id
-                print(df_atual_all)
+
                 df_atual_all["dateTime"] = pd.to_datetime(df_atual_all["dateTime"])
 
                 # criar coluna só com mês e dia (formato "01-01")
@@ -3217,14 +3217,14 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     valor_afluente = media_movel_captada.loc[idx_afluente, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
     valor_taxa = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d']
 
-    valor_taxa_min = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d'].min()-0.15
-    valor_taxa_max = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d'].max()
+    valor_taxa_min = media_movel_captada['TaxaVar_7d'].min() - 0.15
+    valor_taxa_max = media_movel_captada['TaxaVar_7d'].max()
+
 
     if valor_taxa_max < 0:
         valor_taxa_max = 0
     else:
-        valor_taxa_max = valor_taxa_max + 0.15
-
+        valor_taxa_max = valor_taxa_max + 0.10
 
     valor_captada_2 = media_movel_captada.loc[idx_captada_2, 'MediaMovel_Vazão_Captada_7d']
     valor_afluente_2 = media_movel_captada.loc[idx_afluente_2, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
@@ -3316,7 +3316,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             gridcolor="#FFFFFF",
             range=[valor_taxa_min, valor_taxa_max],
             dtick=0.05,
-            fixedrange=True 
+            fixedrange=True,
+            zeroline=False 
         ),
         plot_bgcolor='white',
         paper_bgcolor='white',
