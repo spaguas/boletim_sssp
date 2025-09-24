@@ -1990,41 +1990,6 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
         "SIM": 454
     }
 
-    df_sistemas_chuva = pd.DataFrame(list(chuva_acumulada.items()), columns=["Sistema", "SistemaId"])
-
-    # all_chuva =[]
-    # for _,data_chuva in df_sistemas_chuva.iterrows():
-    #     id_chuva = data_chuva["SistemaId"]
-
-    #     url_chuva = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id_chuva}/Data/{data_atual_str}/{data_atual_str}'
-    #     response = requests.get(url_chuva, verify=False)
-
-    #     if response.status_code == 200:
-    #         data = response.json()
-
-    #         if "dataCollection" in data:
-    #             df_atual_chuva = pd.DataFrame(data["dataCollection"])
-    #             df_atual_all_chuva = df_atual_chuva.copy()
-    #             df_atual_all_chuva['SistemaId'] = id_chuva
-
-    #             # valor_atual = df_atual_all_chuva.loc[df_atual_all_chuva['dateTime'] == data_atual_str, 'value'].iloc[0]
-    #             valor_atual = (
-    #                 df_atual_all_chuva.loc[df_atual_all_chuva["dateTime"] <= data_atual_str, "value"]
-    #                 .sort_index()
-    #                 .iloc[-1]  # pega o último disponível
-    #             )
-    #             print(id_chuva," - ", valor_atual)
-    #             df_atual_all_chuva["Precipitacao"] = valor_atual
-    #             print(df_atual_all_chuva)
-
-    #             df_atual_all_chuva = df_atual_all_chuva[df_atual_all_chuva['dateTime'] == data_atual_str]
-    #             df_atual_all_chuva = df_atual_all_chuva.drop(columns={"deliveredAt", "value"})
-    #             all_chuva.append(df_atual_all_chuva)
-
-    # df_final_chuva = pd.concat(all_chuva, ignore_index=True)
-    # merged_df_final_chuva= pd.merge(df_final_chuva, df_sistemas_volume, on='SistemaId', how='left')
-    # print(merged_df_final_chuva)
-
     #"São Lourenço": 447,
     volume_sistema_ssd = {
         "Cantareira": 375,
@@ -2085,53 +2050,51 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
     df_final = pd.concat(all_volume, ignore_index=True)
     merged_df_final= pd.merge(df_final, df_sistemas_volume, on='SistemaId', how='left')
 
+    key = os.environ.get('KEY')
+    value = os.environ.get('VALUE')
+    headers = {key: value}
+    url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_21dias_str}/{data_atual_str}"
+    response_sl = requests.get(url_sao_lourenco, headers=headers)
 
-    # key = os.environ.get('KEY')
-    # value = os.environ.get('VALUE')
-    # headers = {key: value}
-    # url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_21dias_str}/{data_atual_str}"
-    # response_sl = requests.get(url_sao_lourenco, headers=headers)
+    if response_sl.status_code == 200:
+        dados_sl = response_sl.json()
+        if "data" in dados_sl:
+            df_atual_sl = pd.DataFrame(dados_sl["data"])
 
-    # if response_sl.status_code == 200:
-    #     dados_sl = response_sl.json()
-    #     if "data" in dados_sl:
-    #         df_atual_sl = pd.DataFrame(dados_sl["data"])
-    #         print(df_atual_sl)
-    #         df_atual_sl['SistemaId'] = 447
-    #         df_atual_sl['Sistema'] = "São Lourenço"
+            df_atual_sl['SistemaId'] = 447
+            df_atual_sl['Sistema'] = "São Lourenço"
 
-    #         df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"]).dt.date
+            df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"]).dt.date
+            df_atual_sl["dateTime"] = pd.to_datetime(df_atual_sl["data"]).dt.strftime("%Y-%m-%d")
             
-    #         if (df_atual_sl["data"] == data_atual_str).any():
-    #             valor_atual = (
-    #                 df_atual_sl.loc[df_atual_sl["data"] == data_atual_str, "volumeOperacional_porcentagem"]
-    #                 .sort_index()
-    #                 .iloc[-1]  # pega o último disponível
-    #             )
-    #         else: 
-    #             valor_atual = df_atual_sl["volumeOperacional_porcentagem"].iloc[-1]
+            if (df_atual_sl["data"] == data_atual_str).any():
+                valor_atual = (
+                    df_atual_sl.loc[df_atual_sl["data"] == data_atual_str, "volumeOperacional_porcentagem"]
+                    .sort_index()
+                    .iloc[-1]  # pega o último disponível
+                )
+            else: 
+                valor_atual = df_atual_sl["volumeOperacional_porcentagem"].iloc[-1]
 
-    #         valor_7_dias = (df_atual_sl.loc[df_atual_sl['data'] == data_7dias_str, 'volumeOperacional_porcentagem']
-    #             .reset_index(drop=True)
-    #             .get(0, None)  
-    #         )
-    #         valor_14_dias = (df_atual_sl.loc[df_atual_sl['data'] == data_14dias_str, 'volumeOperacional_porcentagem']
-    #             .reset_index(drop=True)
-    #             .get(0, None)  
-    #         )
-    #         valor_21_dias = (df_atual_sl.loc[df_atual_sl['data'] == data_21dias_str, 'volumeOperacional_porcentagem']
-    #             .reset_index(drop=True)
-    #             .get(0, None)  
-    #         )
+            valor_7_dias = (df_atual_sl.loc[df_atual_sl['dateTime'] == data_7dias_str, 'volumeOperacional_porcentagem']
+                .reset_index(drop=True)
+                .get(0, None)  
+            )
+            valor_14_dias = (df_atual_sl.loc[df_atual_sl['dateTime'] == data_14dias_str, 'volumeOperacional_porcentagem']
+                .reset_index(drop=True)
+                .get(0, None)  
+            )
+            valor_21_dias = (df_atual_sl.loc[df_atual_sl['dateTime'] == data_21dias_str, 'volumeOperacional_porcentagem']
+                .reset_index(drop=True)
+                .get(0, None)  
+            )
 
-    #         df_atual_sl["Volume atual (%)"] = valor_atual
-    #         df_atual_sl["Volume -7 dias (%)"] = valor_7_dias
-    #         df_atual_sl["Volume -14 dias (%)"] = valor_14_dias
-    #         df_atual_sl["Volume -21 dias (%)"] = valor_21_dias
+            df_atual_sl["Volume atual (%)"] = valor_atual
+            df_atual_sl["Volume -7 dias (%)"] = valor_7_dias
+            df_atual_sl["Volume -14 dias (%)"] = valor_14_dias
+            df_atual_sl["Volume -21 dias (%)"] = valor_21_dias
 
-    #         print(df_atual_sl)
-        
-    # merged_df_final = pd.concat([merged_df_final, df_atual_sl], ignore_index=True)
+    merged_df_final = pd.concat([merged_df_final, df_atual_sl], ignore_index=True)
 
     return merged_df_final
 
@@ -2170,6 +2133,7 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
         "SIM": 454
     }
 
+    #"São Lourenço": 447,
     volume_sistema_ssd = {
         "Cantareira": 375,
         "Alto Tietê": 351,
@@ -2177,7 +2141,6 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
         "Cotia": 387,
         "Rio Grande": 435, 
         "Rio Claro":423,
-        "São Lourenço": 447,
         "SIM": 459
     }
 
@@ -2218,9 +2181,30 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
 
     df_final = pd.concat(all_volume, ignore_index=True)
 
+    key = os.environ.get('KEY')
+    value = os.environ.get('VALUE')
+    headers = {key: value}
+    url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_ano_anterior_str}/{data_ano_anterior_str}"
+    response_sl = requests.get(url_sao_lourenco, headers=headers)
 
+    if response_sl.status_code == 200:
+        dados_sl = response_sl.json()
+        if "data" in dados_sl:
+            df_atual_sl = pd.DataFrame(dados_sl["data"])
+            df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
+            df_atual_sl['SistemaId'] = 447
 
-    return df_final
+            df_atual_sl["dateTime"] = pd.to_datetime(df_atual_sl["data"]).dt.strftime("%Y-%m-%d")
+            
+            
+            valor_ano_anterior = df_atual_sl.loc[df_atual_sl['dateTime'] == data_ano_anterior_str, 'volumeOperacional_porcentagem'].iloc[0]
+
+            df_atual_sl["Volume Ano Anterior (%)"] = valor_ano_anterior
+
+            df_atual_sl = df_atual_sl[df_atual_sl['dateTime'] == data_ano_anterior_str]
+
+    merged_df_final = pd.concat([df_final, df_atual_sl], ignore_index=True)
+    return merged_df_final
 
 
 def get_ssd_vazao_natural(data_atual_str):
@@ -2749,8 +2733,11 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 st.session_state.tunel_transferencia = tunel_selecionado
                 st.rerun()
 
+        print(merged_data_sistemas)
+        print(merged_data_sistemas.columns)
         html_blocks = []
         for i, row in merged_data_sistemas.iterrows():
+            
             bloco = f"""
                 <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; 
                             width: 180px; height: 80px; display: flex; flex-direction: column; 
@@ -7650,7 +7637,8 @@ async def dashboard_reservatorios():
 
 
             merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
-            
+
+            #"São Lourenço": 447,
             volume_sistema_ssd = {
                 "Cantareira": 375,
                 "Alto Tietê": 351,
@@ -7658,7 +7646,6 @@ async def dashboard_reservatorios():
                 "Cotia": 387,
                 "Rio Grande": 435, 
                 "Rio Claro":423,
-                "São Lourenço": 447,
                 "SIM": 459
             }
 
@@ -7684,25 +7671,25 @@ async def dashboard_reservatorios():
             df_final_all = pd.concat(all_volume, ignore_index=True)
             df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
             
-            # url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_inicial}/{data_atual_str}'
-            # response = requests.get(url_sim, verify=False)
+            key = os.environ.get('KEY')
+            value = os.environ.get('VALUE')
+            headers = {key: value}
+            url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
+            response_sl = requests.get(url_sao_lourenco, headers=headers)
 
-            # if response.status_code == 200:
-            #     data = response.json()
-            #     if "dataCollection" in data:
-            #         df_sim_atual_all = pd.DataFrame(data["dataCollection"])
-            #         df_sim_atual = df_sim_atual_all.copy()
-            #         df_sim_atual['SistemaId'] = 459
+            if response_sl.status_code == 200:
+                dados_sl = response_sl.json()
+                if "data" in dados_sl:
+                    df_atual_sl = pd.DataFrame(dados_sl["data"])
+                    df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
+                    df_atual_sl['SistemaId'] = 447
+                    df_atual_sl['Sistema'] = "São Lourenço"
+                    df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"])
+                    df_atual_sl["data"] = df_atual_sl["data"].dt.strftime("%Y-%m-%d")
+                    
+                    df_atual_sl = df_atual_sl.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
 
-            #         valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
-            #         valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
-            #         valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
-            #         df_sim_atual["Volume -7 dias (%)"] = valor_7dias
-            #         df_sim_atual["Volume -14 dias (%)"] = valor_14dias
-            #         df_sim_atual["Volume -21 dias (%)"] = valor_21dias
-
-            #         df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
-            #         df_sim_atual = df_sim_atual.drop(columns={"deliveredAt"})
+            df_final_all_volume = pd.concat([df_final_all_volume, df_atual_sl], ignore_index=True)
 
             data_dia_anterior = datetime.today() - timedelta(days=1)
             data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
@@ -7716,8 +7703,19 @@ async def dashboard_reservatorios():
                     merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
                 ]
 
-
+            print("----------------merged_data_sistemas--------------")
+            print(merged_data_sistemas)
+            print("----------------sistemas_ano_comparacao--------------")
+            print(sistemas_ano_comparacao)
             merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
+            
+            merged_data_sistemas = merged_data_sistemas.rename(columns={"dateTime_x": "dateTime"})
+            merged_data_sistemas["dateTime"] = pd.to_datetime(merged_data_sistemas["dateTime"])
+            merged_data_sistemas["dateTime"] = merged_data_sistemas["dateTime"].dt.strftime("%Y-%m-%d")
+            merged_data_sistemas = merged_data_sistemas.drop(columns=['data_x','dateTime_y','data_y'])
+
+            print(merged_data_sistemas)
+            print(merged_data_sistemas.columns)
 
             merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
             merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
