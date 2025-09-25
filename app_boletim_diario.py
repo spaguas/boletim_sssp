@@ -3207,7 +3207,6 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     valor_taxa_min = media_movel_captada['TaxaVar_7d'].min() - 0.15
     valor_taxa_max = media_movel_captada['TaxaVar_7d'].max()
 
-
     if valor_taxa_max < 0:
         valor_taxa_max = 0
     else:
@@ -3217,6 +3216,11 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     valor_afluente_2 = media_movel_captada.loc[idx_afluente_2, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
     media_movel_captada['TaxaVar_7d'] = media_movel_captada['TaxaVar_7d'].replace({np.nan: None})
     valor_taxa_2 = media_movel_captada.loc[idx_taxa_2, 'TaxaVar_7d']
+    
+    if sistema_selecionado == "São Lourenço":
+        intervalo = 0.5
+    else:
+        intervalo = 0.05
 
     fig_media_movel_sim = go.Figure()
     fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Captada_7d'], mode='lines', name='Media Movel Vazão Captada(7d)', line=dict(color="#232FE0", width=1.5), line_shape='spline'))
@@ -3302,7 +3306,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             tickfont=dict(color="#c47003", size=16),
             gridcolor="#FFFFFF",
             range=[valor_taxa_min, valor_taxa_max],
-            dtick=0.05,
+            dtick=intervalo,
             fixedrange=True,
             zeroline=False 
         ),
@@ -7703,19 +7707,12 @@ async def dashboard_reservatorios():
                     merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
                 ]
 
-            print("----------------merged_data_sistemas--------------")
-            print(merged_data_sistemas)
-            print("----------------sistemas_ano_comparacao--------------")
-            print(sistemas_ano_comparacao)
             merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
             
             merged_data_sistemas = merged_data_sistemas.rename(columns={"dateTime_x": "dateTime"})
             merged_data_sistemas["dateTime"] = pd.to_datetime(merged_data_sistemas["dateTime"])
             merged_data_sistemas["dateTime"] = merged_data_sistemas["dateTime"].dt.strftime("%Y-%m-%d")
             merged_data_sistemas = merged_data_sistemas.drop(columns=['data_x','dateTime_y','data_y'])
-
-            print(merged_data_sistemas)
-            print(merged_data_sistemas.columns)
 
             merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
             merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
