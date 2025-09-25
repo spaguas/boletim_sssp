@@ -2037,11 +2037,23 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
                     .get(0, None)  
                 )
 
+                stats = float(valor_atual)
+                if stats >= 60:
+                    cor = "#2e9619"  
+                elif 40 <= stats < 60:
+                    cor = '#f8d202'  
+                elif 30 <= stats < 40:
+                    cor = '#f95108' 
+                elif 20 <= stats < 30:
+                    cor = '#da070f'  
+                elif stats < 20:
+                    cor = '#8435b7' 
+
                 df_atual_all["Volume atual (%)"] = valor_atual
                 df_atual_all["Volume -7 dias (%)"] = valor_7_dias
                 df_atual_all["Volume -14 dias (%)"] = valor_14_dias
                 df_atual_all["Volume -21 dias (%)"] = valor_21_dias
-
+                df_atual_all["cor_volume_atual"] = cor
 
                 # df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_atual_str]
                 df_atual_all = df_atual_all.drop(columns={"deliveredAt", "value"})
@@ -2089,10 +2101,23 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
                 .get(0, None)  
             )
 
+            stats = float(valor_atual)
+            if stats >= 60:
+                cor = "#2e9619"  
+            elif 40 <= stats < 60:
+                cor = '#f8d202'  
+            elif 30 <= stats < 40:
+                cor = '#f95108' 
+            elif 20 <= stats < 30:
+                cor = '#da070f'  
+            elif stats < 20:
+                cor = '#8435b7' 
+
             df_atual_sl["Volume atual (%)"] = valor_atual
             df_atual_sl["Volume -7 dias (%)"] = valor_7_dias
             df_atual_sl["Volume -14 dias (%)"] = valor_14_dias
             df_atual_sl["Volume -21 dias (%)"] = valor_21_dias
+            df_atual_sl["cor_volume_atual"] = cor
 
     merged_df_final = pd.concat([merged_df_final, df_atual_sl], ignore_index=True)
 
@@ -2733,19 +2758,24 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 st.session_state.tunel_transferencia = tunel_selecionado
                 st.rerun()
 
-        print(merged_data_sistemas)
-        print(merged_data_sistemas.columns)
+        legenda ={
+                "E0 - Normal": '#268b12',
+                "E1 - Atenção": '#f8d202',
+                "E2 - Alerta":'#f95108',
+                "E3 - Crítico":'#da070f',
+                "E4 - Emergência":'#8435b7'
+            }
+
         html_blocks = []
-        for i, row in merged_data_sistemas.iterrows():
-            
+        for i, row in merged_data_sistemas.iterrows():          
             bloco = f"""
-                <div style="background-color:#989CA868; padding: 12px; border-radius: 8px; 
+                <div style="background-color:{row['cor_volume_atual']}; padding: 12px; border-radius: 8px; 
                             width: 180px; height: 80px; display: flex; flex-direction: column; 
-                            justify-content: center; align-items: center;">
-                    <div style="color: #1E1E20; font-size: 18px;">
+                            justify-content: center; align-items: center; box-shadow: 3px 3px 8px rgba(0,0,0,0.4);">
+                    <div style="color: black; font-size: 18px;">
                         <strong>{row['Sistema']}</strong>
                     </div>
-                    <div style="color: #1E1E20; font-size: 16px;">
+                    <div style="color: black; font-size: 16px;">
                         {row['Volume atual (%)']:.2f}%
                     </div>
                     <div style="color: {row['cor_diferença']}; font-size: 12px;">
@@ -2764,16 +2794,60 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         # print(html_perc_blocks)
         st.components.v1.html(html_perc_blocks, height=300, scrolling=True)
-    
+
+        
+        st.components.v1.html('''
+            <div style="display:flex; justify-content:center; gap:15px;">
+
+                <div style="display:flex; align-items:center;">
+                    <div style="width:15px; height:15px; background:#f8d202; margin-right:5px;"></div>
+                    <span style="font-size:16px;">E1 - Atenção</span>
+                </div>
+
+                <div style="display:flex; align-items:center;">
+                    <div style="width:15px; height:15px; background:#f95108; margin-right:5px;"></div>
+                    <span style="font-size:16px;">E2 - Alerta</span>
+                </div>
+
+                <div style="display:flex; align-items:center;">
+                    <div style="width:15px; height:15px; background:#da070f; margin-right:5px;"></div>
+                    <span style="font-size:16px;">E3 - Crítico</span>
+                </div>
+
+                <div style="display:flex; align-items:center;">
+                    <div style="width:15px; height:15px; background:#8435b7; margin-right:5px;"></div>
+                    <span style="font-size:16px;">E4 - Emergência</span>
+                </div>
+
+            </div>
+            ''', height=50)
+
+
     
     with map1:
 
         gdflimite = gpd.read_file("data/limiteestadualsp.shp")
-        gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp")
+        # gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp", encoding="utf-8")
+        
+
+        gdfsistemas = gpd.read_file("data/bacia_sistemas_uniao.shp", encoding="utf-8")
+        gdfsistemas = gdfsistemas.set_crs("EPSG:4326")
+        gdfsistemas['Sistema'] = gdfsistemas['Sistema'].replace('Sao Lourenço', 'São Lourenço')
+
+
         gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
         gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
 
         gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
+
+        gdfsistemas_merge = gdfsistemas.merge(
+            merged_data_sistemas,
+            how="left",             # tipo de join
+            # left_on="sistema",           # coluna do shapefile
+            # right_on="Sistema"    # coluna do dataframe
+            on = "Sistema"
+        )
+
         gdf_vazao_natural_merge = gdf_vazao_natural.merge(
             vazao_natural_diaria,
             how="left",             # tipo de join
@@ -2809,22 +2883,47 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         m = folium.Map(location=[(bounds[1]+bounds[3])/2, (bounds[0]+bounds[2])/2], zoom_start=8)
 
+        popup_columns = ["Sistema", "Volume atual (%)", 'Volume Ano Anterior (%)']
+
         # Adiciona cada camada
-        folium.GeoJson(gdflimite, name="Limite", style_function=lambda x: {"color": "black", "fillColor": "#D8D8D8",  "fillOpacity": 0.3, "weight": 1}).add_to(m)
-        folium.GeoJson(gdfsistemas, name="Sistemas", style_function=lambda x: {"color": "#397249", "fillColor": "#397249",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
-        folium.GeoJson(gdf_pariba_do_sul, name="Paraíba do Sul", style_function=lambda x: {"color": "black", "fillColor": "#758b7f",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdflimite, name="Limite", style_function=lambda x: {"color": "#575757", "fillColor": "#D8D8D8",  "fillOpacity": 0.2, "weight": 2}).add_to(m)
+        folium.GeoJson(
+            gdfsistemas_merge,
+            name="Sistema",
+            style_function=lambda feature: {
+                "color": "#333333",
+                "fillColor": feature['properties']['cor_volume_atual'],
+                "fillOpacity": 0.8,
+                "weight": 1
+            },
+            popup=folium.GeoJsonPopup(
+                fields=popup_columns,  # quais colunas exibir
+                aliases=["Sistema:", "Volume atual (%):", "Volume Ano Anterior (%):"],  # rótulos
+                localize=True,  # formata números
+                labels=True,
+                style="background-color: white; color: black; border: 1px solid gray; border-radius: 5px; padding: 5px;"
+            )
+        ).add_to(m)
+        folium.GeoJson(gdf_pariba_do_sul, name="Paraíba do Sul", style_function=lambda x: {"color": "#3f4550", "fillColor": "#747474",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
         folium.GeoJson(gdf_reservatorios_merge, name="Reservatórios", style_function=lambda x: {"color": "#3871eb", "fillColor": "#294c97",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
         folium.GeoJson(gdf_hidrografia, name="Hidrografia", style_function=lambda x: {"color": "#3871eb", "fillColor": "#294c97",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
         folium.GeoJson(gdf_transposicao_merge, name="Transposição", style_function=lambda x: {"color": "#3871eb", "fillColor": "#21428a", "fillOpacity": 0.6, "weight": 1, "dashArray": "10, 5"}).add_to(m)
-        # folium.GeoJson(stations_monitoramento, name="Monitoramento", style_function=lambda x: {"color": "#ebe838", "fillColor": "#21428a", "fillOpacity": 0.6, "weight": 2}, marker=None).add_to(m)
-        # folium.GeoJson(gdf_vazao_natural_merge, name="Vazão Natural", style_function=lambda x: {"color": "black", "fillColor": "#dfd332", "fillOpacity": 0.8,"weight": 1}, marker=None ).add_to(m)
 
         # Adiciona popup com valor
         for _, row in gdf_transposicao_merge.iterrows():
             x, y = row.geometry.centroid.y, row.geometry.centroid.x
             popup_html = f"""
-                {row['Sistema']}<br>
+            <div style="
+                background-color: white; 
+                color: black; 
+                border: 1px solid gray; 
+                border-radius: 5px; 
+                padding: 5px;
+                font-size: 12px;
+            ">
+                <strong>{row['Sistema']}</strong><br>
                 Transferência: {row['value']:.1f} m³/s
+            </div>
             """
             folium.Marker(
                 location=[x, y],
@@ -2840,30 +2939,30 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         for _, row in stations_monitoramento.iterrows():
             lat, lon = row.geometry.y, row.geometry.x
             popup_html = f"""
-                {row['station_name']}<br>
-                Valor: {row['value']:.1f} m³/s<br>
-                Data: {row['date']}
+                <div style="
+                    background-color: white; 
+                    color: black; 
+                    border: 1px solid gray; 
+                    border-radius: 5px; 
+                    padding: 5px;
+                    font-size: 12px;
+                ">
+                    <strong>{row['station_name']}</strong><br>
+                    Valor: {row['value']:.1f} m³/s<br>
+                    Data: {row['date']}
+                </div>
             """
 
             folium.Marker(
                 location=[lat, lon],
                 popup=popup_html,
                 icon=folium.DivIcon(html="""
-                    <div style="font-size:12px; color:#ebe838;-webkit-text-stroke: 1px black;"">
-                        <i class="fa fa-flag"></i>
+                    <div style="font-size:12px; color:#294c97;">
+                        <i class="fa fa-water"></i>
                     </div>
                 """)
             ).add_to(m)
-            # folium.CircleMarker(
-            #     location=[lat, lon],
-            #     radius=4,                # tamanho do círculo
-            #     color="yellow",           # borda
-            #     fill=True,
-            #     fill_color="yellow",      # preenchimento
-            #     fill_opacity=0.8,
-            #     popup=popup_html
-            # ).add_to(m)
-        
+
         folium.LayerControl().add_to(m)
 
         st.session_state["mapa_transposicao"] = m
@@ -7479,157 +7578,250 @@ async def dashboard_reservatorios():
 
         if st.session_state.reservatorio == 'Sabesp':
 
-            if ano_filtro != data_ano_anterior_str:
-                fetch_and_save_json(ano_filtro, "sabesp_sistemas_all_data_anoanterior.json")
+            key = os.environ.get('KEY')
+            value = os.environ.get('VALUE')
+            headers = {key: value}
 
-            datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
-
-            json_sistemas = 'results/sabesp_sistemas_all_data.json'
-            json_sistemas_1d = 'results/sabesp_sistemas_all_data_anoanterior.json'
-            json_sistemas_7d = 'results/sabesp_sistemas_all_data_7dias.json'
-            json_sistemas_14d = 'results/sabesp_sistemas_all_data_14dias.json'
-            json_sistemas_21d = 'results/sabesp_sistemas_all_data_21dias.json'
-
-            nomes_sistema = {
-                "Cantareira": 0,
-                "Alto Tietê": 1,
-                "Guarapiranga": 2,
-                "Cotia": 3,
-                "Rio Grande": 4, 
-                "Rio Claro":5,
-                "São Lourenço": 17,
-                "SIM": 459
+            sistema_sabesp = {
+                "cantareira": "Cantareira",
+                "alto-tiete": "Alto Tietê",
+                "guarapiranga": "Guarapiranga",
+                "cotia": "Cotia",
+                "rio-grande": "Rio Grande",
+                "rio-claro": "Rio Claro",
+                "sao-lourenco": "São Lourenço"
             }
-            sistemas_esperados = {0, 1, 2, 3, 4, 5, 17}
 
-            if os.path.exists(json_sistemas):
-                with open(json_sistemas, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                dados_sistemas = data.get("dadosSistemas", [])
-                df_dados_sistemas = pd.DataFrame(dados_sistemas)
+            df_sistemas_sabesp = pd.DataFrame(list(sistema_sabesp.items()), columns=["Sistema_sabesp", "Sistema"])
+            all_data_sabesp =[]
+            atual_all_data=[]
+            for _, sistema in df_sistemas_sabesp.iterrows():
+                id = sistema["Sistema_sabesp"]
 
-                if "Data" in df_dados_sistemas.columns and not df_dados_sistemas.empty:
-                    df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
-                    data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
-                else:
-                    data_existe = False
+                url_sabesp = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/{id}/dados/{data_ano_anterior_str}/{data_atual_str}"
+                response_sabesp = requests.get(url_sabesp, headers=headers)
 
-                sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
+                if response_sabesp.status_code == 200:
+                    dados_sabesp = response_sabesp.json()
+                    if "data" in dados_sabesp:
+                        df_dados_sabesp = pd.DataFrame(dados_sabesp["data"])
+                        df_dados_sabesp['Sistema'] = sistema["Sistema"]
+                        df_dados_sabesp["data"] = pd.to_datetime(df_dados_sabesp["data"])
+                        df_dados_sabesp["data"] = df_dados_sabesp["data"].dt.strftime("%Y-%m-%d")
 
-                if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
-                    # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
-                    fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
-                    fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
-                    fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
-                    fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
-                    fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
+                        df_atual_all = df_dados_sabesp.copy()
 
-                    with open(json_sistemas, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    dados_sistemas = data.get("dadosSistemas", [])
-                    df_dados_sistemas = pd.DataFrame(dados_sistemas)
+                        if (df_atual_all["data"] == data_atual_str).any():
+                            valor_atual = (
+                                df_atual_all.loc[df_atual_all["data"] == data_atual_str, "volumeOperacional_porcentagem"]
+                                .sort_index()
+                                .iloc[-1]  # pega o último disponível
+                            )
+                        else: 
+                            valor_atual = df_atual_all["volumeOperacional_porcentagem"].iloc[-1]
+
+                        valor_7_dias = (df_atual_all.loc[df_atual_all['data'] == data_7dias_str, 'volumeOperacional_porcentagem']
+                            .reset_index(drop=True)
+                            .get(0, None)  
+                        )
+                        valor_14_dias = (df_atual_all.loc[df_atual_all['data'] == data_14dias_str, 'volumeOperacional_porcentagem']
+                            .reset_index(drop=True)
+                            .get(0, None)  
+                        )
+                        valor_21_dias = (df_atual_all.loc[df_atual_all['data'] == data_21dias_str, 'volumeOperacional_porcentagem']
+                            .reset_index(drop=True)
+                            .get(0, None)  
+                        )
+                        valor_ano_anterior = (df_atual_all.loc[df_atual_all['data'] == data_ano_anterior_str, 'volumeOperacional_porcentagem']
+                            .reset_index(drop=True)
+                            .get(0, None)  
+                        )
+
+                        df_atual_all["Volume atual (%)"] = valor_atual
+                        df_atual_all["Volume -7 dias (%)"] = valor_7_dias
+                        df_atual_all["Volume -14 dias (%)"] = valor_14_dias
+                        df_atual_all["Volume -21 dias (%)"] = valor_21_dias
+                        df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
+
+                        data_dia_anterior = datetime.today() - timedelta(days=1)
+                        data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
+
+                        if data_atual_str in df_atual_all['data'].values:
+                            df_atual_all = df_atual_all[
+                                df_atual_all['data'] == data_atual_str
+                            ]
+                        elif data_dia_anterior_str in df_atual_all['data'].values:
+                            df_atual_all = df_atual_all[
+                                df_atual_all['data'] == data_dia_anterior_str
+                            ]
+
+                        all_data_sabesp.append(df_dados_sabesp)
+                        atual_all_data.append(df_atual_all)
+
+            df_final_all_data_sabesp= pd.concat(all_data_sabesp, ignore_index=True)
+            df_sim_atual_all = df_final_all_data_sabesp.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
             
-            else:
-                # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
-                fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
-                fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
-                fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
-                fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
-                fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
+            print(df_final_all_data_sabesp)
 
-                with open(json_sistemas, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                dados_sistemas = data.get("dadosSistemas", [])
-                df_dados_sistemas = pd.DataFrame(dados_sistemas)
+            df_atual_all_data = pd.concat(atual_all_data, ignore_index=True)
+            df_atual_all_data = df_atual_all_data[["Sistema", "data", "Volume atual (%)", "Volume -7 dias (%)", "Volume -14 dias (%)", "Volume -21 dias (%)", "Volume Ano Anterior (%)"]]
+
+            df_atual_all_data['diferença'] = df_atual_all_data['Volume atual (%)'] - df_atual_all_data['Volume Ano Anterior (%)']
+            df_atual_all_data['simbolo'] = df_atual_all_data['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
+            df_atual_all_data['cor_diferença'] = df_atual_all_data['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
+            print(df_atual_all_data)
+
+            # if ano_filtro != data_ano_anterior_str:
+            #     fetch_and_save_json(ano_filtro, "sabesp_sistemas_all_data_anoanterior.json")
+
+            # datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
+
+            # json_sistemas = 'results/sabesp_sistemas_all_data.json'
+            # json_sistemas_1d = 'results/sabesp_sistemas_all_data_anoanterior.json'
+            # json_sistemas_7d = 'results/sabesp_sistemas_all_data_7dias.json'
+            # json_sistemas_14d = 'results/sabesp_sistemas_all_data_14dias.json'
+            # json_sistemas_21d = 'results/sabesp_sistemas_all_data_21dias.json'
+
+            # nomes_sistema = {
+            #     "Cantareira": 0,
+            #     "Alto Tietê": 1,
+            #     "Guarapiranga": 2,
+            #     "Cotia": 3,
+            #     "Rio Grande": 4, 
+            #     "Rio Claro":5,
+            #     "São Lourenço": 17,
+            #     "SIM": 459
+            # }
+            # sistemas_esperados = {0, 1, 2, 3, 4, 5, 17}
+
+            # if os.path.exists(json_sistemas):
+            #     with open(json_sistemas, 'r', encoding='utf-8') as f:
+            #         data = json.load(f)
+            #     dados_sistemas = data.get("dadosSistemas", [])
+            #     df_dados_sistemas = pd.DataFrame(dados_sistemas)
+
+            #     if "Data" in df_dados_sistemas.columns and not df_dados_sistemas.empty:
+            #         df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
+            #         data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
+            #     else:
+            #         data_existe = False
+
+            #     sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
+
+            #     if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
+            #         # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+            #         fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
+            #         fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
+            #         fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
+            #         fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
+            #         fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
+
+            #         with open(json_sistemas, 'r', encoding='utf-8') as f:
+            #             data = json.load(f)
+            #         dados_sistemas = data.get("dadosSistemas", [])
+            #         df_dados_sistemas = pd.DataFrame(dados_sistemas)
+            
+            # else:
+            #     # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
+            #     fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
+            #     fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
+            #     fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
+            #     fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
+            #     fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
+
+            #     with open(json_sistemas, 'r', encoding='utf-8') as f:
+            #         data = json.load(f)
+            #     dados_sistemas = data.get("dadosSistemas", [])
+            #     df_dados_sistemas = pd.DataFrame(dados_sistemas)
 
                 
-            with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
-                data_1d = json.load(f)
-                json_sistemas_1d = data_1d.get("dadosSistemas", [])
-                df_dados_sistemas_1d = pd.DataFrame(json_sistemas_1d)
-                ano_anterior = df_dados_sistemas_1d[["SistemaId", "VolumePorcentagem"]]
-                ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
+            # with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
+            #     data_1d = json.load(f)
+            #     json_sistemas_1d = data_1d.get("dadosSistemas", [])
+            #     df_dados_sistemas_1d = pd.DataFrame(json_sistemas_1d)
+            #     ano_anterior = df_dados_sistemas_1d[["SistemaId", "VolumePorcentagem"]]
+            #     ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
 
 
-            with open(json_sistemas_7d, 'r', encoding='utf-8') as f:
-                data_7d = json.load(f)
-                json_sistemas_7d = data_7d.get("dadosSistemas", [])
-                df_dados_sistemas_7d = pd.DataFrame(json_sistemas_7d)
-                sistemas_7d = df_dados_sistemas_7d[["SistemaId", "VolumePorcentagem"]]
-                sistemas_7d = sistemas_7d.rename(columns={"VolumePorcentagem": "Volume -7 dias (%)"})
+            # with open(json_sistemas_7d, 'r', encoding='utf-8') as f:
+            #     data_7d = json.load(f)
+            #     json_sistemas_7d = data_7d.get("dadosSistemas", [])
+            #     df_dados_sistemas_7d = pd.DataFrame(json_sistemas_7d)
+            #     sistemas_7d = df_dados_sistemas_7d[["SistemaId", "VolumePorcentagem"]]
+            #     sistemas_7d = sistemas_7d.rename(columns={"VolumePorcentagem": "Volume -7 dias (%)"})
 
-            with open(json_sistemas_14d, 'r', encoding='utf-8') as f:
-                data_14d = json.load(f)
-                json_sistemas_14d = data_14d.get("dadosSistemas", [])
-                df_dados_sistemas_14d = pd.DataFrame(json_sistemas_14d)
-                sistemas_14d = df_dados_sistemas_14d[["SistemaId", "VolumePorcentagem"]]
-                sistemas_14d = sistemas_14d.rename(columns={"VolumePorcentagem": "Volume -14 dias (%)"})
+            # with open(json_sistemas_14d, 'r', encoding='utf-8') as f:
+            #     data_14d = json.load(f)
+            #     json_sistemas_14d = data_14d.get("dadosSistemas", [])
+            #     df_dados_sistemas_14d = pd.DataFrame(json_sistemas_14d)
+            #     sistemas_14d = df_dados_sistemas_14d[["SistemaId", "VolumePorcentagem"]]
+            #     sistemas_14d = sistemas_14d.rename(columns={"VolumePorcentagem": "Volume -14 dias (%)"})
 
-            with open(json_sistemas_21d, 'r', encoding='utf-8') as f:
-                data_21d = json.load(f)
-                json_sistemas_21d = data_21d.get("dadosSistemas", [])
-                df_dados_sistemas_21d = pd.DataFrame(json_sistemas_21d)
-                sistemas_21d = df_dados_sistemas_21d[["SistemaId", "VolumePorcentagem"]]
-                sistemas_21d = sistemas_21d.rename(columns={"VolumePorcentagem": "Volume -21 dias (%)"})
+            # with open(json_sistemas_21d, 'r', encoding='utf-8') as f:
+            #     data_21d = json.load(f)
+            #     json_sistemas_21d = data_21d.get("dadosSistemas", [])
+            #     df_dados_sistemas_21d = pd.DataFrame(json_sistemas_21d)
+            #     sistemas_21d = df_dados_sistemas_21d[["SistemaId", "VolumePorcentagem"]]
+            #     sistemas_21d = sistemas_21d.rename(columns={"VolumePorcentagem": "Volume -21 dias (%)"})
 
-            sistemas_atual = df_dados_sistemas[["SistemaId", "VolumePorcentagem"]]
-            sistemas_atual = sistemas_atual.rename(columns={"VolumePorcentagem": "Volume atual (%)"})
+            # sistemas_atual = df_dados_sistemas[["SistemaId", "VolumePorcentagem"]]
+            # sistemas_atual = sistemas_atual.rename(columns={"VolumePorcentagem": "Volume atual (%)"})
 
-            data_inicial = '2025-06-01' 
-            url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_inicial}/{data_atual_str}'
-            response = requests.get(url_sim, verify=False)
+            # data_inicial = '2025-06-01' 
+            # url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_inicial}/{data_atual_str}'
+            # response = requests.get(url_sim, verify=False)
 
-            if response.status_code == 200:
-                data = response.json()
+            # if response.status_code == 200:
+            #     data = response.json()
 
-                if "dataCollection" in data:
-                    df_sim_atual_all = pd.DataFrame(data["dataCollection"])
-                    df_sim_atual = df_sim_atual_all.copy()
-                    df_sim_atual['SistemaId'] = 459
+            #     if "dataCollection" in data:
+            #         df_sim_atual_all = pd.DataFrame(data["dataCollection"])
+            #         df_sim_atual = df_sim_atual_all.copy()
+            #         df_sim_atual['SistemaId'] = 459
 
-                    valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
-                    valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
-                    valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
-                    df_sim_atual["Volume -7 dias (%)"] = valor_7dias
-                    df_sim_atual["Volume -14 dias (%)"] = valor_14dias
-                    df_sim_atual["Volume -21 dias (%)"] = valor_21dias
+            #         valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
+            #         valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
+            #         valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
+            #         df_sim_atual["Volume -7 dias (%)"] = valor_7dias
+            #         df_sim_atual["Volume -14 dias (%)"] = valor_14dias
+            #         df_sim_atual["Volume -21 dias (%)"] = valor_21dias
 
-                    df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
-                    df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
-                    df_sim_atual = df_sim_atual.drop(columns={"dateTime", "deliveredAt"})
-
-
-            merged_data_sistemas = pd.merge(sistemas_atual, sistemas_7d, on='SistemaId', how='left')
-            merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_14d, on='SistemaId', how='left')
-            merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_21d, on='SistemaId', how='left')
+            #         df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
+            #         df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
+            #         df_sim_atual = df_sim_atual.drop(columns={"dateTime", "deliveredAt"})
 
 
-            url_sim_ano_anterior = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
-            response = requests.get(url_sim_ano_anterior, verify=False)
+            # merged_data_sistemas = pd.merge(sistemas_atual, sistemas_7d, on='SistemaId', how='left')
+            # merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_14d, on='SistemaId', how='left')
+            # merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_21d, on='SistemaId', how='left')
 
-            if response.status_code == 200:
-                data = response.json()
 
-                if "dataCollection" in data:
-                    df_sim_ano_anterior = pd.DataFrame(data["dataCollection"])
-                    df_sim_ano_anterior['SistemaId'] = 459
-                    df_sim_ano_anterior = df_sim_ano_anterior.drop(columns={"dateTime", "deliveredAt"})
-                    df_sim_ano_anterior = df_sim_ano_anterior.rename(columns={"value": "Volume Ano Anterior (%)"})
+            # url_sim_ano_anterior = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
+            # response = requests.get(url_sim_ano_anterior, verify=False)
 
-            merged_data_sistemas = pd.concat([merged_data_sistemas, df_sim_atual], ignore_index=True)
-            ano_anterior = pd.concat([ano_anterior, df_sim_ano_anterior], ignore_index=True)
+            # if response.status_code == 200:
+            #     data = response.json()
 
-            df_nome_sistemas = pd.DataFrame(list(nomes_sistema.items()), columns=["Sistema", "SistemaId"])
-            merged_data_sistemas = pd.merge(merged_data_sistemas, df_nome_sistemas, on='SistemaId', how='left')
-            merged_data_sistemas = merged_data_sistemas[merged_data_sistemas['Sistema'].notna()]
+            #     if "dataCollection" in data:
+            #         df_sim_ano_anterior = pd.DataFrame(data["dataCollection"])
+            #         df_sim_ano_anterior['SistemaId'] = 459
+            #         df_sim_ano_anterior = df_sim_ano_anterior.drop(columns={"dateTime", "deliveredAt"})
+            #         df_sim_ano_anterior = df_sim_ano_anterior.rename(columns={"value": "Volume Ano Anterior (%)"})
 
-            merged_data_sistemas = pd.merge(merged_data_sistemas, ano_anterior, on='SistemaId', how='left')
+            # merged_data_sistemas = pd.concat([merged_data_sistemas, df_sim_atual], ignore_index=True)
+            # ano_anterior = pd.concat([ano_anterior, df_sim_ano_anterior], ignore_index=True)
 
-            merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
-            merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
-            merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
+            # df_nome_sistemas = pd.DataFrame(list(nomes_sistema.items()), columns=["Sistema", "SistemaId"])
+            # merged_data_sistemas = pd.merge(merged_data_sistemas, df_nome_sistemas, on='SistemaId', how='left')
+            # merged_data_sistemas = merged_data_sistemas[merged_data_sistemas['Sistema'].notna()]
 
-            creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado)
+            # merged_data_sistemas = pd.merge(merged_data_sistemas, ano_anterior, on='SistemaId', how='left')
+
+            # merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
+            # merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
+            # merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
+
+            creat_dashboard(df_atual_all_data, df_final_all_data_sabesp, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado)
 
         
         elif st.session_state.reservatorio == 'SSD':
@@ -7716,7 +7908,7 @@ async def dashboard_reservatorios():
 
             merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
             merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
-            merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
+            merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: "#660000" if x < 0 else "#2F582B")
 
             creat_dashboard(merged_data_sistemas, df_final_all_volume, lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado)
 
