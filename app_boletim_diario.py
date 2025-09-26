@@ -2583,7 +2583,11 @@ def get_ssd_transferencias(data_atual_str):
         "EEAB Santa Inês": 327,
         "Túnel 5": 332,
         "Túnel 6": 333,
-        "Túnel 7":334
+        "Túnel 7":334,
+        "EEAB Biritiba": 335,
+        "Biritiba - Jundiaí": 337,
+        "Jundiaí - Taiçupeba": 330,
+        "Biritiba - Dique": 329
     }
 
     df_sistemas_transferencia_dia = pd.DataFrame(list(transferencia_dia.items()), columns=["Sistema", "SistemaId"]).copy()
@@ -2689,7 +2693,7 @@ def get_telemetric_stations(data_atual_str):
 def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado):
     colun1, colun2, colun3= st.columns([0.2, 2.0, 0.2])
 
-    map1, map2 = st.columns([2.5, 1.5])    
+    map1, map2 = st.columns([3.0, 1.5])    
 
     with colun2:
 
@@ -2765,6 +2769,18 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 "E3 - Crítico":'#da070f',
                 "E4 - Emergência":'#8435b7'
             }
+        
+        regra_operacao_vazao_cantareira = {
+            "Faixa 1": "Normal - 33,0",
+            "Faixa 2": "Atenção - 31,0",
+            "Faixa 3": "Alerta - 27,0",
+            "Faixa 4": "Restrição - 23,0 + vazao Jaguari - Atibainha",
+            "Faixa 5": "Especial - 15,5"
+        }
+
+        regra_operacao_vazao_alto_tietê = {
+            "Faixa 1": "Normal - 15,0",
+        }
 
         html_blocks = []
         for i, row in merged_data_sistemas.iterrows():          
@@ -2786,18 +2802,16 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             html_blocks.append(bloco)
 
         html_perc_blocks = f"""
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; box-sizing: border-box;">
             <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; padding: 20px;
                         width: 100%; max-width: 100%; box-sizing: border-box;">
                 {''.join(html_blocks)}
             </div>
-        """
-
-        # print(html_perc_blocks)
-        st.components.v1.html(html_perc_blocks, height=300, scrolling=True)
-
-        
-        st.components.v1.html('''
             <div style="display:flex; justify-content:center; gap:15px;">
+                <div style="display:flex; align-items:center;">
+                    <div style="width:15px; height:15px; background:#268b12; margin-right:5px;"></div>
+                    <span style="font-size:16px;">E0 - Normal</span>
+                </div>
 
                 <div style="display:flex; align-items:center;">
                     <div style="width:15px; height:15px; background:#f8d202; margin-right:5px;"></div>
@@ -2818,12 +2832,43 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                     <div style="width:15px; height:15px; background:#8435b7; margin-right:5px;"></div>
                     <span style="font-size:16px;">E4 - Emergência</span>
                 </div>
-
             </div>
-            ''', height=50)
+        </div>
+        """
 
+        # print(html_perc_blocks)
+        st.components.v1.html(html_perc_blocks, height=400, scrolling=True)
 
-    
+        
+        # st.components.v1.html('''
+        #     <div style="display:flex; justify-content:center; gap:15px; margin-top:-10px;">
+        #         <div style="display:flex; align-items:center;">
+        #             <div style="width:15px; height:15px; background:#268b12; margin-right:5px;"></div>
+        #             <span style="font-size:16px;">E0 - Normal</span>
+        #         </div>
+
+        #         <div style="display:flex; align-items:center;">
+        #             <div style="width:15px; height:15px; background:#f8d202; margin-right:5px;"></div>
+        #             <span style="font-size:16px;">E1 - Atenção</span>
+        #         </div>
+
+        #         <div style="display:flex; align-items:center;">
+        #             <div style="width:15px; height:15px; background:#f95108; margin-right:5px;"></div>
+        #             <span style="font-size:16px;">E2 - Alerta</span>
+        #         </div>
+
+        #         <div style="display:flex; align-items:center;">
+        #             <div style="width:15px; height:15px; background:#da070f; margin-right:5px;"></div>
+        #             <span style="font-size:16px;">E3 - Crítico</span>
+        #         </div>
+
+        #         <div style="display:flex; align-items:center;">
+        #             <div style="width:15px; height:15px; background:#8435b7; margin-right:5px;"></div>
+        #             <span style="font-size:16px;">E4 - Emergência</span>
+        #         </div>
+        #     </div>
+        #     ''', height=50)
+
     with map1:
 
         gdflimite = gpd.read_file("data/limiteestadualsp.shp")
@@ -2837,8 +2882,18 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
         gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
         gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
-
         gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
+        gdf_vazao_captada= gpd.read_file("data/vazao_captada.shp")
+
+        vazao_captada_diaria["date_mapa"] = pd.to_datetime(vazao_captada_diaria["dateTime"]).dt.strftime("%Y-%m-%d")
+        vazao_captada_atual = vazao_captada_diaria[vazao_captada_diaria["date_mapa"] == data_atual_str]
+        gdf_vazao_captada_merge = gdf_vazao_captada.merge(
+            vazao_captada_atual,
+            how="left",             # tipo de join
+            left_on="sistema",           # coluna do shapefile
+            right_on="Sistema"    # coluna do dataframe
+        )
+
 
         gdfsistemas_merge = gdfsistemas.merge(
             merged_data_sistemas,
@@ -2905,13 +2960,19 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             )
         ).add_to(m)
         folium.GeoJson(gdf_pariba_do_sul, name="Paraíba do Sul", style_function=lambda x: {"color": "#3f4550", "fillColor": "#747474",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
-        folium.GeoJson(gdf_reservatorios_merge, name="Reservatórios", style_function=lambda x: {"color": "#3871eb", "fillColor": "#294c97",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
-        folium.GeoJson(gdf_hidrografia, name="Hidrografia", style_function=lambda x: {"color": "#3871eb", "fillColor": "#294c97",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
+        folium.GeoJson(gdf_reservatorios_merge, name="Reservatórios", style_function=lambda x: {"color": "#7caab8", "fillColor": "#7fd7f1",  "fillOpacity": 0.8,"weight": 0.5}).add_to(m)
+        folium.GeoJson(gdf_hidrografia, name="Hidrografia", style_function=lambda x: {"color": "#7fd7f1", "fillColor": "#7fd7f1",  "fillOpacity": 0.8,"weight": 1}).add_to(m)
         folium.GeoJson(gdf_transposicao_merge, name="Transposição", style_function=lambda x: {"color": "#3871eb", "fillColor": "#21428a", "fillOpacity": 0.6, "weight": 1, "dashArray": "10, 5"}).add_to(m)
+
+
+        fg_transposicao = folium.FeatureGroup(name="Transposição").add_to(m)
+        fg_monitoramento = folium.FeatureGroup(name="Estações de Monitoramento").add_to(m)
+        fg_vazao_captada = folium.FeatureGroup(name="Vazão Captada").add_to(m)
 
         # Adiciona popup com valor
         for _, row in gdf_transposicao_merge.iterrows():
             x, y = row.geometry.centroid.y, row.geometry.centroid.x
+            valor = f"{row['value']:.1f}"
             popup_html = f"""
             <div style="
                 background-color: white; 
@@ -2920,6 +2981,9 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 border-radius: 5px; 
                 padding: 5px;
                 font-size: 12px;
+                width: 250px;
+                max-width: 300px;
+                white-space: normal;
             ">
                 <strong>{row['Sistema']}</strong><br>
                 Transferência: {row['value']:.1f} m³/s
@@ -2928,16 +2992,30 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             folium.Marker(
                 location=[x, y],
                 popup=popup_html,
-                icon=folium.DivIcon(html="""
-                    <div style="font-size:12px; color:#294c97;">
-                        <i class="fa fa-water"></i>
+                icon=folium.DivIcon(html=f"""
+                    <div style="text-align:center;">
+                    <div style="
+                        font-size:12px; 
+                        color:black; 
+                        font-weight:bold; 
+                        border-radius: 8px; 
+                        background-color:white; 
+                        padding:2px 6px; 
+                        box-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+                        display:inline-flex; 
+                        align-items:center; 
+                        gap:4px;
+                    ">
+                        <i class="fa fa-water" style="color:#294c97;"></i> {valor}
                     </div>
+                </div>
                 """)
-            ).add_to(m)
+            ).add_to(fg_transposicao)
 
 
         for _, row in stations_monitoramento.iterrows():
             lat, lon = row.geometry.y, row.geometry.x
+            valor = f"{row['read_value']:.1f}"
             popup_html = f"""
                 <div style="
                     background-color: white; 
@@ -2946,22 +3024,177 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                     border-radius: 5px; 
                     padding: 5px;
                     font-size: 12px;
+                    width: 250px;
+                    max-width: 300px;
+                    white-space: normal;
                 ">
                     <strong>{row['station_name']}</strong><br>
-                    Valor: {row['value']:.1f} m³/s<br>
+                    Valor: {row['read_value']:.1f} m³/s<br>
                     Data: {row['date']}
                 </div>
             """
-
             folium.Marker(
                 location=[lat, lon],
                 popup=popup_html,
-                icon=folium.DivIcon(html="""
-                    <div style="font-size:12px; color:#294c97;">
-                        <i class="fa fa-water"></i>
+                icon=folium.DivIcon(html=f"""
+                    <div style="text-align:center;">
+                    <div style="
+                        font-size:12px; 
+                        color:black; 
+                        font-weight:bold; 
+                        border-radius: 8px; 
+                        background-color:white; 
+                        padding:2px 6px; 
+                        box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+                        display:inline-flex; 
+                        align-items:center; 
+                        gap:4px;
+                    ">
+                        <i class="fa fa-water" style="color:#294c97;"></i> {valor}
                     </div>
+                </div>
                 """)
-            ).add_to(m)
+            ).add_to(fg_monitoramento)
+
+        for _, row in gdf_vazao_captada_merge.iterrows():
+
+            lat, lon = row.geometry.y, row.geometry.x
+            valor_num = row['value']
+            valor = f"{row['value']:.2f}"
+            if row['sistema'] == "Cantareira":
+                operacao = '<strong>Restrição</strong> - 23,0 m³/s + transp. Atibainha'
+                if valor_num > 23+7.5:
+                    color = "#B91C1C"
+                else:
+                    color = "#29972f"
+            elif row['sistema'] == "Alto Tietê":
+                operacao = '15,0 m³/s'
+                if valor_num > 15:
+                    color = "#B91C1C"
+                else:
+                    color = "#29972f"
+            elif row['sistema'] == "Guarapiranga":
+                operacao = '16,0 m³/s'
+                if valor_num > 16:
+                    color = "#B91C1C"
+                else:
+                    color = "#29972f"
+            elif row['sistema'] == "Rio Grande":
+                operacao = '5,6 m³/s'
+                if valor_num > 5.6:
+                    color = "#B91C1C"
+                else:
+                    color = "#29972f"
+            elif row['sistema'] == "Cotia":
+                operacao = '2,3 m³/s'
+                if valor_num > 2.3:
+                    color = "#B91C1C"
+                else:
+                    color = "#29972f"
+            elif row['sistema'] == "São Lourenço":
+                operacao = '6,4 m³/s'
+                if valor_num > 6.4:
+                    color = "#B91C1C"
+                else:
+                    color = "#29972f"
+            elif row['sistema'] == "Rio Claro":
+                operacao = '4,4 m³/s'
+                if valor_num > 4:
+                    color = "#B91C1C"
+                else:
+                    color = "#29972f"
+            else:
+                operacao = '<strong>-</strong>'
+                color = "#294c97"
+
+            popup_html = f"""
+                <div style="
+                    background-color: white; 
+                    color: black; 
+                    border: 1px solid gray; 
+                    border-radius: 5px; 
+                    padding: 5px;
+                    font-size: 12px;
+                    width: 250px;
+                    max-width: 300px;
+                    white-space: normal;
+                ">
+                    <strong>Vazão Captada</strong><br>
+                    Sistema: {row['sistema']}<br>
+                    Valor: {row['value']:.2f} m³/s<br>
+                    Faixa de operação: {operacao}<br>
+                </div>
+            """
+            folium.Marker(
+                location=[lat, lon],
+                popup=popup_html,
+                icon=folium.DivIcon(html=f"""
+                    <div style="text-align:center;">
+                    <div style="
+                        font-size:12px; 
+                        color:black; 
+                        font-weight:bold; 
+                        border-radius: 8px; 
+                        background-color:white; 
+                        padding:2px 6px; 
+                        box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+                        display:inline-flex; 
+                        align-items:center; 
+                        gap:4px;
+                    ">
+                        <i class="fa fa-faucet" style="color:{color};"></i> {valor}
+                    </div>
+                </div>
+                """)
+            ).add_to(fg_vazao_captada)
+
+        # for _, row in gdfsistemas_merge.iterrows():
+        #     # Pega o centróide do polígono
+        #     # centroid = row.geometry.centroid
+        #     # cx, cy = centroid.y, centroid.x  
+
+        #     # # Define onde a label vai ficar (deslocada para esquerda)
+        #     # label_lat = cx + 0.2
+        #     # label_lon = cy - 0.1   # desloca 0.05 graus para esquerda (ajuste fino)
+        #     minx, miny, maxx, maxy = row.geometry.bounds
+
+        #     # Ponto superior central do polígono
+        #     top_lat = maxy
+        #     top_lon = (minx + maxx) / 2
+
+        #     # Define onde a label vai ficar (deslocada para esquerda)
+        #     label_lat = top_lat + 0.02   # um pouco acima do polígono
+        #     label_lon = top_lon - 0.05  
+
+        #     # Adiciona a caixinha (DivIcon)
+        #     folium.Marker(
+        #         location=[label_lat, label_lon],
+        #         icon=folium.DivIcon(
+        #             html=f"""
+        #                 <div style="
+        #                     background:white; 
+        #                     border:1px solid gray; 
+        #                     border-radius:6px; 
+        #                     padding:4px;
+        #                     box-shadow:2px 2px 5px rgba(0,0,0,0.3);
+        #                     font-size:12px;
+        #                     width: 100px;
+        #                     max-width: 100px;
+        #                     white-space: normal;
+        #                 ">
+        #                     {row['Sistema']}
+        #                 </div>
+        #             """
+        #         )
+        #     ).add_to(m)
+
+        #     # Adiciona a linha conectando a caixa ao polígono
+        #     folium.PolyLine(
+        #         # locations=[[label_lat, label_lon], [cx, cy]],
+        #         locations=[[label_lat, label_lon], [top_lat, top_lon]],
+        #         color="#707470",
+        #         weight=1
+        #     ).add_to(m)
 
         folium.LayerControl().add_to(m)
 
@@ -2992,7 +3225,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             """,
             unsafe_allow_html=True)
             
-        st.components.v1.html(m_reservatorios, width=800, height=400)
+        st.components.v1.html(m_reservatorios, width=900, height=500)
 
     with map2:
 
@@ -3042,7 +3275,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             fig_tgransferencia.update_layout(
                 title=dict(
                     text=f"Transferência Mensal<br>{transferencias['Sistema'].iloc[0]}",
-                    font=dict(color='black', size=20),
+                    font=dict(color='black', size=16),
                     x=0.5,           # posição horizontal (0 = esquerda, 0.5 = centro, 1 = direita)
                     xanchor="center"  
                 ),
@@ -3088,7 +3321,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             fig_tgransferencia_all.update_layout(
                 title=dict(
                     text=f"Transferência Diária<br>{transferencias['Sistema'].iloc[0]}",
-                    font=dict(color='black', size=20),
+                    font=dict(color='black', size=16),
                     x=0.5,           # posição horizontal (0 = esquerda, 0.5 = centro, 1 = direita)
                     xanchor="center"  
                 ),
