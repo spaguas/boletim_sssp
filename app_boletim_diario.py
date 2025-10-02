@@ -1840,7 +1840,6 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
     if response.status_code == 200:
         data = response.json()
-        print('response ano atual', datetime.now())
         if "dataCollection" in data:
             df_sim_atual_all = pd.DataFrame(data["dataCollection"])
             df_sim_atual = df_sim_atual_all.copy()
@@ -1852,23 +1851,19 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
             df_sim_atual["VolumePorcentagem"] = valor_atual
             df_sim_atual["Volume Ano Anterior (%)"] = valor_ano_anterior
 
-
             df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
             df_sim_atual = df_sim_atual.drop(columns={"deliveredAt", "value"})
-            print(df_sim_atual)
+
 
     merged_data = pd.concat([merged_data, df_sim_atual], ignore_index=True)
     merged_data_sistemas = pd.merge(merged_data, df_sistemas, on='SistemaId', how='left')
     merged_data_sistemas = merged_data_sistemas.dropna(subset=['Sistema'])
-    print(merged_data_sistemas)
-
 
     merged_data_sistemas['Diferença Vol. Anual (%)'] = merged_data_sistemas['VolumePorcentagem'] - merged_data_sistemas['Volume Ano Anterior (%)']
 
     merged_data_sistemas = merged_data_sistemas.rename(columns={'VolumePorcentagem': 'VolumeAtual (%)', 'Precipitacao': 'Chuva (mm)', 'PrecipitacaoAcumuladaNoMes': 'Acumulado no Mês (mm)', 'PMLTMensal':'Média Histórica (mm)'})
 
     merged_data_sistemas = merged_data_sistemas[['Sistema', 'VolumeAtual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
-    print(merged_data_sistemas)
 
     cols = ['Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']
 
@@ -1888,49 +1883,89 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
 def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
 
-    url_ano_atual = f"https://mananciais.sabesp.com.br/api/Mananciais/ResumoSistemas/{data_atual_str}"
-    print(url_ano_atual)
-    response = requests.get(url_ano_atual, verify=False)
+    key = os.environ.get('KEY')
+    value = os.environ.get('VALUE')
+    headers = {key: value}
 
-    if response.status_code == 200:
-        data = response.json()
+    sistema_sabesp = {
+        "cantareira": "Cantareira",
+        "alto-tiete": "Alto Tietê",
+        "guarapiranga": "Guarapiranga",
+        "cotia": "Cotia",
+        "rio-grande": "Rio Grande",
+        "rio-claro": "Rio Claro",
+        "sao-lourenco": "São Lourenço"
+    }
 
-        if 'ReturnObj' in data and 'sistemas' in data['ReturnObj']:
-            df_sistemas = pd.DataFrame(data['ReturnObj']['sistemas'])
-            df_sim = pd.DataFrame([data['ReturnObj']['total']])
-            data_value = data['ReturnObj']['Data']
-            df_sistemas_ano_atual  = pd.concat([df_sistemas, df_sim], ignore_index=True)
+    df_sistemas_sabesp = pd.DataFrame(list(sistema_sabesp.items()), columns=["Sistema_sabesp", "Sistema"])
 
-        else:
-            print("A chave 'sistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
-    else:
-        print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
+    atual_all_data=[]
+    for _, sistema in df_sistemas_sabesp.iterrows():
+        id = sistema["Sistema_sabesp"]
 
-    url_ano_anteior = f"https://mananciais.sabesp.com.br/api/Mananciais/ResumoSistemas/{data_ano_anterior_str}"
-    response = requests.get(url_ano_anteior, verify=False)
+        url_sabesp = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/{id}/dados/{data_ano_anterior_str}/{data_atual_str}"
+        response_sabesp = requests.get(url_sabesp, headers=headers)
 
-    if response.status_code == 200:
+        if response_sabesp.status_code == 200:
+            dados_sabesp = response_sabesp.json()
+            if "data" in dados_sabesp:
+                df_dados_sabesp = pd.DataFrame(dados_sabesp["data"])
+                df_dados_sabesp['Sistema'] = sistema["Sistema"]
+                df_dados_sabesp["data"] = pd.to_datetime(df_dados_sabesp["data"])
+                df_dados_sabesp["data"] = df_dados_sabesp["data"].dt.strftime("%Y-%m-%d")
 
-        data = response.json()
-        print('response ano anterior', datetime.now())
-        if 'ReturnObj' in data and 'sistemas' in data['ReturnObj']:
-            df_sistemas_ano_anterior = pd.DataFrame(data['ReturnObj']['sistemas'])
-            df_sim_ano_anterior = pd.DataFrame([data['ReturnObj']['total']])
-            df_concat = pd.concat([df_sistemas_ano_anterior, df_sim_ano_anterior], ignore_index=True)
-            ano_anterior = df_concat[["SistemaId", "VolumePorcentagem"]]
-            ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
-        else:
-            print("A chave 'sistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
-    else:
-        print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
+                df_atual_all = df_dados_sabesp.copy()
 
-    merged_data_sistemas = pd.merge(df_sistemas_ano_atual, ano_anterior, on='SistemaId', how='left')
+                filtro = df_atual_all.loc[df_atual_all['data'] == data_ano_anterior_str, 'volumeOperacional_porcentagem']
+                valor_ano_anterior = filtro.iloc[0] if not filtro.empty else None
+                df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
 
-    merged_data_sistemas['Diferença Vol. Anual (%)'] = merged_data_sistemas['VolumePorcentagem'] - merged_data_sistemas['Volume Ano Anterior (%)']
+                # pega a linha do dia atual, senão última disponível
+                if (df_atual_all["data"] == data_atual_str).any():
+                    linha_atual = df_atual_all.loc[df_atual_all["data"] == data_atual_str].sort_index().tail(1)
+                else:
+                    linha_atual = df_atual_all.tail(1)
+                linha_atual = linha_atual.rename(columns={"volumeOperacional_porcentagem": "Volume Atual (%)"})
 
-    merged_data_sistemas = merged_data_sistemas.rename(columns={'VolumePorcentagem': 'VolumeAtual (%)', 'PrecDia': 'Chuva (mm)', 'PrecMensal': 'Acumulado no Mês (mm)', 'PrecHist':'Média Histórica (mm)', 'Nome':'Sistema' })
+                atual_all_data.append(linha_atual)
 
-    merged_data_sistemas = merged_data_sistemas[['Sistema', 'VolumeAtual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
+    df_final_all_data_sabesp= pd.concat(atual_all_data, ignore_index=True)
+
+    url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_atual_str}'
+    response_sim = requests.get(url_sim, verify=False)
+
+    if response_sim.status_code == 200:
+        data = response_sim.json()
+
+        if "dataCollection" in data:
+            df_sim_atual = pd.DataFrame(data["dataCollection"])
+            df_sim_atual_all = df_sim_atual.copy()
+            df_sim_atual_all['Sistema'] = 'SIM'
+
+            df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"])
+            df_sim_atual_all["dateTime"] = df_sim_atual_all["dateTime"].dt.strftime("%Y-%m-%d")
+
+            # valor do ano anterior
+            filtro = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_ano_anterior_str, 'value']
+            valor_ano_anterior = filtro.iloc[0] if not filtro.empty else None
+            df_sim_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
+
+            # pega a linha do dia atual, senão última disponível
+            if (df_sim_atual_all["dateTime"] == data_atual_str).any():
+                linha_atual_sim = df_sim_atual_all.loc[df_sim_atual_all["dateTime"] == data_atual_str].sort_index().tail(1)
+            else:
+                linha_atual_sim = df_sim_atual_all.tail(1)
+
+            # renomeia coluna
+            linha_atual_sim = linha_atual_sim.rename(columns={"value": "Volume Atual (%)", "dateTime": "data"})      
+
+    merged_data_sistemas = pd.concat([df_final_all_data_sabesp, linha_atual_sim], ignore_index=True)
+
+    merged_data_sistemas['Diferença Vol. Anual (%)'] = merged_data_sistemas['Volume Atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
+
+    merged_data_sistemas = merged_data_sistemas.rename(columns={'chuva_mm': 'Chuva (mm)', 'chuvaAcumuladaNoMes_mm': 'Acumulado no Mês (mm)', 'chuvaMediaHistorica_mm':'Média Histórica (mm)'})
+
+    merged_data_sistemas = merged_data_sistemas[['Sistema', 'Volume Atual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
 
     cols = ['Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']
 
@@ -1939,18 +1974,16 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
         lambda col: pd.to_numeric(col, errors='coerce')
     )
 
-    
     # Arredonda primeiro
     merged_data_sistemas[cols] = merged_data_sistemas[cols].round(1)
 
     # Formata cada elemento como string
     merged_data_sistemas[cols] = merged_data_sistemas[cols].applymap(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
     
-    data_atual_str = data_value[:10]   # '2025-09-09'
+    # data_atual_str = data_value[:10]   # '2025-09-09'
     merged_data_sistemas["Data"] = data_atual_str
 
     caminho_arquivo_json = os.path.join("results", f"sabesp_sistemas.json")
-
     merged_data_sistemas.to_json(caminho_arquivo_json, orient='records', force_ascii=False, indent=2)
 
 def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str):
@@ -1964,7 +1997,6 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
         "São Lourenço": 17,
         "SIM": 459
     }
-
 
 
     #Chuva total no período
@@ -3056,13 +3088,14 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 """)
             ).add_to(fg_monitoramento)
 
+
         for _, row in gdf_vazao_captada_merge.iterrows():
 
             lat, lon = row.geometry.y, row.geometry.x
             valor_num = row['value']
             valor = f"{row['value']:.2f}"
             if row['sistema'] == "Cantareira":
-                operacao = '<strong>Restrição</strong> - 23,0 m³/s + transp. Atibainha'
+                operacao = '<strong>Restrição</strong> = 23,0 m³/s + transp. Atibainha'
                 if valor_num > 23+7.5:
                     color = "#B91C1C"
                 else:
@@ -6492,7 +6525,7 @@ async def slide6():
         st.write(" ")
 
         json_sistemas = 'results/sabesp_sistemas.json'
-        sistemas_esperados = {"Cantareira", "Alto Tietê", "Guarapiranga", "Cotia", "Rio Grande", "Rio Claro", "São Lourenço"}
+        sistemas_esperados = {"Cantareira", "Alto Tietê", "Guarapiranga", "Cotia", "Rio Grande", "Rio Claro", "São Lourenço", 'SIM'}
 
         if os.path.exists(json_sistemas):
             merged_data_sistemas = pd.read_json(json_sistemas)
@@ -6545,7 +6578,7 @@ async def slide6():
 
         colun1, colun2= st.columns([1.0, 1.0])
         with colun1:
-            for col in ['VolumeAtual (%)', 'Volume Ano Anterior (%)']:
+            for col in ['Volume Atual (%)', 'Volume Ano Anterior (%)']:
                 merged_data_sistemas[col] = merged_data_sistemas[col].astype(float)
 
                 fig, ax = plt.subplots(figsize=(7, 5)) 
@@ -6561,13 +6594,13 @@ async def slide6():
                 cores = ['#83c4d6', '#5169af']
 
                 # Ajuste do eixo Y
-                max_valor = merged_data_sistemas[['VolumeAtual (%)', 'Volume Ano Anterior (%)']].max().max()
+                max_valor = merged_data_sistemas[['Volume Atual (%)', 'Volume Ano Anterior (%)']].max().max()
                 
                 ax.set_ylim(0, max_valor * 1.2)
 
                 # Plotagem das barras
                 for i, (coluna, cor) in enumerate(zip(
-                    ['VolumeAtual (%)', 'Volume Ano Anterior (%)'],
+                    ['Volume Atual (%)', 'Volume Ano Anterior (%)'],
                     cores
                 )):
                     valores = merged_data_sistemas[coluna]
@@ -6620,7 +6653,7 @@ async def slide6():
         with colun2: 
             styled_df = merged_data_sistemas.style\
             .format({
-                    'VolumeAtual (%)': '{:.2f}', 
+                    'Volume Atual (%)': '{:.2f}', 
                     'Volume Ano Anterior (%)': '{:.2f}', 
                     'Diferença Vol. Anual (%)': '{:.2f}'
                 })\
@@ -6713,7 +6746,7 @@ async def slide6():
             legenda += (
                 f"O sistema produtor da Rede Metropolitana de São Paulo (RMSP) {min_dif_filter['Sistema']} "
                 f"está a {min_dif_filter['Diferença Vol. Anual (%)']:.2f}% do volume útil em comparação com o mesmo mês no ano anterior, a maior diferença negativa em comparação com os demais sistemas."
-                f" Atualmente o seu volume útil está em {min_dif_filter['VolumeAtual (%)']:.2f}% e no ano anterior estava com {min_dif_filter['Volume Ano Anterior (%)']:.2f}%."
+                f" Atualmente o seu volume útil está em {min_dif_filter['Volume Atual (%)']:.2f}% e no ano anterior estava com {min_dif_filter['Volume Ano Anterior (%)']:.2f}%."
             )
 
         # Verifica se existe valor positivo
@@ -6722,7 +6755,7 @@ async def slide6():
             legenda += (
                 f" {frase_inicial} {max_dif_filter['Sistema']} "
                 f"apresentou a maior diferença positiva de {max_dif_filter['Diferença Vol. Anual (%)']:.2f}% em comparação com o mesmo mês no ano anterior, "
-                f"hoje apresenta o volume atual de {max_dif_filter['VolumeAtual (%)']:.2f}% e no ano anterior estava com {max_dif_filter['Volume Ano Anterior (%)']:.2f}%."
+                f"hoje apresenta o volume atual de {max_dif_filter['Volume Atual (%)']:.2f}% e no ano anterior estava com {max_dif_filter['Volume Ano Anterior (%)']:.2f}%."
             )
 
 
@@ -8295,7 +8328,6 @@ async def main():
                 slide6_data = safe(slide6_data)
                 slide6_data_seca = safe(slide6_data_seca)
                 slide8_data_seca = safe(slide8_data_seca, (None, None, None))  # pq retorna triplo
-
 
                 user_input1_seca = slide1_data_seca
                 user_input1 = slide1_data
