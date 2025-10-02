@@ -4531,8 +4531,6 @@ async def slide1_seca():
 
         all_ugrhi = execute_query(query_ugrhi)
 
-        print(all_ugrhi)
-
         tabela_ugrhis_df = pd.merge(all_ugrhi, grafico_dsc_ugrhi, on='ugrhi_id', how='left')
 
         df_long = tabela_ugrhis_df.melt(
@@ -4950,8 +4948,6 @@ async def slide1():
                     if set(prefixos_selecionados) != set(st.session_state.excluir_prefixos):
                         st.session_state.excluir_prefixos = prefixos_selecionados
                         st.rerun()
-
-
                                         
                 with coluna2:
 
@@ -8358,7 +8354,6 @@ async def main():
         dashboards = await asyncio.gather(
             dashboard_reservatorios()
         )
-
 
     
 if __name__ == "__main__":
