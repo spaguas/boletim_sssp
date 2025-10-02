@@ -1246,7 +1246,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     data_inicial = datetime.today()
     data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
-    url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+    url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec7dias/{data_inicial_str}H00:00"
     url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
 
 
