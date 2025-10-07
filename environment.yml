@@ -1,6 +1,5 @@
 name: boletim_env
 channels:
-  - defaults
   - conda-forge
 dependencies:
   - python=3.9
@@ -19,6 +18,7 @@ dependencies:
   - leafmap
   - matplotlib
   - schedule
+  - rasterstats=0.20.0
   - pip
   - pip:
       - webdriver-manager
