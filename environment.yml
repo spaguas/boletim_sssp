@@ -1,7 +1,7 @@
 name: boletim_env
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
   - python=3.9
   - pandas
@@ -11,19 +11,19 @@ dependencies:
   - python-dotenv
   - psycopg2
   - streamlit
-  - pip
-  - pip:
-    - rasterstats
-    - webdriver-manager
-    - selenium
-    - fpdf
-    - html2image
   - geopandas
   - plotly
-  - rasterstats
+  - rasterio
+  - shapely
+  - fiona
   - leafmap
   - matplotlib
   - schedule
-  - time
+  - pip
+  - pip:
+      - webdriver-manager
+      - selenium
+      - fpdf
+      - html2image
   
   
