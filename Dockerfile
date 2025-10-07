@@ -33,8 +33,10 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh &
 # Copia apenas o environment.yml primeiro (para cache)
 COPY environment.yml /tmp/environment.yml
 
-# Instala mamba e cria ambiente Conda
-RUN conda install -n base -c conda-forge mamba -y && \
+# Aceita TOS e cria ambiente com mamba
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r && \
+    conda install -n base -c conda-forge mamba -y && \
     mamba env create -f /tmp/environment.yml
 
 # Define shell para usar o ambiente por padrão
@@ -50,10 +52,6 @@ SHELL [ "conda","run","-n","boletim_env","/bin/bash","-c" ]
 # Cria o diretório de imagens com permissões
 RUN mkdir -p /usr/src/app_boletim_diario/imagens && \
     chmod 777 /usr/src/app_boletim_diario/imagens
-    
-# RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
-# RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
-# RUN conda env create -f environment.yml
 
 EXPOSE 8502
 
