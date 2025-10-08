@@ -1304,6 +1304,27 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     
     return pdf
 
+
+def refresh_viwe():
+    query = 'REFRESH MATERIALIZED VIEW station_rainfall_accum_month;'
+
+    try:
+        cur = conection_postgres()
+        conn = cur.connection
+        cur.execute(query)
+        conn.commit()  
+
+    except Exception as e:
+        print(f"Erro ao executar a query: {e}")
+
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
+
+
 def gerar_mapa_chuva_shapefile(get_data, data_shapefile, arquivo, excluir_prefixos):
 
     data_inicial = datetime.today()
@@ -1922,9 +1943,11 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
 
                 # pega a linha do dia atual, senão última disponível
                 if (df_atual_all["data"] == data_atual_str).any():
-                    linha_atual = df_atual_all.loc[df_atual_all["data"] == data_atual_str].sort_index().tail(1)
+                    linha_atual = df_atual_all.loc[df_atual_all["data"] == data_atual_str].sort_index().tail(1).copy()
+                    linha_atual["Data"] = data_atual_str
                 else:
-                    linha_atual = df_atual_all.tail(1)
+                    linha_atual = df_atual_all.tail(1).copy()
+                    linha_atual["Data"] = df_atual_all["data"].tail(1).iloc[0] 
                 linha_atual = linha_atual.rename(columns={"volumeOperacional_porcentagem": "Volume Atual (%)"})
 
                 atual_all_data.append(linha_atual)
@@ -1953,8 +1976,10 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
             # pega a linha do dia atual, senão última disponível
             if (df_sim_atual_all["dateTime"] == data_atual_str).any():
                 linha_atual_sim = df_sim_atual_all.loc[df_sim_atual_all["dateTime"] == data_atual_str].sort_index().tail(1)
+                linha_atual_sim["Data"] = data_atual_str
             else:
                 linha_atual_sim = df_sim_atual_all.tail(1)
+                linha_atual_sim["Data"] = linha_atual_sim["data"].tail(1).iloc[0] 
 
             # renomeia coluna
             linha_atual_sim = linha_atual_sim.rename(columns={"value": "Volume Atual (%)", "dateTime": "data"})      
@@ -1965,7 +1990,7 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
 
     merged_data_sistemas = merged_data_sistemas.rename(columns={'chuva_mm': 'Chuva (mm)', 'chuvaAcumuladaNoMes_mm': 'Acumulado no Mês (mm)', 'chuvaMediaHistorica_mm':'Média Histórica (mm)'})
 
-    merged_data_sistemas = merged_data_sistemas[['Sistema', 'Volume Atual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']]
+    merged_data_sistemas = merged_data_sistemas[['Sistema', 'Volume Atual (%)', 'Volume Ano Anterior (%)', 'Diferença Vol. Anual (%)', 'Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)', 'Data']]
 
     cols = ['Chuva (mm)', 'Acumulado no Mês (mm)', 'Média Histórica (mm)']
 
@@ -1981,7 +2006,7 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
     merged_data_sistemas[cols] = merged_data_sistemas[cols].applymap(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
     
     # data_atual_str = data_value[:10]   # '2025-09-09'
-    merged_data_sistemas["Data"] = data_atual_str
+    # merged_data_sistemas["Data"] = data_atual_str
 
     caminho_arquivo_json = os.path.join("results", f"sabesp_sistemas.json")
     merged_data_sistemas.to_json(caminho_arquivo_json, orient='records', force_ascii=False, indent=2)
@@ -5159,6 +5184,13 @@ async def slide2():
         else:
         # Lista vazia – ignora o filtro
             filtro_prefixo = ""
+
+        if "atualizar_tabela" not in st.session_state:
+            st.session_state.atualizar_tabela = False
+
+
+        if st.session_state.atualizar_tabela:
+            refresh_viwe()
             
         query_cities = f"""SELECT c.name as city_name,
                     max(ac_diario) AS max_ac_diario,
@@ -5178,16 +5210,18 @@ async def slide2():
                             WHEN EXTRACT(month FROM now())::integer = 11 THEN rc.h_nov
                             WHEN EXTRACT(month FROM now())::integer = 12 THEN rc.h_dez
                             ELSE '0'::numeric
-                        END AS media_historica
+                        END AS media_historica,
+                    re.execution_date
                 FROM public.station_rainfall_accum_month re
                     LEFT JOIN cities c ON c.id = re.city_id
                     LEFT JOIN avg_rainfall_cities rc ON rc.cod_ibge::text = c.cod_ibge::text
                 WHERE disponibilidade_diaria > 80 AND disponibilidade_mensal > 60::numeric AND ac_diario IS NOT null and c.name!='Município não Existente ou Incorporado por Outro' {filtro_prefixo}
-                GROUP BY city_name, media_historica
+                GROUP BY city_name, media_historica, execution_date
                 ORDER BY (max(ac_diario)) DESC LIMIT 10;"""
 
         tabela_df= execute_query(query_cities)
-
+        ultima_atualizacao = tabela_df['execution_date'].iloc[0]
+        tabela_df = tabela_df.drop(columns=['execution_date'], errors='ignore')
         # print(tabela_df)
         tabela_df['media_historica'] = pd.to_numeric(tabela_df['media_historica'], errors='coerce')
         tabela_df['media_historica'] = tabela_df['media_historica'].round(1)
@@ -5328,6 +5362,20 @@ async def slide2():
                             <p style="font-size: 14px; margin: 0.5; padding: 0;">  2- Média Registrada - Soma do Volume (mm) de todos postos do municípios / n°postos.</p>
                             <p style="font-size: 14px; margin: 0.5; padding: 0;">  3- Acumulado média mês - Soma da média (mm) registrada do primeiro dia do mês até o momento.</p>
                             <p style="font-size: 14px; margin: 0.5; padding: 0;">  4- Histórico mensal - Volume médio mensal calculado a partir da série histórica disponível</p>
+                        </div>
+                    </div>
+                """,
+                unsafe_allow_html=True)
+
+
+            if st.button("Atualizar Tabela"):
+                st.session_state.atualizar_tabela = True
+                st.rerun()
+
+            st.write(f"""
+                    <div class="align-left-center">
+                        <div style="color: black; line-height: 1;">
+                            <p style="font-size: 10px; margin: 0.5; padding: 0;">  <i>Ultima atualização: {ultima_atualizacao}</i></p>
                         </div>
                     </div>
                 """,
@@ -6542,23 +6590,30 @@ async def slide6():
 
         if os.path.exists(json_sistemas):
             merged_data_sistemas = pd.read_json(json_sistemas)
-            
-            data_existe = data_atual_str in merged_data_sistemas["Data"].values
+
+            # Checa se todos os sistemas esperados estão presentes no JSON
             sistemas_presentes = set(merged_data_sistemas["Sistema"].unique())
-            if data_existe and sistemas_esperados.issubset(sistemas_presentes):
-                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
-            else:
+
+            # Verifica se para todos os sistemas esperados há pelo menos uma linha com a data_atual_str
+            data_faltando = False
+            for sistema in sistemas_esperados:
+                df_sis = merged_data_sistemas[merged_data_sistemas["Sistema"] == sistema]
+                if data_atual_str not in df_sis["Data"].values:
+                    data_faltando = True
+                    break
+
+            # Se faltar qualquer sistema com a data atual, ou faltar sistema no geral → refaz
+            if data_faltando or not sistemas_esperados.issubset(sistemas_presentes):
                 get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str)
                 merged_data_sistemas = pd.read_json(json_sistemas)
+                merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
+            else:
                 merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
         else:
             get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str)
             merged_data_sistemas = pd.read_json(json_sistemas)
             merged_data_sistemas = merged_data_sistemas.drop(columns=["Data"])
 
-        sistemas = {
-            "Águas Claras": 1
-        }
 
         colun_grafico1, colun_grafico2, colun_grafico3 = st.columns([1.2, 1.5, 0.15])
         with colun_grafico1:
@@ -6598,7 +6653,7 @@ async def slide6():
 
                 # Configurações das barras
                 n = len(merged_data_sistemas) 
-                largura_barra = 0.30 
+                largura_barra = 0.37 
                 espacamento = 0.05
                 indice = np.arange(n) 
 
@@ -6633,7 +6688,7 @@ async def slide6():
                         ax.text(
                             x,
                             y - max_valor * 0.02,  # Um pouco abaixo do topo
-                            f'{y:.0f}',           # Número inteiro com símbolo de porcentagem
+                            f'{y:.1f}',           # Número inteiro com símbolo de porcentagem
                             ha='center',
                             va='top',
                             fontsize=8,
