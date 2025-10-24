@@ -2340,7 +2340,9 @@ def get_ssd_vazao_natural(data_atual_str):
 
     df_final = pd.concat(all_volume, ignore_index=True)
     df_final = pd.merge(df_final, df_sistemas_vazao, on='SistemaId', how='left')
-
+    df_final_historico_mensal = df_final[['mes_dia', 'min_value', 'mean_value', 'Sistema']]
+    print("df_final")
+    print(df_final)
 
     vazao_natural_diaria = {
         "Cantareira":373,
@@ -2399,15 +2401,19 @@ def get_ssd_vazao_natural(data_atual_str):
                 )
     df_vazao_natural_mensal_all["mes_dia"]=df_vazao_natural_mensal_all['data_mes'].dt.strftime("%m-%d")
 
+
     df_vazao_natural_mensal = df_vazao_natural_mensal_all.copy()
     df_vazao_natural_mensal = df_vazao_natural_mensal.groupby(['mes_dia', 'SistemaId'], as_index=False).agg(
                     min_value=('value', 'min'),
                     mean_value=('value', 'mean')
                 )
     
-    df_vazao_natural_mensal_all = pd.merge(df_vazao_natural_mensal_all, df_vazao_natural_mensal, on=['mes_dia', 'SistemaId'], how='left')
+    # df_vazao_natural_mensal_all = pd.merge(df_vazao_natural_mensal_all, df_vazao_natural_mensal, on=['mes_dia', 'SistemaId'], how='left')
+    df_vazao_natural_mensal_all = pd.merge(df_vazao_natural_mensal_all, df_final_historico_mensal, on=['mes_dia', 'Sistema'], how='left')
     df_vazao_natural_mensal_all = df_vazao_natural_mensal_all.rename(columns={"data_mes": "dateTime"})
-
+    df_vazao_natural_mensal_all = df_vazao_natural_mensal_all.sort_values('dateTime')
+    print("df_vazao_natural_mensal_all")
+    print(df_vazao_natural_mensal_all)
 
     return df_vazao_natural_mensal_all, df_vazao_natural_diaria_all
 
@@ -3331,6 +3337,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
     cc1, cc2 = st.columns([2.0, 2.0])
     with cc1:
+        
+        
         vazao_natural['ano'] = vazao_natural['ano'].astype(int)
         vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
 
@@ -3342,6 +3350,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             vazao_natural_comparacao['dateTime'].dt.strftime(f"{ano_atual}-%m-%d")
         )
 
+        
         fig_vazao = go.Figure()
 
         fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158"))
