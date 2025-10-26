@@ -2180,40 +2180,7 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
 
     return merged_df_final
 
-
 def get_ssd_api_comparacao(data_ano_anterior_str):
-    dados_sistema = {
-        "Cantareira": 0,
-        "Alto Tietê": 1,
-        "Guarapiranga": 2,
-        "Cotia": 3,
-        "Rio Grande": 4, 
-        "Rio Claro":5,
-        "São Lourenço": 17,
-        "SIM": 459
-    }
-
-    chuva_sistemas_ssd = {
-        "Cantareira": 369,
-        "Alto Tietê": 345,
-        "Guarapiranga":122,
-        "Cotia": 381,
-        "Rio Grande": 429, 
-        "Rio Claro": 417,  
-        "São Lourenço": 441,
-        "SIM": 453  
-    }   
-
-    chuva_acumulada = {
-        "Cantareira": 370,
-        "Alto Tietê": 346,
-        "Guarapiranga": 123,
-        "Cotia": 382, 
-        "Rio Grande": 430,
-        "Rio Claro": 418,  
-        "São Lourenço": 442,
-        "SIM": 454
-    }
 
     #"São Lourenço": 447,
     volume_sistema_ssd = {
@@ -2227,12 +2194,12 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
     }
 
     df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
-
+    data_inicial = "2000-01-01"
     all_volume =[]
     for _,data_volume in df_sistemas_volume.iterrows():
         id = data_volume["SistemaId"]
 
-        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_ano_anterior_str}'
 
         response = requests.get(url_volume, verify=False)
 
@@ -2244,19 +2211,20 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
                 df_atual_all = df_atual.copy()
                 df_atual_all['SistemaId'] = id
                 
-                valor_ano_anterior = df_atual_all.loc[df_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
+                # valor_ano_anterior = df_atual_all.loc[df_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
 
-                df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
+                # df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
 
-                df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_ano_anterior_str]
+                # df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_ano_anterior_str]
 
-                df_atual_all = df_atual_all.drop(columns={"deliveredAt", "value"})
+                df_atual_all.rename(columns={"value": "Volume Ano Anterior (%)"}, inplace=True)
+
+                df_atual_all = df_atual_all.drop(columns={"deliveredAt"})
                 all_volume.append(df_atual_all)
 
             else:
                 df_atual_all = pd.DataFrame()
                 df_atual_all['SistemaId'] = id
-                df_atual_all['dateTime'] = data_ano_anterior_str
                 df_atual_all["Volume Ano Anterior (%)"] = None
                 all_volume.append(df_atual_all)
 
@@ -2266,24 +2234,38 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
     key = os.environ.get('KEY')
     value = os.environ.get('VALUE')
     headers = {key: value}
-    url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_ano_anterior_str}/{data_ano_anterior_str}"
-    response_sl = requests.get(url_sao_lourenco, headers=headers)
 
-    if response_sl.status_code == 200:
-        dados_sl = response_sl.json()
-        if "data" in dados_sl:
-            df_atual_sl = pd.DataFrame(dados_sl["data"])
-            df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
-            df_atual_sl['SistemaId'] = 447
 
-            df_atual_sl["dateTime"] = pd.to_datetime(df_atual_sl["data"]).dt.strftime("%Y-%m-%d")
-            
-            
-            valor_ano_anterior = df_atual_sl.loc[df_atual_sl['dateTime'] == data_ano_anterior_str, 'volumeOperacional_porcentagem'].iloc[0]
+    hoje = datetime.today()
+    dia_mes = hoje.strftime("%m-%d")  # apenas mês e dia
+    anos = range(2019, 2025)  # 2020 a 2024
 
-            df_atual_sl["Volume Ano Anterior (%)"] = valor_ano_anterior
+    all_data = []
+    data_inicial_sl = '2019-01-01'
 
-            df_atual_sl = df_atual_sl[df_atual_sl['dateTime'] == data_ano_anterior_str]
+    for ano in anos:
+        data_str = f"{ano}-{dia_mes}"  # cria "2020-10-26", "2021-10-26", etc.
+        url = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_str}/{data_str}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            dados = response.json()
+            if "data" in dados and len(dados["data"]) > 0:
+                df = pd.DataFrame(dados["data"])
+                df = df[["data", "volumeOperacional_porcentagem"]]
+                df['SistemaId'] = 447
+                df["dateTime"] = pd.to_datetime(df["data"]).dt.strftime("%Y-%m-%d")
+                df.rename(columns={"volumeOperacional_porcentagem": "Volume Ano Anterior (%)"}, inplace=True)
+                df = df.drop(columns=["data"])
+                all_data.append(df)
+            else:
+                # caso não tenha dado nenhum valor nesse ano, adiciona linha vazia
+                all_data.append(pd.DataFrame({
+                    "SistemaId": [447],
+                    "dateTime": [data_str],
+                    "Volume Ano Anterior (%)": [None]
+                }))
+
+    df_atual_sl = pd.concat(all_data, ignore_index=True)
 
     merged_df_final = pd.concat([df_final, df_atual_sl], ignore_index=True)
     return merged_df_final
@@ -2775,31 +2757,126 @@ def get_telemetric_stations(data_atual_str):
     return gdf_all_stations_data
 
 
+@st.cache_data(ttl=3600, show_spinner="Carregando dados...")
+def load_dados(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str):
+    vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
+    vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
+    vazao_afluente = get_ssd_vazao_afluente(data_atual_str)
+    vazao_descarregada = get_ssd_descarregada(data_atual_str)
+    transferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
+    sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
+    merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
 
-def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado):
+    volume_sistema_ssd = {
+            "Cantareira": 375,
+            "Alto Tietê": 351,
+            "Guarapiranga": 399,
+            "Cotia": 387,
+            "Rio Grande": 435, 
+            "Rio Claro":423,
+            "SIM": 459
+        }
+
+    df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
+    data_inicial = '2025-06-01' 
+    all_volume =[]
+    for _,data_volume in df_sistemas_volume.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_sim_atual = pd.DataFrame(data["dataCollection"])
+                df_sim_atual_all = df_sim_atual.copy()
+                df_sim_atual_all['SistemaId'] = id
+
+                all_volume.append(df_sim_atual_all)
+
+    df_final_all = pd.concat(all_volume, ignore_index=True)
+    df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
+    
+    key = os.environ.get('KEY')
+    value = os.environ.get('VALUE')
+    headers = {key: value}
+    url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
+    response_sl = requests.get(url_sao_lourenco, headers=headers)
+
+    if response_sl.status_code == 200:
+        dados_sl = response_sl.json()
+        if "data" in dados_sl:
+            df_atual_sl = pd.DataFrame(dados_sl["data"])
+            df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
+            df_atual_sl['SistemaId'] = 447
+            df_atual_sl['Sistema'] = "São Lourenço"
+            df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"])
+            df_atual_sl["data"] = df_atual_sl["data"].dt.strftime("%Y-%m-%d")
+            
+            df_atual_sl = df_atual_sl.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
+
+    df_final_all_volume = pd.concat([df_final_all_volume, df_atual_sl], ignore_index=True)
+
+    data_dia_anterior = datetime.today() - timedelta(days=1)
+    data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
+
+    if data_atual_str in merged_data_sistemas_all['dateTime'].values:
+        merged_data_sistemas = merged_data_sistemas_all[
+            merged_data_sistemas_all['dateTime'] == data_atual_str
+        ]
+    elif data_dia_anterior_str in merged_data_sistemas_all['dateTime'].values:
+        merged_data_sistemas = merged_data_sistemas_all[
+            merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
+        ]
+
+    gdflimite = gpd.read_file("data/limiteestadualsp.shp")
+       
+
+    gdfsistemas = gpd.read_file("data/bacia_sistemas_uniao.shp", encoding="utf-8")
+    gdfsistemas = gdfsistemas.set_crs("EPSG:4326")
+    gdfsistemas['Sistema'] = gdfsistemas['Sistema'].replace('Sao Lourenço', 'São Lourenço')
+
+
+    gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
+    gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
+    gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
+    gdf_vazao_captada= gpd.read_file("data/vazao_captada.shp")
+
+    stations_monitoramento = get_telemetric_stations(data_atual_str)
+
+    gdf_transposicao = gpd.read_file("data/dados_sistemas.shp")
+
+    gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
+
+    return (merged_data_sistemas, df_final_all_volume, vazao_natural, vazao_natural_diaria, vazao_captada, vazao_captada_diaria,
+            vazao_afluente, vazao_descarregada, transferencias_all, all_transferencia_final, sistemas_ano_comparacao, 
+            gdflimite, gdfsistemas, gdf_pariba_do_sul, gdf_hidrografia,gdf_vazao_natural,gdf_vazao_captada,stations_monitoramento, gdf_transposicao, gdf_reservatorios)
+
+def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado, data_7dias_str, data_14dias_str, data_21dias_str):
     colun1, colun2, colun3= st.columns([0.2, 2.0, 0.2])
 
     map1, map2 = st.columns([3.0, 1.5])    
 
     with colun2:
 
-        st.write(f"""
-            <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
-                <p style="font-size: 16px; text-align: center;">
-                    Comparação entre volume(%) atual e o volume em {dia:02d}/{mes:02d}/{ano_usado}
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-
-        vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
-        vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
-        vazao_afluente = get_ssd_vazao_afluente(data_atual_str)
-        vazao_descarregada = get_ssd_descarregada(data_atual_str)
+        # vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
+        # vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
+        # vazao_afluente = get_ssd_vazao_afluente(data_atual_str)
+        # vazao_descarregada = get_ssd_descarregada(data_atual_str)
+        # tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
+        
+        (merged_data_sistemas, df_sim_atual_all, vazao_natural, vazao_natural_diaria,
+        vazao_captada, vazao_captada_diaria,
+        vazao_afluente, vazao_descarregada,
+        transferencias_all, all_transferencia_final, sistemas_ano_comparacao_full,
+        gdflimite, gdfsistemas, gdf_pariba_do_sul, gdf_hidrografia,gdf_vazao_natural,gdf_vazao_captada,
+        stations_monitoramento,gdf_transposicao,gdf_reservatorios) = load_dados(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
 
         sistemas_list = vazao_natural['Sistema'].unique().tolist()
-
-        tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
-        tunel_list = tranferencias_all['Sistema'].unique().tolist()
+        
+        tunel_list = transferencias_all['Sistema'].unique().tolist()
 
         if "sistema_filter" not in st.session_state:
             st.session_state.sistema_filter = "SIM"
@@ -2816,37 +2893,65 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 label_visibility="visible"
             )
 
-                # Se mudar a seleção, atualiza o estado e recarrega
+            # Se mudar a seleção, atualiza o estado e recarrega
             if ano_selecionado != st.session_state.data_filter:
                 st.session_state.data_filter = ano_selecionado
-                # monta a nova string de data anterior com o ano selecionado
                 data_ano_anterior_str = f"{ano_selecionado}-{mes:02d}-{dia:02d}"
-                st.session_state.data_ano_anterior_str = data_ano_anterior_str
-                st.rerun()
+                # st.session_state.data_ano_anterior_str = data_ano_anterior_str
+                # st.rerun()
 
         with con3:
-            sistema_selecionado = st.selectbox(
+            st.session_state.sistema_filter = st.selectbox(
                 "Selecione sistema",
                 options=sistemas_list,
                 index=sistemas_list.index(st.session_state.sistema_filter),
                 label_visibility="visible"
             )
 
-            if set(sistema_selecionado) != set(st.session_state.sistema_filter):
-                st.session_state.sistema_filter = sistema_selecionado
-                st.rerun()
+            # if set(sistema_selecionado) != set(st.session_state.sistema_filter):
+            #     st.session_state.sistema_filter = sistema_selecionado
+            #     st.rerun()
         
         with con4:
-            tunel_selecionado = st.selectbox(
+            st.session_state.tunel_transferencia = st.selectbox(
                 "Selecione Túnel",
                 options=tunel_list,
                 index=tunel_list.index(st.session_state.tunel_transferencia),
                 label_visibility="visible"
             )
             
-            if set(tunel_selecionado) != set(st.session_state.tunel_transferencia):
-                st.session_state.tunel_transferencia = tunel_selecionado
-                st.rerun()
+            # if set(tunel_selecionado) != set(st.session_state.tunel_transferencia):
+            #     st.session_state.tunel_transferencia = tunel_selecionado
+            #     st.rerun()
+
+        sistema_selecionado = st.session_state.sistema_filter
+        tunel_selecionado = st.session_state.tunel_transferencia
+        ano_selecionado = st.session_state.data_filter
+        
+        ano_filtro = f"{ano_selecionado}-{mes:02d}-{dia:02d}"
+
+        st.write(f"""
+            <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                <p style="font-size: 16px; text-align: center;">
+                    Comparação entre volume(%) atual e o volume em {dia:02d}/{mes:02d}/{ano_selecionado}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+        sistemas_ano_comparacao = sistemas_ano_comparacao_full[
+            sistemas_ano_comparacao_full["dateTime"] == ano_filtro
+        ].copy()
+
+        merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
+
+        merged_data_sistemas = merged_data_sistemas.rename(columns={"dateTime_x": "dateTime"})
+        merged_data_sistemas["dateTime"] = pd.to_datetime(merged_data_sistemas["dateTime"])
+        merged_data_sistemas["dateTime"] = merged_data_sistemas["dateTime"].dt.strftime("%Y-%m-%d")
+        merged_data_sistemas = merged_data_sistemas.drop(columns=['dateTime_y', 'data'])
+
+        merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
+        merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
+        merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: "#660000" if x < 0 else "#2F582B")
 
         legenda ={
                 "E0 - Normal": '#268b12',
@@ -2929,18 +3034,18 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
     with map1:
 
-        gdflimite = gpd.read_file("data/limiteestadualsp.shp")
+        # gdflimite = gpd.read_file("data/limiteestadualsp.shp")
        
 
-        gdfsistemas = gpd.read_file("data/bacia_sistemas_uniao.shp", encoding="utf-8")
-        gdfsistemas = gdfsistemas.set_crs("EPSG:4326")
-        gdfsistemas['Sistema'] = gdfsistemas['Sistema'].replace('Sao Lourenço', 'São Lourenço')
+        # gdfsistemas = gpd.read_file("data/bacia_sistemas_uniao.shp", encoding="utf-8")
+        # gdfsistemas = gdfsistemas.set_crs("EPSG:4326")
+        # gdfsistemas['Sistema'] = gdfsistemas['Sistema'].replace('Sao Lourenço', 'São Lourenço')
 
 
-        gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
-        gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
-        gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
-        gdf_vazao_captada= gpd.read_file("data/vazao_captada.shp")
+        # gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
+        # gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
+        # gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
+        # gdf_vazao_captada= gpd.read_file("data/vazao_captada.shp")
 
         vazao_captada_diaria["date_mapa"] = pd.to_datetime(vazao_captada_diaria["dateTime"]).dt.strftime("%Y-%m-%d")
         vazao_captada_atual = vazao_captada_diaria[vazao_captada_diaria["date_mapa"] == data_atual_str]
@@ -2967,14 +3072,14 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             right_on="SistemaId"    # coluna do dataframe
         )
 
-        gdf_transposicao = gpd.read_file("data/dados_sistemas.shp")
+        # gdf_transposicao = gpd.read_file("data/dados_sistemas.shp")
         gdf_transposicao_merge = gdf_transposicao.merge(
             all_transferencia_final,
             how="left",             # tipo de join
             left_on="id",           # coluna do shapefile
             right_on="SistemaId"    # coluna do dataframe
         )
-        gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
+        # gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
         gdf_reservatorios_merge = gdf_reservatorios.merge(
             merged_data_sistemas,
             how="left",             # tipo de join
@@ -2991,7 +3096,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         # Cria o mapa centralizado no bounding box dos sistemas
         bounds = gdfsistemas.total_bounds  # [minx, miny, maxx, maxy]
 
-        stations_monitoramento = get_telemetric_stations(data_atual_str)
+        # stations_monitoramento = get_telemetric_stations(data_atual_str)
 
         m = folium.Map(location=[(bounds[1]+bounds[3])/2, (bounds[0]+bounds[2])/2], zoom_start=8)
 
@@ -3239,7 +3344,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
     with map2:
 
-        tranferencias_all_graf = tranferencias_all[tranferencias_all["Sistema"]==tunel_selecionado].copy()
+        tranferencias_all_graf = transferencias_all[transferencias_all["Sistema"]==tunel_selecionado].copy()
         all_transferencia_graf = all_transferencia_final[all_transferencia_final["Sistema"]==tunel_selecionado].copy()
         graf1, graf2 = st.columns([1.0, 1.0])
 
@@ -3348,7 +3453,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         vazao_natural['ano'] = vazao_natural['ano'].astype(int)
         vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
 
-        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
+        ano_comparacao = pd.to_datetime(ano_filtro).year
         ano_atual = datetime.today().year
 
         vazao_natural_comparacao = vazao_natural[(vazao_natural["ano"] == ano_comparacao) & (vazao_natural['Sistema']==sistema_selecionado)]
@@ -3365,7 +3470,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1", hovertemplate='Mínima: %{y:.2f}<extra></extra>'))
         fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["data_formatada"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
 
-        fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %%{{y:.2f}}<extra></extra>'))
+        fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %{{y:.2f}}<extra></extra>'))
 
         fig_vazao.update_layout(
             title=dict(
@@ -3399,7 +3504,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         vazao_captada['ano'] = vazao_captada['ano'].astype(int)
         vazao_captada_atual = vazao_captada[(vazao_captada['ano'] == 2025) & (vazao_captada['Sistema']==sistema_selecionado)]
 
-        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
+        ano_comparacao = pd.to_datetime(ano_filtro).year
         ano_atual = datetime.today().year
 
         vazao_captada_comparacao = vazao_captada[(vazao_captada["ano"] == ano_comparacao) & (vazao_captada['Sistema']==sistema_selecionado)]
@@ -3415,7 +3520,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['min_value'], name='Mínima', marker_color="#598A9E", hovertemplate='Mínima: %{y:.2f}<extra></extra>'))
         fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_atual["data_formatada"], y=vazao_captada_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
 
-        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#C52F2F", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %%{{y:.2f}}<extra></extra>'))
+        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#C52F2F", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %{{y:.2f}}<extra></extra>'))
 
         fig_vazao_captada.update_layout(
             title=dict(
@@ -3612,9 +3717,9 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
     # media_movel_captada['data_formatada'] = media_movel_captada['dateTime'].dt.strftime('%d-%m-%Y')
     fig_media_movel_sim = go.Figure()
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Captada_14d'], mode='lines', name='Media Movel Vazão Captada(14d)', line=dict(color="#232FE0", width=1.5), line_shape='spline'))
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada[f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d'], mode='lines', name=f'Media Movel Vazão Afluente {sistema_selecionado} (14d)', line=dict( color="#387540", width=1.5)))         
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['TaxaVar_14d'], mode='lines', name='TaxaVar Var. 14d', line=dict(dash='dash', color="#c47003", width=1.5), yaxis="y2"))
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Captada_14d'], mode='lines', name='Media Movel Vazão Captada(14d)', line=dict(color="#232FE0", width=1.5), line_shape='spline', hovertemplate='Média Movel Vazão Captada(14d): %{y:.2f}<extra></extra>'))
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada[f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d'], mode='lines', name=f'Media Movel Vazão Afluente {sistema_selecionado} (14d)', line=dict( color="#387540", width=1.5), hovertemplate='Média Movel Vazão Afluente(14d): %{y:.2f}<extra></extra>'))         
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['TaxaVar_14d'], mode='lines', name='TaxaVar Var. 14d', line=dict(dash='dash', color="#c47003", width=1.5), yaxis="y2", hovertemplate='TaxaVar Var. 14d: %{y:.2f}<extra></extra>'))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#da1010", width=2),name=f"Ref: {data_ref_2.strftime('%d/%m/%Y')} (Início da RDA)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#6e0808", width=2),name=f"{data_ref.strftime('%d/%m/%Y')} (Início da GDN)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#8917be", width=2),name=f"Ref: {data_ref_3.strftime('%d/%m/%Y')} (Início da GDN 10h)"))
@@ -3676,6 +3781,12 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             text=f"Médias Móveis das Vazões - {sistema_selecionado}",
             font=dict(size=20, color='black')
         ),
+        hovermode='x unified',
+        hoverlabel=dict(
+                bgcolor='rgba(255,255,255,0.8)',
+                font_size=11,
+                font_color="black"
+            ),
         xaxis=dict(
             title="",
             tickfont=dict(color='black', size=16),
@@ -7889,92 +8000,76 @@ async def dashboard_reservatorios():
         """
         st.markdown(button_style, unsafe_allow_html=True)
 
-        if ano_filtro != data_ano_anterior_str:
+        # sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
 
-            sistemas_ano_comparacao = get_ssd_api_comparacao(ano_filtro)
-        else:                
-            sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
-
-
-        merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
+        # merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
 
         #"São Lourenço": 447,
-        volume_sistema_ssd = {
-            "Cantareira": 375,
-            "Alto Tietê": 351,
-            "Guarapiranga": 399,
-            "Cotia": 387,
-            "Rio Grande": 435, 
-            "Rio Claro":423,
-            "SIM": 459
-        }
+        # volume_sistema_ssd = {
+        #     "Cantareira": 375,
+        #     "Alto Tietê": 351,
+        #     "Guarapiranga": 399,
+        #     "Cotia": 387,
+        #     "Rio Grande": 435, 
+        #     "Rio Claro":423,
+        #     "SIM": 459
+        # }
 
-        df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
-        data_inicial = '2025-06-01' 
-        all_volume =[]
-        for _,data_volume in df_sistemas_volume.iterrows():
-            id = data_volume["SistemaId"]
+        # df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
+        # data_inicial = '2025-06-01' 
+        # all_volume =[]
+        # for _,data_volume in df_sistemas_volume.iterrows():
+        #     id = data_volume["SistemaId"]
 
-            url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
-            response = requests.get(url_volume, verify=False)
+        #     url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
+        #     response = requests.get(url_volume, verify=False)
 
-            if response.status_code == 200:
-                data = response.json()
+        #     if response.status_code == 200:
+        #         data = response.json()
 
-                if "dataCollection" in data:
-                    df_sim_atual = pd.DataFrame(data["dataCollection"])
-                    df_sim_atual_all = df_sim_atual.copy()
-                    df_sim_atual_all['SistemaId'] = id
+        #         if "dataCollection" in data:
+        #             df_sim_atual = pd.DataFrame(data["dataCollection"])
+        #             df_sim_atual_all = df_sim_atual.copy()
+        #             df_sim_atual_all['SistemaId'] = id
 
-                    all_volume.append(df_sim_atual_all)
+        #             all_volume.append(df_sim_atual_all)
 
-        df_final_all = pd.concat(all_volume, ignore_index=True)
-        df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
+        # df_final_all = pd.concat(all_volume, ignore_index=True)
+        # df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
         
-        key = os.environ.get('KEY')
-        value = os.environ.get('VALUE')
-        headers = {key: value}
-        url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
-        response_sl = requests.get(url_sao_lourenco, headers=headers)
+        # key = os.environ.get('KEY')
+        # value = os.environ.get('VALUE')
+        # headers = {key: value}
+        # url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
+        # response_sl = requests.get(url_sao_lourenco, headers=headers)
 
-        if response_sl.status_code == 200:
-            dados_sl = response_sl.json()
-            if "data" in dados_sl:
-                df_atual_sl = pd.DataFrame(dados_sl["data"])
-                df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
-                df_atual_sl['SistemaId'] = 447
-                df_atual_sl['Sistema'] = "São Lourenço"
-                df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"])
-                df_atual_sl["data"] = df_atual_sl["data"].dt.strftime("%Y-%m-%d")
+        # if response_sl.status_code == 200:
+        #     dados_sl = response_sl.json()
+        #     if "data" in dados_sl:
+        #         df_atual_sl = pd.DataFrame(dados_sl["data"])
+        #         df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
+        #         df_atual_sl['SistemaId'] = 447
+        #         df_atual_sl['Sistema'] = "São Lourenço"
+        #         df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"])
+        #         df_atual_sl["data"] = df_atual_sl["data"].dt.strftime("%Y-%m-%d")
                 
-                df_atual_sl = df_atual_sl.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
+        #         df_atual_sl = df_atual_sl.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
 
-        df_final_all_volume = pd.concat([df_final_all_volume, df_atual_sl], ignore_index=True)
+        # df_final_all_volume = pd.concat([df_final_all_volume, df_atual_sl], ignore_index=True)
 
-        data_dia_anterior = datetime.today() - timedelta(days=1)
-        data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
+        # data_dia_anterior = datetime.today() - timedelta(days=1)
+        # data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
 
-        if data_atual_str in merged_data_sistemas_all['dateTime'].values:
-            merged_data_sistemas = merged_data_sistemas_all[
-                merged_data_sistemas_all['dateTime'] == data_atual_str
-            ]
-        elif data_dia_anterior_str in merged_data_sistemas_all['dateTime'].values:
-            merged_data_sistemas = merged_data_sistemas_all[
-                merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
-            ]
+        # if data_atual_str in merged_data_sistemas_all['dateTime'].values:
+        #     merged_data_sistemas = merged_data_sistemas_all[
+        #         merged_data_sistemas_all['dateTime'] == data_atual_str
+        #     ]
+        # elif data_dia_anterior_str in merged_data_sistemas_all['dateTime'].values:
+        #     merged_data_sistemas = merged_data_sistemas_all[
+        #         merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
+        #     ]
 
-        merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
-        
-        merged_data_sistemas = merged_data_sistemas.rename(columns={"dateTime_x": "dateTime"})
-        merged_data_sistemas["dateTime"] = pd.to_datetime(merged_data_sistemas["dateTime"])
-        merged_data_sistemas["dateTime"] = merged_data_sistemas["dateTime"].dt.strftime("%Y-%m-%d")
-        merged_data_sistemas = merged_data_sistemas.drop(columns=['data_x','dateTime_y','data_y'])
-
-        merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
-        merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
-        merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: "#660000" if x < 0 else "#2F582B")
-
-        creat_dashboard(merged_data_sistemas, df_final_all_volume, lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado)
+        creat_dashboard(lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado, data_7dias_str, data_14dias_str, data_21dias_str)
 
         return None
 
