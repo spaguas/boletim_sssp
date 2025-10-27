@@ -2860,12 +2860,6 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     map1, map2 = st.columns([3.0, 1.5])    
 
     with colun2:
-
-        # vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
-        # vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
-        # vazao_afluente = get_ssd_vazao_afluente(data_atual_str)
-        # vazao_descarregada = get_ssd_descarregada(data_atual_str)
-        # tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
         
         (merged_data_sistemas, df_sim_atual_all, vazao_natural, vazao_natural_diaria,
         vazao_captada, vazao_captada_diaria,
@@ -2893,12 +2887,10 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
                 label_visibility="visible"
             )
 
-            # Se mudar a seleção, atualiza o estado e recarrega
             if ano_selecionado != st.session_state.data_filter:
                 st.session_state.data_filter = ano_selecionado
                 data_ano_anterior_str = f"{ano_selecionado}-{mes:02d}-{dia:02d}"
-                # st.session_state.data_ano_anterior_str = data_ano_anterior_str
-                # st.rerun()
+
 
         with con3:
             st.session_state.sistema_filter = st.selectbox(
@@ -2908,9 +2900,6 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
                 label_visibility="visible"
             )
 
-            # if set(sistema_selecionado) != set(st.session_state.sistema_filter):
-            #     st.session_state.sistema_filter = sistema_selecionado
-            #     st.rerun()
         
         with con4:
             st.session_state.tunel_transferencia = st.selectbox(
@@ -2920,9 +2909,6 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
                 label_visibility="visible"
             )
             
-            # if set(tunel_selecionado) != set(st.session_state.tunel_transferencia):
-            #     st.session_state.tunel_transferencia = tunel_selecionado
-            #     st.rerun()
 
         sistema_selecionado = st.session_state.sistema_filter
         tunel_selecionado = st.session_state.tunel_transferencia
@@ -3033,19 +3019,6 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
 
 
     with map1:
-
-        # gdflimite = gpd.read_file("data/limiteestadualsp.shp")
-       
-
-        # gdfsistemas = gpd.read_file("data/bacia_sistemas_uniao.shp", encoding="utf-8")
-        # gdfsistemas = gdfsistemas.set_crs("EPSG:4326")
-        # gdfsistemas['Sistema'] = gdfsistemas['Sistema'].replace('Sao Lourenço', 'São Lourenço')
-
-
-        # gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
-        # gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
-        # gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
-        # gdf_vazao_captada= gpd.read_file("data/vazao_captada.shp")
 
         vazao_captada_diaria["date_mapa"] = pd.to_datetime(vazao_captada_diaria["dateTime"]).dt.strftime("%Y-%m-%d")
         vazao_captada_atual = vazao_captada_diaria[vazao_captada_diaria["date_mapa"] == data_atual_str]
@@ -7144,10 +7117,24 @@ async def slide7():
             caption.decompose()
 
         html_sem_titulo = str(soup)
+
+        os.makedirs("imagens", exist_ok=True)
+        caminho_imagem = "imagens/tabela_ppdc.png"
+        if os.path.exists(caminho_imagem):
+            os.remove(caminho_imagem)
+
         hti = Html2Image(
-            custom_flags=["--force-device-scale-factor=3"]
-        )
-        hti.output_path = "imagens" 
+                custom_flags=[
+                "--headless=new",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--force-device-scale-factor=3"
+            ]
+            )
+        hti.output_path = "imagens"  # ou outro diretório
+        chrome_path = localizar_chrome()
+        hti.browser_path = chrome_path
         hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_ppdc.png', size=(800, 600))
 
         st.write(" ")
@@ -7999,75 +7986,6 @@ async def dashboard_reservatorios():
             </style>
         """
         st.markdown(button_style, unsafe_allow_html=True)
-
-        # sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
-
-        # merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
-
-        #"São Lourenço": 447,
-        # volume_sistema_ssd = {
-        #     "Cantareira": 375,
-        #     "Alto Tietê": 351,
-        #     "Guarapiranga": 399,
-        #     "Cotia": 387,
-        #     "Rio Grande": 435, 
-        #     "Rio Claro":423,
-        #     "SIM": 459
-        # }
-
-        # df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
-        # data_inicial = '2025-06-01' 
-        # all_volume =[]
-        # for _,data_volume in df_sistemas_volume.iterrows():
-        #     id = data_volume["SistemaId"]
-
-        #     url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
-        #     response = requests.get(url_volume, verify=False)
-
-        #     if response.status_code == 200:
-        #         data = response.json()
-
-        #         if "dataCollection" in data:
-        #             df_sim_atual = pd.DataFrame(data["dataCollection"])
-        #             df_sim_atual_all = df_sim_atual.copy()
-        #             df_sim_atual_all['SistemaId'] = id
-
-        #             all_volume.append(df_sim_atual_all)
-
-        # df_final_all = pd.concat(all_volume, ignore_index=True)
-        # df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
-        
-        # key = os.environ.get('KEY')
-        # value = os.environ.get('VALUE')
-        # headers = {key: value}
-        # url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
-        # response_sl = requests.get(url_sao_lourenco, headers=headers)
-
-        # if response_sl.status_code == 200:
-        #     dados_sl = response_sl.json()
-        #     if "data" in dados_sl:
-        #         df_atual_sl = pd.DataFrame(dados_sl["data"])
-        #         df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
-        #         df_atual_sl['SistemaId'] = 447
-        #         df_atual_sl['Sistema'] = "São Lourenço"
-        #         df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"])
-        #         df_atual_sl["data"] = df_atual_sl["data"].dt.strftime("%Y-%m-%d")
-                
-        #         df_atual_sl = df_atual_sl.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
-
-        # df_final_all_volume = pd.concat([df_final_all_volume, df_atual_sl], ignore_index=True)
-
-        # data_dia_anterior = datetime.today() - timedelta(days=1)
-        # data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
-
-        # if data_atual_str in merged_data_sistemas_all['dateTime'].values:
-        #     merged_data_sistemas = merged_data_sistemas_all[
-        #         merged_data_sistemas_all['dateTime'] == data_atual_str
-        #     ]
-        # elif data_dia_anterior_str in merged_data_sistemas_all['dateTime'].values:
-        #     merged_data_sistemas = merged_data_sistemas_all[
-        #         merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
-        #     ]
 
         creat_dashboard(lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado, data_7dias_str, data_14dias_str, data_21dias_str)
 
