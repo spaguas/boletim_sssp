@@ -5553,7 +5553,7 @@ async def slide2():
             fig.savefig("imagens/grafico_chuva.png", dpi=300, bbox_inches="tight")
 
         with coluna2:
-            for col in ['Chuva Acumudala (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)']:
+            for col in ['Chuva Acumulada (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)']:
                 tabela_ugrhis_df[col] = tabela_ugrhis_df[col].astype(float)
 
             fig, ax = plt.subplots(figsize=(8, 6))
