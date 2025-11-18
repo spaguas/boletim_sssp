@@ -5221,7 +5221,7 @@ async def slide1():
 
 
 async def slide2():
-    
+
     with slide2_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
 
@@ -5265,7 +5265,7 @@ async def slide2():
 
         if st.session_state.atualizar_tabela:
             refresh_viwe()
-            
+
         query_cities = f"""SELECT c.name as city_name,
                     max(ac_diario) AS max_ac_diario,
                     avg(ac_diario) AS ac_diario,
@@ -5301,18 +5301,52 @@ async def slide2():
         tabela_df['media_historica'] = tabela_df['media_historica'].round(1)
         tabela_df['media_historica'] = tabela_df['media_historica'].apply(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
         tabela_df = tabela_df.rename(columns={'city_name': 'Municípios', 'max_ac_diario': 'Chuva Máximo (mm)', 'ac_diario': 'Chuva Média (mm)', 'ac_mensal':'Acum. média mês (mm)' , 'media_historica':'Histórico mensal (mm)'})
+
+        # query_ugrhis = f"""
+        #                 SELECT INITCAP(u.name) as ugrhi_name,
+        #                     avg(ac_diario) AS ac_diario
+        #                 FROM public.station_rainfall_accum_month sr
+        #                     left join stations s on s.id = sr.ugrhi_id
+        #                     LEFT JOIN ugrhis u ON u.id = s.id
+        #                 WHERE disponibilidade_diaria > 80 AND ac_diario IS NOT null AND u.name != 'FORA DO ESTADO DE SÃO PAULO'
+        #                 GROUP BY ugrhi_name
+        #                 ORDER BY (ac_diario) DESC;"""
         
         query_ugrhis = f"""
-                        SELECT INITCAP(u.name) as ugrhi_name,
-                            avg(ac_diario) AS ac_diario
-                        FROM public.station_rainfall_accum_month sr
-                            left join stations s on s.id = sr.ugrhi_id
-                            LEFT JOIN ugrhis u ON u.id = s.id
-                        WHERE disponibilidade_diaria > 80 AND ac_diario IS NOT null AND u.name != 'FORA DO ESTADO DE SÃO PAULO'
-                        GROUP BY ugrhi_name
-                        ORDER BY (ac_diario) DESC;"""
-            
+            SELECT INITCAP(u.name) as ugrhi_name, u.cod,
+                avg(ac_diario) AS ac_diario,
+                avg(ac_mensal) AS ac_mensal,
+                avg(CASE
+                    WHEN EXTRACT(month FROM now())::integer = 1 THEN rc.h_jan
+                    WHEN EXTRACT(month FROM now())::integer = 2 THEN rc.h_fev
+                    WHEN EXTRACT(month FROM now())::integer = 3 THEN rc.h_mar
+                    WHEN EXTRACT(month FROM now())::integer = 4 THEN rc.h_abr
+                    WHEN EXTRACT(month FROM now())::integer = 5 THEN rc.h_mai
+                    WHEN EXTRACT(month FROM now())::integer = 6 THEN rc.h_jun
+                    WHEN EXTRACT(month FROM now())::integer = 7 THEN rc.h_jul
+                    WHEN EXTRACT(month FROM now())::integer = 8 THEN rc.h_ago
+                    WHEN EXTRACT(month FROM now())::integer = 9 THEN rc.h_set
+                    WHEN EXTRACT(month FROM now())::integer = 10 THEN rc.h_out
+                    WHEN EXTRACT(month FROM now())::integer = 11 THEN rc.h_nov
+                    WHEN EXTRACT(month FROM now())::integer = 12 THEN rc.h_dez
+                    ELSE '0'::numeric
+                end) AS media_historica
+            FROM public.station_rainfall_accum_month sr
+                left join stations s on s.id = sr.ugrhi_id
+                LEFT JOIN ugrhis u ON u.id = s.id
+                LEFT JOIN cities c ON c.id = sr.city_id
+                LEFT JOIN avg_rainfall_cities rc ON rc.cod_ibge::text = c.cod_ibge::text
+            WHERE disponibilidade_diaria > 80 AND ac_diario IS NOT null AND u.name != 'FORA DO ESTADO DE SÃO PAULO'
+            GROUP BY ugrhi_name, u.cod
+            ORDER BY u.cod;
+        """
         tabela_ugrhis_df= execute_query(query_ugrhis)
+        tabela_ugrhis_df['media_historica'] = pd.to_numeric(tabela_ugrhis_df['media_historica'], errors='coerce')
+        tabela_ugrhis_df['media_historica'] = tabela_ugrhis_df['media_historica'].round(1)
+        tabela_ugrhis_df['media_historica'] = tabela_ugrhis_df['media_historica'].apply(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
+        tabela_ugrhis_df = tabela_ugrhis_df.rename(columns={'ugrhi_name': 'Ugrhi', 'ac_diario': 'Chuva Acumudala (mm)', 'ac_mensal':'Acum. mensal (mm)' , 'media_historica':'Histórico mensal (mm)'})
+
+        print(tabela_ugrhis_df)
 
         # tabela_df = tabela_df.sort_values(by='Chuva Máximo (mm)')
 
@@ -5321,9 +5355,9 @@ async def slide2():
 
             styled_df = tabela_df.style\
             .format({
-                    'Chuva Máximo (mm)': '{:.1f}', 
-                    'Chuva Média (mm)': '{:.1f}', 
-                    'Acum. média mês (mm)': '{:.1f}' 
+                    'Chuva Máximo (mm)': '{:.1f}',
+                    'Chuva Média (mm)': '{:.1f}',
+                    'Acum. média mês (mm)': '{:.1f}'
                     })\
             .hide(axis="index")\
             .set_caption("Municípios com os maiores acumulados de chuvas observadas nas últimas 24h (mm) (Rede Telemétrica)")\
@@ -5334,11 +5368,11 @@ async def slide2():
                     ("font-weight", "bold"),
                     ("text-align", "center"),
                     ("padding", "5px"),
-                    ("caption-side", "top") 
+                    ("caption-side", "top")
                 ]},
                 {"selector": "th", "props": [
-                    ("font-size", "16px"), 
-                    ("background-color", "#f0f0f0"),
+                    ("font-size", "16px"),
+                    ("background-color", "#F0F0F0"),
                     ("color", "#333333"),
                     ("padding", "5px"),
                     ("text-align", "center")
@@ -5350,10 +5384,10 @@ async def slide2():
                     ("padding", "2px 4px"),
                     ("text-align", "center"),
                     ("width", "100px")
-                    # ("border-bottom", "1px solid #e0e0e0")
+                    # ("border-bottom", "1px solid #E0E0E0")
                     ]},
                 {"selector": "tr:hover", "props": [(
-                    "background-color", "#ffff99"),
+                    "background-color", "#FFFF99"),
                     ("cursor", "pointer")
                     ]},
                 {"selector": "th.col0", "props": [("width", "150px")]},
@@ -5368,7 +5402,7 @@ async def slide2():
                 {"selector": "td.col4", "props": [("width", "110px")]},
 
             ])\
-            .set_properties(**{"background-color": "#f9f9f9", "color": "#333333"})
+            .set_properties(**{"background-color": "#F9F9F9", "color": "#333333"})
 
             st.markdown(styled_df.to_html(), unsafe_allow_html=True)
 
@@ -5400,7 +5434,7 @@ async def slide2():
             hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as='tabela_chuva.png', size=(700, 500))
 
-            
+
             if prefix_list:
                 soup = BeautifulSoup(styled_df.to_html(), 'html.parser')
                 caption = soup.find('caption')
@@ -5454,7 +5488,7 @@ async def slide2():
                     </div>
                 """,
                 unsafe_allow_html=True)
-        
+
         tabela_df['Histórico mensal (mm)'] = tabela_df['Histórico mensal (mm)'].replace('-', 0)
 
 
@@ -5462,9 +5496,9 @@ async def slide2():
         with coluna2:
             for col in ['Chuva Média (mm)', 'Chuva Máximo (mm)', 'Acum. média mês (mm)', 'Histórico mensal (mm)']:
                 tabela_df[col] = tabela_df[col].astype(float)
-        
-        
-            fig, ax = plt.subplots(figsize=(7, 5)) 
+
+
+            fig, ax = plt.subplots(figsize=(7, 5))
 
             n = len(tabela_df)  # Número de municípios
             largura_barra = 0.15  # Largura de cada barra individual
@@ -5494,17 +5528,19 @@ async def slide2():
             ax.set_xticks(indice)
             ax.set_xticklabels(tabela_df['Municípios'], rotation=30, ha='right', fontsize=10)
             ax.grid(axis='y', linestyle=':', alpha=0.3)
-            
+
             # Ajuste do eixo Y
-            max_valor = tabela_df[['Chuva Média (mm)', 'Chuva Máximo (mm)', 
+            max_valor = tabela_df[['Chuva Média (mm)', 'Chuva Máximo (mm)',
                                 'Acum. média mês (mm)', 'Histórico mensal (mm)']].max().max()
             ax.set_ylim(0, max_valor * 1.2)
             ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
 
+
+
             # Legenda fora do gráfico
             ax.legend(
                 frameon=True,
-                facecolor='#f0f0f0',
+                facecolor='#F0F0F0',
                 fontsize=7,
                 bbox_to_anchor=(0.5, 1.1),  # (posição horizontal, posição vertical)
                 loc='upper center',  # Âncora no centro superior
@@ -5517,30 +5553,60 @@ async def slide2():
             fig.savefig("imagens/grafico_chuva.png", dpi=300, bbox_inches="tight")
 
         with coluna2:
+            for col in ['Chuva Acumudala (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)']:
+                tabela_ugrhis_df[col] = tabela_ugrhis_df[col].astype(float)
+
             fig, ax = plt.subplots(figsize=(8, 6))
             # Definindo as posições das barras
             n = len(tabela_ugrhis_df)
             indice = np.arange(n)  # Posições no eixo X (0, 1, 2, ...)
 
             # Largura das barras
-            largura_barra = 0.5
+            largura_barra = 0.28  # Largura de cada barra individual
+            espacamento = 0.01  # Espaço entre grupos de barras
+            indice = np.arange(n)  # Posições no eixo X
+            offset = np.array([-1, 0, 1]) * (largura_barra + espacamento/2)
+            cores = ['#2196F3', '#FF5722', '#FFC107']
 
-            # Plotando as barras
-            ax.bar(
-                indice,                     # Eixo X: posições baseadas em 'ugrhi_name'
-                tabela_ugrhis_df['ac_diario'],     # Eixo Y: valores de 'ac_diario'
-                largura_barra,              # Largura da barra
-                color='#2196F3',            # Cor da barra
-                alpha=0.8,                  # Transparência
-                label='AC Diário'           # Legenda
+            # Plotagem das barras
+            for i, (coluna, cor) in enumerate(zip(
+                ['Chuva Acumudala (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)'],
+                cores
+            )):
+                ax.bar(
+                    indice + offset[i],
+                    tabela_ugrhis_df[coluna],
+                    largura_barra,
+                    color=cor,
+                    alpha=0.8,
+                    label=coluna
+                )
+
+
+            # Ajuste do eixo Y
+            max_valor = tabela_ugrhis_df[
+                ['Chuva Acumudala (mm)', 'Acum. mensal (mm)', 'Histórico mensal (mm)']
+            ].max().max()
+            ax.set_ylim(0, max_valor * 1.2)
+            ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
+
+
+            # Legenda fora do gráfico
+            ax.legend(
+                frameon=True,
+                facecolor='#F0F0F0',
+                fontsize=7,
+                bbox_to_anchor=(0.5, 1.1),  # (posição horizontal, posição vertical)
+                loc='upper center',  # Âncora no centro superior
+                ncol=4  # Número de colunas para distribuir os itens
             )
 
-            ax.set_title('Chuva média acumulada por UGRHI', fontsize=10)             # Título do gráfico
+            ax.set_title('Chuva média acumulada por UGRHI', fontsize=10, pad=30)             # Título do gráfico
             ax.set_xticks(indice)                           # Define os ticks no eixo X
-            ax.set_xticklabels(tabela_ugrhis_df['ugrhi_name'], fontsize=10)     # Nomes das UGRHIs nos ticks
+            ax.set_xticklabels(tabela_ugrhis_df['Ugrhi'], fontsize=10)     # Nomes das UGRHIs nos ticks
             ax.set_ylabel('Precipitação (mm)', fontsize=8)
 
-            max_valor = tabela_ugrhis_df['ac_diario'].max()
+            # max_valor = tabela_ugrhis_df['ac_diario'].max()
 
             # ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
 
@@ -6364,7 +6430,7 @@ async def slide5():
                 hti.screenshot(html_str=html_perc_blocks, save_as=f'barras_percentuais{i}.png', size=(1200, 300))
 
                 fig = go.Figure()
-
+                df_filtered['current_data'] = df_filtered['current_data'] - pd.Timedelta(hours=3)
                 fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['value'], mode='lines', name='Valor', line=dict(color='#268b12', width=1), line_shape='spline'))
 
                 # Adicionando as linhas horizontais para os níveis
