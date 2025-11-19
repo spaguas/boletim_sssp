@@ -5344,7 +5344,7 @@ async def slide2():
         tabela_ugrhis_df['media_historica'] = pd.to_numeric(tabela_ugrhis_df['media_historica'], errors='coerce')
         tabela_ugrhis_df['media_historica'] = tabela_ugrhis_df['media_historica'].round(1)
         tabela_ugrhis_df['media_historica'] = tabela_ugrhis_df['media_historica'].apply(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
-        tabela_ugrhis_df = tabela_ugrhis_df.rename(columns={'ugrhi_name': 'Ugrhi', 'ac_diario': 'Chuva Acumudala (mm)', 'ac_mensal':'Acum. mensal (mm)' , 'media_historica':'Histórico mensal (mm)'})
+        tabela_ugrhis_df = tabela_ugrhis_df.rename(columns={'ugrhi_name': 'Ugrhi', 'ac_diario': 'Chuva Acumulada (mm)', 'ac_mensal':'Acum. mensal (mm)' , 'media_historica':'Histórico mensal (mm)'})
 
         print(tabela_ugrhis_df)
 
@@ -5570,7 +5570,7 @@ async def slide2():
 
             # Plotagem das barras
             for i, (coluna, cor) in enumerate(zip(
-                ['Chuva Acumudala (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)'],
+                ['Chuva Acumulada (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)'],
                 cores
             )):
                 ax.bar(
@@ -5585,7 +5585,7 @@ async def slide2():
 
             # Ajuste do eixo Y
             max_valor = tabela_ugrhis_df[
-                ['Chuva Acumudala (mm)', 'Acum. mensal (mm)', 'Histórico mensal (mm)']
+                ['Chuva Acumulada (mm)', 'Acum. mensal (mm)', 'Histórico mensal (mm)']
             ].max().max()
             ax.set_ylim(0, max_valor * 1.2)
             ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
