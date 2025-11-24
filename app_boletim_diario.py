@@ -2180,40 +2180,7 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
 
     return merged_df_final
 
-
 def get_ssd_api_comparacao(data_ano_anterior_str):
-    dados_sistema = {
-        "Cantareira": 0,
-        "Alto Tietê": 1,
-        "Guarapiranga": 2,
-        "Cotia": 3,
-        "Rio Grande": 4, 
-        "Rio Claro":5,
-        "São Lourenço": 17,
-        "SIM": 459
-    }
-
-    chuva_sistemas_ssd = {
-        "Cantareira": 369,
-        "Alto Tietê": 345,
-        "Guarapiranga":122,
-        "Cotia": 381,
-        "Rio Grande": 429, 
-        "Rio Claro": 417,  
-        "São Lourenço": 441,
-        "SIM": 453  
-    }   
-
-    chuva_acumulada = {
-        "Cantareira": 370,
-        "Alto Tietê": 346,
-        "Guarapiranga": 123,
-        "Cotia": 382, 
-        "Rio Grande": 430,
-        "Rio Claro": 418,  
-        "São Lourenço": 442,
-        "SIM": 454
-    }
 
     #"São Lourenço": 447,
     volume_sistema_ssd = {
@@ -2227,12 +2194,12 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
     }
 
     df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
-
+    data_inicial = "2000-01-01"
     all_volume =[]
     for _,data_volume in df_sistemas_volume.iterrows():
         id = data_volume["SistemaId"]
 
-        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_ano_anterior_str}'
 
         response = requests.get(url_volume, verify=False)
 
@@ -2244,19 +2211,20 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
                 df_atual_all = df_atual.copy()
                 df_atual_all['SistemaId'] = id
                 
-                valor_ano_anterior = df_atual_all.loc[df_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
+                # valor_ano_anterior = df_atual_all.loc[df_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
 
-                df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
+                # df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
 
-                df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_ano_anterior_str]
+                # df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_ano_anterior_str]
 
-                df_atual_all = df_atual_all.drop(columns={"deliveredAt", "value"})
+                df_atual_all.rename(columns={"value": "Volume Ano Anterior (%)"}, inplace=True)
+
+                df_atual_all = df_atual_all.drop(columns={"deliveredAt"})
                 all_volume.append(df_atual_all)
 
             else:
                 df_atual_all = pd.DataFrame()
                 df_atual_all['SistemaId'] = id
-                df_atual_all['dateTime'] = data_ano_anterior_str
                 df_atual_all["Volume Ano Anterior (%)"] = None
                 all_volume.append(df_atual_all)
 
@@ -2266,24 +2234,38 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
     key = os.environ.get('KEY')
     value = os.environ.get('VALUE')
     headers = {key: value}
-    url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_ano_anterior_str}/{data_ano_anterior_str}"
-    response_sl = requests.get(url_sao_lourenco, headers=headers)
 
-    if response_sl.status_code == 200:
-        dados_sl = response_sl.json()
-        if "data" in dados_sl:
-            df_atual_sl = pd.DataFrame(dados_sl["data"])
-            df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
-            df_atual_sl['SistemaId'] = 447
 
-            df_atual_sl["dateTime"] = pd.to_datetime(df_atual_sl["data"]).dt.strftime("%Y-%m-%d")
-            
-            
-            valor_ano_anterior = df_atual_sl.loc[df_atual_sl['dateTime'] == data_ano_anterior_str, 'volumeOperacional_porcentagem'].iloc[0]
+    hoje = datetime.today()
+    dia_mes = hoje.strftime("%m-%d")  # apenas mês e dia
+    anos = range(2019, 2025)  # 2020 a 2024
 
-            df_atual_sl["Volume Ano Anterior (%)"] = valor_ano_anterior
+    all_data = []
+    data_inicial_sl = '2019-01-01'
 
-            df_atual_sl = df_atual_sl[df_atual_sl['dateTime'] == data_ano_anterior_str]
+    for ano in anos:
+        data_str = f"{ano}-{dia_mes}"  # cria "2020-10-26", "2021-10-26", etc.
+        url = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_str}/{data_str}"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            dados = response.json()
+            if "data" in dados and len(dados["data"]) > 0:
+                df = pd.DataFrame(dados["data"])
+                df = df[["data", "volumeOperacional_porcentagem"]]
+                df['SistemaId'] = 447
+                df["dateTime"] = pd.to_datetime(df["data"]).dt.strftime("%Y-%m-%d")
+                df.rename(columns={"volumeOperacional_porcentagem": "Volume Ano Anterior (%)"}, inplace=True)
+                df = df.drop(columns=["data"])
+                all_data.append(df)
+            else:
+                # caso não tenha dado nenhum valor nesse ano, adiciona linha vazia
+                all_data.append(pd.DataFrame({
+                    "SistemaId": [447],
+                    "dateTime": [data_str],
+                    "Volume Ano Anterior (%)": [None]
+                }))
+
+    df_atual_sl = pd.concat(all_data, ignore_index=True)
 
     merged_df_final = pd.concat([df_final, df_atual_sl], ignore_index=True)
     return merged_df_final
@@ -2340,7 +2322,15 @@ def get_ssd_vazao_natural(data_atual_str):
 
     df_final = pd.concat(all_volume, ignore_index=True)
     df_final = pd.merge(df_final, df_sistemas_vazao, on='SistemaId', how='left')
-
+    df_final_historico_mensal = df_final[['mes_dia', 'min_value', 'mean_value', 'Sistema']]
+    df_final_historico_mensal = (
+        df_final_historico_mensal
+        .groupby(['mes_dia', 'Sistema'], as_index=False)
+        .agg({
+            'min_value': 'mean',
+            'mean_value': 'mean'
+        })
+    )
 
     vazao_natural_diaria = {
         "Cantareira":373,
@@ -2379,6 +2369,10 @@ def get_ssd_vazao_natural(data_atual_str):
 
                 df_atual_all["ano"] = df_atual_all["dateTime"].dt.strftime("%Y")
 
+                df_atual_all["mes_ano"] = df_atual_all["dateTime"].dt.strftime("%Y-%m")
+
+                df_atual_all["data_mes"] = pd.to_datetime(df_atual_all["mes_ano"] + "-01")
+
                 # df_grouped = df_atual_all.groupby("mes_ano")["Volume"].sum().reset_index()
                 df_grouped = df_atual_all.groupby(['mes_dia', 'SistemaId'], as_index=False).agg(
                     min_value=('value', 'min'),
@@ -2389,10 +2383,27 @@ def get_ssd_vazao_natural(data_atual_str):
                 vazao_natural_diaria_all.append(df_atual_all)
 
     df_vazao_natural_diaria_all = pd.concat(vazao_natural_diaria_all, ignore_index=True)
-    df_vazao_natural_diaria_all = pd.merge(df_vazao_natural_diaria_all, df_vazao_natural_diaria, on='SistemaId', how='left')            
+    df_vazao_natural_diaria_all = pd.merge(df_vazao_natural_diaria_all, df_vazao_natural_diaria, on='SistemaId', how='left')    
+    df_vazao_natural_mensal_all = df_vazao_natural_diaria_all.groupby(['data_mes', 'SistemaId', 'Sistema', 'ano'], as_index=False).agg(
+                    value=('value', 'mean')
+                )
+    df_vazao_natural_mensal_all["mes_dia"]=df_vazao_natural_mensal_all['data_mes'].dt.strftime("%m-%d")
 
 
-    return df_final, df_vazao_natural_diaria_all
+    df_vazao_natural_mensal = df_vazao_natural_mensal_all.copy()
+    df_vazao_natural_mensal = df_vazao_natural_mensal.groupby(['mes_dia', 'SistemaId'], as_index=False).agg(
+                    min_value=('value', 'min'),
+                    mean_value=('value', 'mean')
+                )
+    
+    # df_vazao_natural_mensal_all = pd.merge(df_vazao_natural_mensal_all, df_vazao_natural_mensal, on=['mes_dia', 'SistemaId'], how='left')
+    df_vazao_natural_mensal_all = pd.merge(df_vazao_natural_mensal_all, df_final_historico_mensal, on=['mes_dia','Sistema'], how='left')
+    df_vazao_natural_mensal_all = df_vazao_natural_mensal_all.rename(columns={"data_mes": "dateTime"})
+    # df_vazao_natural_mensal_all = df_vazao_natural_mensal_all.sort_values(['dateTime', 'SistemaId'])
+    print("df_vazao_natural_mensal_all")
+    print(df_vazao_natural_mensal_all)
+
+    return df_vazao_natural_mensal_all, df_vazao_natural_diaria_all
 
 def get_ssd_vazao_captada(data_atual_str):
 
@@ -2703,7 +2714,7 @@ def calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_a
     df_sim_atual_all["dateTime"] = pd.to_datetime(df_sim_atual_all["dateTime"], errors="coerce")
     df_sim_atual_all = df_sim_atual_all.sort_values(by='dateTime').reset_index(drop=True)
 
-    x = 7  # Média móvel de 7 dias
+    x = 14  # Média móvel de 7 dias
     colunas_mm = ['Vazão Captada', f'Vazão Afluente {sistema_selecionado}'] #colunas_mm = ['Vazão Captada', 'Vazão Afluente SIM', 'Vazão descarregada Cantareira']
     for col in colunas_mm:
         df_sim_atual_all[f'MediaMovel_{col}_{x}d'] = df_sim_atual_all[col].rolling(window=x, min_periods=1).mean()
@@ -2746,31 +2757,120 @@ def get_telemetric_stations(data_atual_str):
     return gdf_all_stations_data
 
 
+@st.cache_data(ttl=3600, show_spinner="Carregando dados...")
+def load_dados(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str):
+    vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
+    vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
+    vazao_afluente = get_ssd_vazao_afluente(data_atual_str)
+    vazao_descarregada = get_ssd_descarregada(data_atual_str)
+    transferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
+    sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
+    merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
 
-def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado):
+    volume_sistema_ssd = {
+            "Cantareira": 375,
+            "Alto Tietê": 351,
+            "Guarapiranga": 399,
+            "Cotia": 387,
+            "Rio Grande": 435, 
+            "Rio Claro":423,
+            "SIM": 459
+        }
+
+    df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
+    data_inicial = '2025-06-01' 
+    all_volume =[]
+    for _,data_volume in df_sistemas_volume.iterrows():
+        id = data_volume["SistemaId"]
+
+        url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
+        response = requests.get(url_volume, verify=False)
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if "dataCollection" in data:
+                df_sim_atual = pd.DataFrame(data["dataCollection"])
+                df_sim_atual_all = df_sim_atual.copy()
+                df_sim_atual_all['SistemaId'] = id
+
+                all_volume.append(df_sim_atual_all)
+
+    df_final_all = pd.concat(all_volume, ignore_index=True)
+    df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
+    
+    key = os.environ.get('KEY')
+    value = os.environ.get('VALUE')
+    headers = {key: value}
+    url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
+    response_sl = requests.get(url_sao_lourenco, headers=headers)
+
+    if response_sl.status_code == 200:
+        dados_sl = response_sl.json()
+        if "data" in dados_sl:
+            df_atual_sl = pd.DataFrame(dados_sl["data"])
+            df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
+            df_atual_sl['SistemaId'] = 447
+            df_atual_sl['Sistema'] = "São Lourenço"
+            df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"])
+            df_atual_sl["data"] = df_atual_sl["data"].dt.strftime("%Y-%m-%d")
+            
+            df_atual_sl = df_atual_sl.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
+
+    df_final_all_volume = pd.concat([df_final_all_volume, df_atual_sl], ignore_index=True)
+
+    data_dia_anterior = datetime.today() - timedelta(days=1)
+    data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
+
+    if data_atual_str in merged_data_sistemas_all['dateTime'].values:
+        merged_data_sistemas = merged_data_sistemas_all[
+            merged_data_sistemas_all['dateTime'] == data_atual_str
+        ]
+    elif data_dia_anterior_str in merged_data_sistemas_all['dateTime'].values:
+        merged_data_sistemas = merged_data_sistemas_all[
+            merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
+        ]
+
+    gdflimite = gpd.read_file("data/limiteestadualsp.shp")
+       
+
+    gdfsistemas = gpd.read_file("data/bacia_sistemas_uniao.shp", encoding="utf-8")
+    gdfsistemas = gdfsistemas.set_crs("EPSG:4326")
+    gdfsistemas['Sistema'] = gdfsistemas['Sistema'].replace('Sao Lourenço', 'São Lourenço')
+
+
+    gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
+    gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
+    gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
+    gdf_vazao_captada= gpd.read_file("data/vazao_captada.shp")
+
+    stations_monitoramento = get_telemetric_stations(data_atual_str)
+
+    gdf_transposicao = gpd.read_file("data/dados_sistemas.shp")
+
+    gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
+
+    return (merged_data_sistemas, df_final_all_volume, vazao_natural, vazao_natural_diaria, vazao_captada, vazao_captada_diaria,
+            vazao_afluente, vazao_descarregada, transferencias_all, all_transferencia_final, sistemas_ano_comparacao, 
+            gdflimite, gdfsistemas, gdf_pariba_do_sul, gdf_hidrografia,gdf_vazao_natural,gdf_vazao_captada,stations_monitoramento, gdf_transposicao, gdf_reservatorios)
+
+def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado, data_7dias_str, data_14dias_str, data_21dias_str):
     colun1, colun2, colun3= st.columns([0.2, 2.0, 0.2])
 
     map1, map2 = st.columns([3.0, 1.5])    
 
     with colun2:
-
-        st.write(f"""
-            <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
-                <p style="font-size: 16px; text-align: center;">
-                    Comparação entre volume(%) atual e o volume em {dia:02d}/{mes:02d}/{ano_usado}
-                </p>
-            </div>
-        """, unsafe_allow_html=True)
-
-        vazao_natural, vazao_natural_diaria = get_ssd_vazao_natural(data_atual_str)
-        vazao_captada, vazao_captada_diaria = get_ssd_vazao_captada(data_atual_str)
-        vazao_afluente = get_ssd_vazao_afluente(data_atual_str)
-        vazao_descarregada = get_ssd_descarregada(data_atual_str)
+        
+        (merged_data_sistemas, df_sim_atual_all, vazao_natural, vazao_natural_diaria,
+        vazao_captada, vazao_captada_diaria,
+        vazao_afluente, vazao_descarregada,
+        transferencias_all, all_transferencia_final, sistemas_ano_comparacao_full,
+        gdflimite, gdfsistemas, gdf_pariba_do_sul, gdf_hidrografia,gdf_vazao_natural,gdf_vazao_captada,
+        stations_monitoramento,gdf_transposicao,gdf_reservatorios) = load_dados(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
 
         sistemas_list = vazao_natural['Sistema'].unique().tolist()
-
-        tranferencias_all, all_transferencia_final = get_ssd_transferencias(data_atual_str)
-        tunel_list = tranferencias_all['Sistema'].unique().tolist()
+        
+        tunel_list = transferencias_all['Sistema'].unique().tolist()
 
         if "sistema_filter" not in st.session_state:
             st.session_state.sistema_filter = "SIM"
@@ -2787,37 +2887,57 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 label_visibility="visible"
             )
 
-                # Se mudar a seleção, atualiza o estado e recarrega
             if ano_selecionado != st.session_state.data_filter:
                 st.session_state.data_filter = ano_selecionado
-                # monta a nova string de data anterior com o ano selecionado
                 data_ano_anterior_str = f"{ano_selecionado}-{mes:02d}-{dia:02d}"
-                st.session_state.data_ano_anterior_str = data_ano_anterior_str
-                st.rerun()
+
 
         with con3:
-            sistema_selecionado = st.selectbox(
+            st.session_state.sistema_filter = st.selectbox(
                 "Selecione sistema",
                 options=sistemas_list,
                 index=sistemas_list.index(st.session_state.sistema_filter),
                 label_visibility="visible"
             )
 
-            if set(sistema_selecionado) != set(st.session_state.sistema_filter):
-                st.session_state.sistema_filter = sistema_selecionado
-                st.rerun()
         
         with con4:
-            tunel_selecionado = st.selectbox(
+            st.session_state.tunel_transferencia = st.selectbox(
                 "Selecione Túnel",
                 options=tunel_list,
                 index=tunel_list.index(st.session_state.tunel_transferencia),
                 label_visibility="visible"
             )
             
-            if set(tunel_selecionado) != set(st.session_state.tunel_transferencia):
-                st.session_state.tunel_transferencia = tunel_selecionado
-                st.rerun()
+
+        sistema_selecionado = st.session_state.sistema_filter
+        tunel_selecionado = st.session_state.tunel_transferencia
+        ano_selecionado = st.session_state.data_filter
+        
+        ano_filtro = f"{ano_selecionado}-{mes:02d}-{dia:02d}"
+
+        st.write(f"""
+            <div style="color: black; display: flex; justify-content: center; align-items: center; padding: 20px;">
+                <p style="font-size: 16px; text-align: center;">
+                    Comparação entre volume(%) atual e o volume em {dia:02d}/{mes:02d}/{ano_selecionado}
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+
+        sistemas_ano_comparacao = sistemas_ano_comparacao_full[
+            sistemas_ano_comparacao_full["dateTime"] == ano_filtro
+        ].copy()
+
+        merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
+
+        merged_data_sistemas = merged_data_sistemas.rename(columns={"dateTime_x": "dateTime"})
+        merged_data_sistemas["dateTime"] = pd.to_datetime(merged_data_sistemas["dateTime"])
+        merged_data_sistemas["dateTime"] = merged_data_sistemas["dateTime"].dt.strftime("%Y-%m-%d")
+        merged_data_sistemas = merged_data_sistemas.drop(columns=['dateTime_y', 'data'])
+
+        merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
+        merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
+        merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: "#660000" if x < 0 else "#2F582B")
 
         legenda ={
                 "E0 - Normal": '#268b12',
@@ -2893,54 +3013,12 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         </div>
         """
 
-        # print(html_perc_blocks)
         st.components.v1.html(html_perc_blocks, height=400, scrolling=True)
 
         
-        # st.components.v1.html('''
-        #     <div style="display:flex; justify-content:center; gap:15px; margin-top:-10px;">
-        #         <div style="display:flex; align-items:center;">
-        #             <div style="width:15px; height:15px; background:#268b12; margin-right:5px;"></div>
-        #             <span style="font-size:16px;">E0 - Normal</span>
-        #         </div>
 
-        #         <div style="display:flex; align-items:center;">
-        #             <div style="width:15px; height:15px; background:#f8d202; margin-right:5px;"></div>
-        #             <span style="font-size:16px;">E1 - Atenção</span>
-        #         </div>
-
-        #         <div style="display:flex; align-items:center;">
-        #             <div style="width:15px; height:15px; background:#f95108; margin-right:5px;"></div>
-        #             <span style="font-size:16px;">E2 - Alerta</span>
-        #         </div>
-
-        #         <div style="display:flex; align-items:center;">
-        #             <div style="width:15px; height:15px; background:#da070f; margin-right:5px;"></div>
-        #             <span style="font-size:16px;">E3 - Crítico</span>
-        #         </div>
-
-        #         <div style="display:flex; align-items:center;">
-        #             <div style="width:15px; height:15px; background:#8435b7; margin-right:5px;"></div>
-        #             <span style="font-size:16px;">E4 - Emergência</span>
-        #         </div>
-        #     </div>
-        #     ''', height=50)
 
     with map1:
-
-        gdflimite = gpd.read_file("data/limiteestadualsp.shp")
-        # gdfsistemas = gpd.read_file("data/bacia_sistemas_produtores.shp", encoding="utf-8")
-        
-
-        gdfsistemas = gpd.read_file("data/bacia_sistemas_uniao.shp", encoding="utf-8")
-        gdfsistemas = gdfsistemas.set_crs("EPSG:4326")
-        gdfsistemas['Sistema'] = gdfsistemas['Sistema'].replace('Sao Lourenço', 'São Lourenço')
-
-
-        gdf_pariba_do_sul = gpd.read_file("data/paraiba_do_sul.shp")
-        gdf_hidrografia = gpd.read_file("data/HIDROGRAFIA_ESP_ANA_2013_LN.shp")
-        gdf_vazao_natural = gpd.read_file("data/vazao_natural.shp")
-        gdf_vazao_captada= gpd.read_file("data/vazao_captada.shp")
 
         vazao_captada_diaria["date_mapa"] = pd.to_datetime(vazao_captada_diaria["dateTime"]).dt.strftime("%Y-%m-%d")
         vazao_captada_atual = vazao_captada_diaria[vazao_captada_diaria["date_mapa"] == data_atual_str]
@@ -2967,14 +3045,14 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             right_on="SistemaId"    # coluna do dataframe
         )
 
-        gdf_transposicao = gpd.read_file("data/dados_sistemas.shp")
+        # gdf_transposicao = gpd.read_file("data/dados_sistemas.shp")
         gdf_transposicao_merge = gdf_transposicao.merge(
             all_transferencia_final,
             how="left",             # tipo de join
             left_on="id",           # coluna do shapefile
             right_on="SistemaId"    # coluna do dataframe
         )
-        gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
+        # gdf_reservatorios = gpd.read_file("data/reservatorios_sabesp_sistemas.shp")
         gdf_reservatorios_merge = gdf_reservatorios.merge(
             merged_data_sistemas,
             how="left",             # tipo de join
@@ -2991,7 +3069,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         # Cria o mapa centralizado no bounding box dos sistemas
         bounds = gdfsistemas.total_bounds  # [minx, miny, maxx, maxy]
 
-        stations_monitoramento = get_telemetric_stations(data_atual_str)
+        # stations_monitoramento = get_telemetric_stations(data_atual_str)
 
         m = folium.Map(location=[(bounds[1]+bounds[3])/2, (bounds[0]+bounds[2])/2], zoom_start=8)
 
@@ -3206,54 +3284,6 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 """)
             ).add_to(fg_vazao_captada)
 
-        # for _, row in gdfsistemas_merge.iterrows():
-        #     # Pega o centróide do polígono
-        #     # centroid = row.geometry.centroid
-        #     # cx, cy = centroid.y, centroid.x  
-
-        #     # # Define onde a label vai ficar (deslocada para esquerda)
-        #     # label_lat = cx + 0.2
-        #     # label_lon = cy - 0.1   # desloca 0.05 graus para esquerda (ajuste fino)
-        #     minx, miny, maxx, maxy = row.geometry.bounds
-
-        #     # Ponto superior central do polígono
-        #     top_lat = maxy
-        #     top_lon = (minx + maxx) / 2
-
-        #     # Define onde a label vai ficar (deslocada para esquerda)
-        #     label_lat = top_lat + 0.02   # um pouco acima do polígono
-        #     label_lon = top_lon - 0.05  
-
-        #     # Adiciona a caixinha (DivIcon)
-        #     folium.Marker(
-        #         location=[label_lat, label_lon],
-        #         icon=folium.DivIcon(
-        #             html=f"""
-        #                 <div style="
-        #                     background:white; 
-        #                     border:1px solid gray; 
-        #                     border-radius:6px; 
-        #                     padding:4px;
-        #                     box-shadow:2px 2px 5px rgba(0,0,0,0.3);
-        #                     font-size:12px;
-        #                     width: 100px;
-        #                     max-width: 100px;
-        #                     white-space: normal;
-        #                 ">
-        #                     {row['Sistema']}
-        #                 </div>
-        #             """
-        #         )
-        #     ).add_to(m)
-
-        #     # Adiciona a linha conectando a caixa ao polígono
-        #     folium.PolyLine(
-        #         # locations=[[label_lat, label_lon], [cx, cy]],
-        #         locations=[[label_lat, label_lon], [top_lat, top_lon]],
-        #         color="#707470",
-        #         weight=1
-        #     ).add_to(m)
-
         folium.LayerControl().add_to(m)
 
         st.session_state["mapa_transposicao"] = m
@@ -3287,7 +3317,7 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
     with map2:
 
-        tranferencias_all_graf = tranferencias_all[tranferencias_all["Sistema"]==tunel_selecionado].copy()
+        tranferencias_all_graf = transferencias_all[transferencias_all["Sistema"]==tunel_selecionado].copy()
         all_transferencia_graf = all_transferencia_final[all_transferencia_final["Sistema"]==tunel_selecionado].copy()
         graf1, graf2 = st.columns([1.0, 1.0])
 
@@ -3391,10 +3421,12 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
 
     cc1, cc2 = st.columns([2.0, 2.0])
     with cc1:
+        
+        
         vazao_natural['ano'] = vazao_natural['ano'].astype(int)
         vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
 
-        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
+        ano_comparacao = pd.to_datetime(ano_filtro).year
         ano_atual = datetime.today().year
 
         vazao_natural_comparacao = vazao_natural[(vazao_natural["ano"] == ano_comparacao) & (vazao_natural['Sistema']==sistema_selecionado)]
@@ -3402,19 +3434,28 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             vazao_natural_comparacao['dateTime'].dt.strftime(f"{ano_atual}-%m-%d")
         )
 
+        vazao_natural_atual['data_formatada'] = vazao_natural_atual['dateTime'].dt.strftime('%m-%Y')
+        vazao_natural_comparacao['data_formatada'] = vazao_natural_comparacao['data_atual'].dt.strftime('%m-%Y')
+        
         fig_vazao = go.Figure()
 
-        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158"))
-        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1"))
-        fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["dateTime"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline'))
+        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158", hovertemplate='Média: %{y:.2f}<extra></extra>'))
+        fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1", hovertemplate='Mínima: %{y:.2f}<extra></extra>'))
+        fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["data_formatada"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
 
-        fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_atual"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline'))
+        fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %{{y:.2f}}<extra></extra>'))
 
         fig_vazao.update_layout(
             title=dict(
                 text=f"Evolução das médias mensais da Vazão Natural (m³/s) - {vazao_natural_atual['Sistema'].iloc[0]}",
                 font=dict(size=20, color='black')  # tamanho e cor do título
             ),
+            hovermode='x unified',
+            hoverlabel=dict(
+                    bgcolor='rgba(255,255,255,0.8)',
+                    font_size=11,
+                    font_color="black"
+                ),
             barmode='overlay',
             # title_x=0.3,
             xaxis_title="",
@@ -3426,8 +3467,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
             yaxis_title_font=dict(color='black'), 
             legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
-            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+            xaxis=dict(tickfont=dict(color='black', size=14), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=14), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
         )
 
         st.plotly_chart(fig_vazao)
@@ -3436,27 +3477,35 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         vazao_captada['ano'] = vazao_captada['ano'].astype(int)
         vazao_captada_atual = vazao_captada[(vazao_captada['ano'] == 2025) & (vazao_captada['Sistema']==sistema_selecionado)]
 
-        ano_comparacao = pd.to_datetime(data_ano_anterior_str).year
+        ano_comparacao = pd.to_datetime(ano_filtro).year
         ano_atual = datetime.today().year
 
         vazao_captada_comparacao = vazao_captada[(vazao_captada["ano"] == ano_comparacao) & (vazao_captada['Sistema']==sistema_selecionado)]
         vazao_captada_comparacao['data_atual'] = pd.to_datetime(
             vazao_captada_comparacao['dateTime'].dt.strftime(f"{ano_atual}-%m-%d")
         )
-
+        
+        vazao_captada_atual['data_formatada'] = vazao_captada_atual['dateTime'].dt.strftime('%m-%Y')
+        vazao_captada_comparacao['data_formatada'] = vazao_captada_comparacao['data_atual'].dt.strftime('%m-%Y')
         fig_vazao_captada = go.Figure()
 
-        fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_atual"], y=vazao_captada_comparacao['mean_value'], name='Média', marker_color="#72AC7E"))
-        fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_atual"], y=vazao_captada_comparacao['min_value'], name='Mínima', marker_color="#598A9E"))
-        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_atual["dateTime"], y=vazao_captada_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline'))
+        fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['mean_value'], name='Média', marker_color="#72AC7E", hovertemplate='Média: %{y:.2f}<extra></extra>'))
+        fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['min_value'], name='Mínima', marker_color="#598A9E", hovertemplate='Mínima: %{y:.2f}<extra></extra>'))
+        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_atual["data_formatada"], y=vazao_captada_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
 
-        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_comparacao["data_atual"], y=vazao_captada_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#C52F2F", width=2), line_shape='spline'))
+        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#C52F2F", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %{{y:.2f}}<extra></extra>'))
 
         fig_vazao_captada.update_layout(
             title=dict(
                 text=f"Evolução das médias mensais da Vazão Captada (m³/s) - {vazao_captada_atual['Sistema'].iloc[0]}",
                 font=dict(size=20, color='black')  # tamanho e cor do título
             ),
+            hovermode='x unified',
+            hoverlabel=dict(
+                    bgcolor='rgba(255,255,255,0.8)',
+                    font_size=11,
+                    font_color="black"
+                ),
             barmode='overlay',
             # title_x=0.3,
             xaxis_title="",
@@ -3468,8 +3517,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
             yaxis_title_font=dict(color='black'), 
             legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
-            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+            xaxis=dict(tickfont=dict(color='black', size=14), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=14), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
         )
 
         st.plotly_chart(fig_vazao_captada)
@@ -3499,8 +3548,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
             yaxis_title_font=dict(color='black'), 
             legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray'),# Cor dos valores no eixo X
-            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+            xaxis=dict(tickfont=dict(color='black', size=14), tickangle=-45, gridcolor='lightgray'),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=14), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
         )
 
         st.plotly_chart(fig_volume)
@@ -3521,28 +3570,36 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
         projecao_sim =  projecao_sim[projecao_sim["Data"] <= data_atual_1meses]
 
         colunas = ['QN100 (20-25)', 'QN100 MLT', 'QN70 MLT', 'QN (2021)', 'QN (2014)']
+        colunas = ['QN 100 MLT','QN 70 MLT','QN (20-25)','QN (2021)','QN (2014)','QN (2020)']
         for c in colunas:
             projecao_sim[c] = pd.to_numeric(projecao_sim[c], errors='coerce')
             projecao_sim[c].fillna(0, inplace=True)
 
+        projecao_sim['data_formatada'] = projecao_sim['Data'].dt.strftime('%d-%m-%Y')
+        df_sim_atual_filtrado['data_formatada']=df_sim_atual_filtrado["dateTime"].dt.strftime('%d-%m-%Y')
+        
         fig_sim = go.Figure()
 
-        fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["dateTime"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline'))
+        fig_sim.add_trace(go.Scatter(x=df_sim_atual_filtrado["data_formatada"], y=df_sim_atual_filtrado['value'], mode='lines', name='Observado', line=dict(color="#111311", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
 
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 (20-25)'], 
-                                    mode='lines', name='QN100 (20-25)', line=dict( color="#387540", width=1.5)))
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["data_formatada"], y=projecao_sim['QN (20-25)'], 
+                                    mode='lines', name='QN (20-25)', line=dict( color="#387540", width=1.5)))
             
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN100 MLT'], 
-                                    mode='lines', name='QN100 MLT', line=dict(color="#416ee7", width=1.5)))
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["data_formatada"], y=projecao_sim['QN 100 MLT'], 
+                                    mode='lines', name='QN 100 MLT', line=dict(color="#416ee7", width=1.5)))
 
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN70 MLT'], 
-                                    mode='lines', name='QN70 MLT', line=dict(color="#9c2626", width=1.5)))
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["data_formatada"], y=projecao_sim['QN 70 MLT'], 
+                                    mode='lines', name='QN 70 MLT', line=dict(color="#9c2626", width=1.5)))
 
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2021)'], 
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["data_formatada"], y=projecao_sim['QN (2021)'], 
                                     mode='lines', name='QN (2021)', line=dict(dash='dash', color="#5EB16B", width=1.5)))
         
-        fig_sim.add_trace(go.Scatter(x=projecao_sim["Data"], y=projecao_sim['QN (2014)'], 
-                                    mode='lines', name='QN (2014)', line=dict(dash='dash', color="#9b0404", width=1.5)))
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["data_formatada"], y=projecao_sim['QN (2014)'], 
+                                    mode='lines', name='QN (2014)', line=dict(dash='dash', color="#c06906", width=1.5)))
+        
+        fig_sim.add_trace(go.Scatter(x=projecao_sim["data_formatada"], y=projecao_sim['QN (2020)'], 
+                                    mode='lines', name='QN (2020)', line=dict(dash='dash', color="#aa04c0", width=1.5)))
+
 
         # Atualizando o layout do gráfico
         fig_sim.update_layout(
@@ -3551,6 +3608,12 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
                 font=dict(size=20, color='black')  # tamanho e cor do título
             ),
             # title_x=0.3,
+            hovermode='x unified',
+            hoverlabel=dict(
+                    bgcolor='rgba(255,255,255,0.8)',
+                    font_size=11,
+                    font_color="black"
+                ),
             xaxis_title="",
             yaxis_title="Volume (%)",
             plot_bgcolor='white',    # Cor de fundo do gráfico
@@ -3560,8 +3623,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             xaxis_title_font=dict(color='black'),  # Cor do título do eixo X
             yaxis_title_font=dict(color='black'), 
             legend=dict(font=dict(color='black'), orientation="h", yanchor="top", y=1.2, xanchor="center", x=0.5),
-            xaxis=dict(tickfont=dict(color='black', size=16), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
-            yaxis=dict(tickfont=dict(color='black', size=16), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
+            xaxis=dict(tickfont=dict(color='black', size=14), tickangle=-45, gridcolor='lightgray', tickformat="%Y-%m-%d"),# Cor dos valores no eixo X
+            yaxis=dict(tickfont=dict(color='black', size=14), gridcolor='lightgray', tickformat=".", tickmode="auto" ) 
         )
 
         st.plotly_chart(fig_sim)
@@ -3569,9 +3632,11 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     media_movel_captada = calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_afluente, vazao_descarregada, sistema_selecionado)
     
 
-    media_movel_captada_all= media_movel_captada.rename(columns={"MediaMovel_Vazão Captada_7d":"MediaMovel_Vazão_Captada_7d", f"MediaMovel_Vazão Afluente {sistema_selecionado}_7d": f"MediaMovel_Vazão_Afluente {sistema_selecionado}_7d"})
+    media_movel_captada_all= media_movel_captada.rename(columns={"MediaMovel_Vazão Captada_14d":"MediaMovel_Vazão_Captada_14d", f"MediaMovel_Vazão Afluente {sistema_selecionado}_14d": f"MediaMovel_Vazão_Afluente {sistema_selecionado}_14d"})
     data_inicio = pd.to_datetime("2025-08-01")
     media_movel_captada = media_movel_captada_all[media_movel_captada_all['dateTime'] >= data_inicio]
+
+    # media_movel_captada['data_formatada'] = media_movel_captada['dateTime'].dt.strftime('%d-%m-%Y')
 
     data_ref = pd.to_datetime("2025-08-27").to_pydatetime()
     data_ref_filtro = pd.to_datetime("2025-08-27")
@@ -3592,41 +3657,42 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
     idx_taxa_3 = (media_movel_captada['dateTime'] - data_ref_filtro_3).abs().idxmin()
 
     ultima_data = media_movel_captada['dateTime'].max()
-    valor_captada_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'MediaMovel_Vazão_Captada_7d'].values[0]
-    valor_afluente_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d'].values[0]
-    valor_taxa_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'TaxaVar_7d'].values[0]
+    valor_captada_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'MediaMovel_Vazão_Captada_14d'].values[0]
+    valor_afluente_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d'].values[0]
+    valor_taxa_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'TaxaVar_14d'].values[0]
 
-    valor_captada = media_movel_captada.loc[idx_captada, 'MediaMovel_Vazão_Captada_7d']
-    valor_afluente = media_movel_captada.loc[idx_afluente, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
-    valor_taxa = media_movel_captada.loc[idx_taxa, 'TaxaVar_7d']
+    valor_captada = media_movel_captada.loc[idx_captada, 'MediaMovel_Vazão_Captada_14d']
+    valor_afluente = media_movel_captada.loc[idx_afluente, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d']
+    valor_taxa = media_movel_captada.loc[idx_taxa, 'TaxaVar_14d']
 
-    valor_taxa_min = media_movel_captada['TaxaVar_7d'].min() - 0.15
-    valor_taxa_max = media_movel_captada['TaxaVar_7d'].max()
+    valor_taxa_min = media_movel_captada['TaxaVar_14d'].min() - 0.15
+    valor_taxa_max = media_movel_captada['TaxaVar_14d'].max()
 
     if valor_taxa_max < 0:
         valor_taxa_max = 0
     else:
         valor_taxa_max = valor_taxa_max + 0.10
 
-    valor_captada_2 = media_movel_captada.loc[idx_captada_2, 'MediaMovel_Vazão_Captada_7d']
-    valor_afluente_2 = media_movel_captada.loc[idx_afluente_2, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
-    media_movel_captada['TaxaVar_7d'] = media_movel_captada['TaxaVar_7d'].replace({np.nan: None})
-    valor_taxa_2 = media_movel_captada.loc[idx_taxa_2, 'TaxaVar_7d']
+    valor_captada_2 = media_movel_captada.loc[idx_captada_2, 'MediaMovel_Vazão_Captada_14d']
+    valor_afluente_2 = media_movel_captada.loc[idx_afluente_2, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d']
+    media_movel_captada['TaxaVar_14d'] = media_movel_captada['TaxaVar_14d'].replace({np.nan: None})
+    valor_taxa_2 = media_movel_captada.loc[idx_taxa_2, 'TaxaVar_14d']
 
-    valor_captada_3 = media_movel_captada.loc[idx_captada_3, 'MediaMovel_Vazão_Captada_7d']
-    valor_afluente_3 = media_movel_captada.loc[idx_afluente_3, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d']
-    media_movel_captada['TaxaVar_7d'] = media_movel_captada['TaxaVar_7d'].replace({np.nan: None})
-    valor_taxa_3 = media_movel_captada.loc[idx_taxa_3, 'TaxaVar_7d']
+    valor_captada_3 = media_movel_captada.loc[idx_captada_3, 'MediaMovel_Vazão_Captada_14d']
+    valor_afluente_3 = media_movel_captada.loc[idx_afluente_3, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d']
+    media_movel_captada['TaxaVar_14d'] = media_movel_captada['TaxaVar_14d'].replace({np.nan: None})
+    valor_taxa_3 = media_movel_captada.loc[idx_taxa_3, 'TaxaVar_14d']
     
     if sistema_selecionado == "São Lourenço":
         intervalo = 0.5
     else:
         intervalo = 0.05
 
+    # media_movel_captada['data_formatada'] = media_movel_captada['dateTime'].dt.strftime('%d-%m-%Y')
     fig_media_movel_sim = go.Figure()
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Captada_7d'], mode='lines', name='Media Movel Vazão Captada(7d)', line=dict(color="#232FE0", width=1.5), line_shape='spline'))
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada[f'MediaMovel_Vazão_Afluente {sistema_selecionado}_7d'], mode='lines', name=f'Media Movel Vazão Afluente {sistema_selecionado} (7d)', line=dict( color="#387540", width=1.5)))         
-    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['TaxaVar_7d'], mode='lines', name='TaxaVar Var. 7d', line=dict(dash='dash', color="#c47003", width=1.5), yaxis="y2"))
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['MediaMovel_Vazão_Captada_14d'], mode='lines', name='Media Movel Vazão Captada(14d)', line=dict(color="#232FE0", width=1.5), line_shape='spline', hovertemplate='Média Movel Vazão Captada(14d): %{y:.2f}<extra></extra>'))
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada[f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d'], mode='lines', name=f'Media Movel Vazão Afluente {sistema_selecionado} (14d)', line=dict( color="#387540", width=1.5), hovertemplate='Média Movel Vazão Afluente(14d): %{y:.2f}<extra></extra>'))         
+    fig_media_movel_sim.add_trace(go.Scatter(x=media_movel_captada["dateTime"], y=media_movel_captada['TaxaVar_14d'], mode='lines', name='TaxaVar Var. 14d', line=dict(dash='dash', color="#c47003", width=1.5), yaxis="y2", hovertemplate='TaxaVar Var. 14d: %{y:.2f}<extra></extra>'))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#da1010", width=2),name=f"Ref: {data_ref_2.strftime('%d/%m/%Y')} (Início da RDA)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#6e0808", width=2),name=f"{data_ref.strftime('%d/%m/%Y')} (Início da GDN)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#8917be", width=2),name=f"Ref: {data_ref_3.strftime('%d/%m/%Y')} (Início da GDN 10h)"))
@@ -3688,6 +3754,12 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             text=f"Médias Móveis das Vazões - {sistema_selecionado}",
             font=dict(size=20, color='black')
         ),
+        hovermode='x unified',
+        hoverlabel=dict(
+                bgcolor='rgba(255,255,255,0.8)',
+                font_size=11,
+                font_color="black"
+            ),
         xaxis=dict(
             title="",
             tickfont=dict(color='black', size=16),
@@ -3730,6 +3802,8 @@ def creat_dashboard(merged_data_sistemas, df_sim_atual_all, lista_anos_str, data
             x=0.5
         )
     )
+    fig_media_movel_sim.update_xaxes(tickformat="%d-%m-%Y")
+
     st.plotly_chart(fig_media_movel_sim)
 
     co1, co2 = st.columns([1.50, 0.50])
@@ -5147,7 +5221,7 @@ async def slide1():
 
 
 async def slide2():
-    
+
     with slide2_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
 
@@ -5191,7 +5265,7 @@ async def slide2():
 
         if st.session_state.atualizar_tabela:
             refresh_viwe()
-            
+
         query_cities = f"""SELECT c.name as city_name,
                     max(ac_diario) AS max_ac_diario,
                     avg(ac_diario) AS ac_diario,
@@ -5227,6 +5301,16 @@ async def slide2():
         tabela_df['media_historica'] = tabela_df['media_historica'].round(1)
         tabela_df['media_historica'] = tabela_df['media_historica'].apply(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
         tabela_df = tabela_df.rename(columns={'city_name': 'Municípios', 'max_ac_diario': 'Chuva Máximo (mm)', 'ac_diario': 'Chuva Média (mm)', 'ac_mensal':'Acum. média mês (mm)' , 'media_historica':'Histórico mensal (mm)'})
+
+        # query_ugrhis = f"""
+        #                 SELECT INITCAP(u.name) as ugrhi_name,
+        #                     avg(ac_diario) AS ac_diario
+        #                 FROM public.station_rainfall_accum_month sr
+        #                     left join stations s on s.id = sr.ugrhi_id
+        #                     LEFT JOIN ugrhis u ON u.id = s.id
+        #                 WHERE disponibilidade_diaria > 80 AND ac_diario IS NOT null AND u.name != 'FORA DO ESTADO DE SÃO PAULO'
+        #                 GROUP BY ugrhi_name
+        #                 ORDER BY (ac_diario) DESC;"""
         
         # query_ugrhis = f"""
         #                 SELECT INITCAP(u.name) as ugrhi_name,
@@ -5269,8 +5353,8 @@ async def slide2():
         tabela_ugrhis_df['media_historica'] = pd.to_numeric(tabela_ugrhis_df['media_historica'], errors='coerce')
         tabela_ugrhis_df['media_historica'] = tabela_ugrhis_df['media_historica'].round(1)
         tabela_ugrhis_df['media_historica'] = tabela_ugrhis_df['media_historica'].apply(lambda x: f'{x:.1f}' if pd.notna(x) else '-')
-        tabela_ugrhis_df = tabela_ugrhis_df.rename(columns={'ugrhi_name': 'Ugrhi', 'ac_diario': 'Chuva Acumudala (mm)', 'ac_mensal':'Acum. mensal (mm)' , 'media_historica':'Histórico mensal (mm)'})
-        
+
+        tabela_ugrhis_df = tabela_ugrhis_df.rename(columns={'ugrhi_name': 'Ugrhi', 'ac_diario': 'Chuva Acumulada (mm)', 'ac_mensal':'Acum. mensal (mm)' , 'media_historica':'Histórico mensal (mm)'})
         print(tabela_ugrhis_df)
 
         # tabela_df = tabela_df.sort_values(by='Chuva Máximo (mm)')
@@ -5280,9 +5364,9 @@ async def slide2():
 
             styled_df = tabela_df.style\
             .format({
-                    'Chuva Máximo (mm)': '{:.1f}', 
-                    'Chuva Média (mm)': '{:.1f}', 
-                    'Acum. média mês (mm)': '{:.1f}' 
+                    'Chuva Máximo (mm)': '{:.1f}',
+                    'Chuva Média (mm)': '{:.1f}',
+                    'Acum. média mês (mm)': '{:.1f}'
                     })\
             .hide(axis="index")\
             .set_caption("Municípios com os maiores acumulados de chuvas observadas nas últimas 24h (mm) (Rede Telemétrica)")\
@@ -5293,11 +5377,11 @@ async def slide2():
                     ("font-weight", "bold"),
                     ("text-align", "center"),
                     ("padding", "5px"),
-                    ("caption-side", "top") 
+                    ("caption-side", "top")
                 ]},
                 {"selector": "th", "props": [
-                    ("font-size", "16px"), 
-                    ("background-color", "#f0f0f0"),
+                    ("font-size", "16px"),
+                    ("background-color", "#F0F0F0"),
                     ("color", "#333333"),
                     ("padding", "5px"),
                     ("text-align", "center")
@@ -5309,10 +5393,10 @@ async def slide2():
                     ("padding", "2px 4px"),
                     ("text-align", "center"),
                     ("width", "100px")
-                    # ("border-bottom", "1px solid #e0e0e0")
+                    # ("border-bottom", "1px solid #E0E0E0")
                     ]},
                 {"selector": "tr:hover", "props": [(
-                    "background-color", "#ffff99"),
+                    "background-color", "#FFFF99"),
                     ("cursor", "pointer")
                     ]},
                 {"selector": "th.col0", "props": [("width", "150px")]},
@@ -5327,7 +5411,7 @@ async def slide2():
                 {"selector": "td.col4", "props": [("width", "110px")]},
 
             ])\
-            .set_properties(**{"background-color": "#f9f9f9", "color": "#333333"})
+            .set_properties(**{"background-color": "#F9F9F9", "color": "#333333"})
 
             st.markdown(styled_df.to_html(), unsafe_allow_html=True)
 
@@ -5359,7 +5443,7 @@ async def slide2():
             hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as='tabela_chuva.png', size=(700, 500))
 
-            
+
             if prefix_list:
                 soup = BeautifulSoup(styled_df.to_html(), 'html.parser')
                 caption = soup.find('caption')
@@ -5413,7 +5497,7 @@ async def slide2():
                     </div>
                 """,
                 unsafe_allow_html=True)
-        
+
         tabela_df['Histórico mensal (mm)'] = tabela_df['Histórico mensal (mm)'].replace('-', 0)
 
 
@@ -5421,9 +5505,9 @@ async def slide2():
         with coluna2:
             for col in ['Chuva Média (mm)', 'Chuva Máximo (mm)', 'Acum. média mês (mm)', 'Histórico mensal (mm)']:
                 tabela_df[col] = tabela_df[col].astype(float)
-        
-        
-            fig, ax = plt.subplots(figsize=(7, 5)) 
+
+
+            fig, ax = plt.subplots(figsize=(7, 5))
 
             n = len(tabela_df)  # Número de municípios
             largura_barra = 0.15  # Largura de cada barra individual
@@ -5453,9 +5537,9 @@ async def slide2():
             ax.set_xticks(indice)
             ax.set_xticklabels(tabela_df['Municípios'], rotation=30, ha='right', fontsize=10)
             ax.grid(axis='y', linestyle=':', alpha=0.3)
-            
+
             # Ajuste do eixo Y
-            max_valor = tabela_df[['Chuva Média (mm)', 'Chuva Máximo (mm)', 
+            max_valor = tabela_df[['Chuva Média (mm)', 'Chuva Máximo (mm)',
                                 'Acum. média mês (mm)', 'Histórico mensal (mm)']].max().max()
             ax.set_ylim(0, max_valor * 1.2)
             ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
@@ -5465,7 +5549,7 @@ async def slide2():
             # Legenda fora do gráfico
             ax.legend(
                 frameon=True,
-                facecolor='#f0f0f0',
+                facecolor='#F0F0F0',
                 fontsize=7,
                 bbox_to_anchor=(0.5, 1.1),  # (posição horizontal, posição vertical)
                 loc='upper center',  # Âncora no centro superior
@@ -5478,7 +5562,7 @@ async def slide2():
             fig.savefig("imagens/grafico_chuva.png", dpi=300, bbox_inches="tight")
 
         with coluna2:
-            for col in ['Chuva Acumudala (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)']:
+            for col in ['Chuva Acumulada (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)']:
                 tabela_ugrhis_df[col] = tabela_ugrhis_df[col].astype(float)
 
             fig, ax = plt.subplots(figsize=(8, 6))
@@ -5491,11 +5575,12 @@ async def slide2():
             espacamento = 0.01  # Espaço entre grupos de barras
             indice = np.arange(n)  # Posições no eixo X
             offset = np.array([-1, 0, 1]) * (largura_barra + espacamento/2)
-            cores = ['#4CAF50', '#2196F3', '#FF5722']
+
+            cores = ['#2196F3', '#FF5722', '#FFC107']
 
             # Plotagem das barras
             for i, (coluna, cor) in enumerate(zip(
-                ['Chuva Acumudala (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)'],
+                ['Chuva Acumulada (mm)', 'Acum. mensal (mm)' ,'Histórico mensal (mm)'],
                 cores
             )):
                 ax.bar(
@@ -5510,7 +5595,7 @@ async def slide2():
 
             # Ajuste do eixo Y
             max_valor = tabela_ugrhis_df[
-                ['Chuva Acumudala (mm)', 'Acum. mensal (mm)', 'Histórico mensal (mm)']
+                ['Chuva Acumulada (mm)', 'Acum. mensal (mm)', 'Histórico mensal (mm)']
             ].max().max()
             ax.set_ylim(0, max_valor * 1.2)
             ax.set_yticks(np.arange(0, max_valor * 1.2 + 0, 25))
@@ -5519,14 +5604,14 @@ async def slide2():
             # Legenda fora do gráfico
             ax.legend(
                 frameon=True,
-                facecolor='#f0f0f0',
+                facecolor='#F0F0F0',
                 fontsize=7,
-                bbox_to_anchor=(0.5, 1.0),  # (posição horizontal, posição vertical)
+                bbox_to_anchor=(0.5, 1.1),  # (posição horizontal, posição vertical)
                 loc='upper center',  # Âncora no centro superior
                 ncol=4  # Número de colunas para distribuir os itens
             )
 
-            ax.set_title('Chuva média acumulada por UGRHI', fontsize=10)             # Título do gráfico
+            ax.set_title('Chuva média acumulada por UGRHI', fontsize=10, pad=30)             # Título do gráfico
             ax.set_xticks(indice)                           # Define os ticks no eixo X
             ax.set_xticklabels(tabela_ugrhis_df['Ugrhi'], fontsize=10)     # Nomes das UGRHIs nos ticks
             ax.set_ylabel('Precipitação (mm)', fontsize=8)
@@ -6355,7 +6440,7 @@ async def slide5():
                 hti.screenshot(html_str=html_perc_blocks, save_as=f'barras_percentuais{i}.png', size=(1200, 300))
 
                 fig = go.Figure()
-
+                df_filtered['current_data'] = df_filtered['current_data'] - pd.Timedelta(hours=3)
                 fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['value'], mode='lines', name='Valor', line=dict(color='#268b12', width=1), line_shape='spline'))
 
                 # Adicionando as linhas horizontais para os níveis
@@ -7108,10 +7193,24 @@ async def slide7():
             caption.decompose()
 
         html_sem_titulo = str(soup)
+
+        os.makedirs("imagens", exist_ok=True)
+        caminho_imagem = "imagens/tabela_ppdc.png"
+        if os.path.exists(caminho_imagem):
+            os.remove(caminho_imagem)
+
         hti = Html2Image(
-            custom_flags=["--force-device-scale-factor=3"]
-        )
-        hti.output_path = "imagens" 
+                custom_flags=[
+                "--headless=new",
+                "--disable-gpu",
+                "--no-sandbox",
+                "--disable-dev-shm-usage",
+                "--force-device-scale-factor=3"
+            ]
+            )
+        hti.output_path = "imagens"  # ou outro diretório
+        chrome_path = localizar_chrome()
+        hti.browser_path = chrome_path
         hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_ppdc.png', size=(800, 600))
 
         st.write(" ")
@@ -7964,352 +8063,7 @@ async def dashboard_reservatorios():
         """
         st.markdown(button_style, unsafe_allow_html=True)
 
-        # Botões lado a lado
-        col1, col2, col3, col4 = st.columns(4)
-        if col3.button("Mananciais Sabesp", use_container_width=True):
-            st.session_state.reservatorio = "Sabesp"
-        if col2.button("Dados SSD", use_container_width=True):
-            st.session_state.reservatorio = "SSD"
-
-        if "reservatorio" not in st.session_state:
-            st.session_state.reservatorio = None
-
-
-        if st.session_state.reservatorio == 'Sabesp':
-
-            key = os.environ.get('KEY')
-            value = os.environ.get('VALUE')
-            headers = {key: value}
-
-            sistema_sabesp = {
-                "cantareira": "Cantareira",
-                "alto-tiete": "Alto Tietê",
-                "guarapiranga": "Guarapiranga",
-                "cotia": "Cotia",
-                "rio-grande": "Rio Grande",
-                "rio-claro": "Rio Claro",
-                "sao-lourenco": "São Lourenço"
-            }
-
-            df_sistemas_sabesp = pd.DataFrame(list(sistema_sabesp.items()), columns=["Sistema_sabesp", "Sistema"])
-            all_data_sabesp =[]
-            atual_all_data=[]
-            for _, sistema in df_sistemas_sabesp.iterrows():
-                id = sistema["Sistema_sabesp"]
-
-                url_sabesp = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/{id}/dados/{data_ano_anterior_str}/{data_atual_str}"
-                response_sabesp = requests.get(url_sabesp, headers=headers)
-
-                if response_sabesp.status_code == 200:
-                    dados_sabesp = response_sabesp.json()
-                    if "data" in dados_sabesp:
-                        df_dados_sabesp = pd.DataFrame(dados_sabesp["data"])
-                        df_dados_sabesp['Sistema'] = sistema["Sistema"]
-                        df_dados_sabesp["data"] = pd.to_datetime(df_dados_sabesp["data"])
-                        df_dados_sabesp["data"] = df_dados_sabesp["data"].dt.strftime("%Y-%m-%d")
-
-                        df_atual_all = df_dados_sabesp.copy()
-
-                        if (df_atual_all["data"] == data_atual_str).any():
-                            valor_atual = (
-                                df_atual_all.loc[df_atual_all["data"] == data_atual_str, "volumeOperacional_porcentagem"]
-                                .sort_index()
-                                .iloc[-1]  # pega o último disponível
-                            )
-                        else: 
-                            valor_atual = df_atual_all["volumeOperacional_porcentagem"].iloc[-1]
-
-                        valor_7_dias = (df_atual_all.loc[df_atual_all['data'] == data_7dias_str, 'volumeOperacional_porcentagem']
-                            .reset_index(drop=True)
-                            .get(0, None)  
-                        )
-                        valor_14_dias = (df_atual_all.loc[df_atual_all['data'] == data_14dias_str, 'volumeOperacional_porcentagem']
-                            .reset_index(drop=True)
-                            .get(0, None)  
-                        )
-                        valor_21_dias = (df_atual_all.loc[df_atual_all['data'] == data_21dias_str, 'volumeOperacional_porcentagem']
-                            .reset_index(drop=True)
-                            .get(0, None)  
-                        )
-                        valor_ano_anterior = (df_atual_all.loc[df_atual_all['data'] == data_ano_anterior_str, 'volumeOperacional_porcentagem']
-                            .reset_index(drop=True)
-                            .get(0, None)  
-                        )
-
-                        df_atual_all["Volume atual (%)"] = valor_atual
-                        df_atual_all["Volume -7 dias (%)"] = valor_7_dias
-                        df_atual_all["Volume -14 dias (%)"] = valor_14_dias
-                        df_atual_all["Volume -21 dias (%)"] = valor_21_dias
-                        df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
-
-                        data_dia_anterior = datetime.today() - timedelta(days=1)
-                        data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
-
-                        if data_atual_str in df_atual_all['data'].values:
-                            df_atual_all = df_atual_all[
-                                df_atual_all['data'] == data_atual_str
-                            ]
-                        elif data_dia_anterior_str in df_atual_all['data'].values:
-                            df_atual_all = df_atual_all[
-                                df_atual_all['data'] == data_dia_anterior_str
-                            ]
-
-                        all_data_sabesp.append(df_dados_sabesp)
-                        atual_all_data.append(df_atual_all)
-
-            df_final_all_data_sabesp= pd.concat(all_data_sabesp, ignore_index=True)
-            df_sim_atual_all = df_final_all_data_sabesp.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
-            
-            print(df_final_all_data_sabesp)
-
-            df_atual_all_data = pd.concat(atual_all_data, ignore_index=True)
-            df_atual_all_data = df_atual_all_data[["Sistema", "data", "Volume atual (%)", "Volume -7 dias (%)", "Volume -14 dias (%)", "Volume -21 dias (%)", "Volume Ano Anterior (%)"]]
-
-            df_atual_all_data['diferença'] = df_atual_all_data['Volume atual (%)'] - df_atual_all_data['Volume Ano Anterior (%)']
-            df_atual_all_data['simbolo'] = df_atual_all_data['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
-            df_atual_all_data['cor_diferença'] = df_atual_all_data['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
-            print(df_atual_all_data)
-
-            # if ano_filtro != data_ano_anterior_str:
-            #     fetch_and_save_json(ano_filtro, "sabesp_sistemas_all_data_anoanterior.json")
-
-            # datas = [data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str]
-
-            # json_sistemas = 'results/sabesp_sistemas_all_data.json'
-            # json_sistemas_1d = 'results/sabesp_sistemas_all_data_anoanterior.json'
-            # json_sistemas_7d = 'results/sabesp_sistemas_all_data_7dias.json'
-            # json_sistemas_14d = 'results/sabesp_sistemas_all_data_14dias.json'
-            # json_sistemas_21d = 'results/sabesp_sistemas_all_data_21dias.json'
-
-            # nomes_sistema = {
-            #     "Cantareira": 0,
-            #     "Alto Tietê": 1,
-            #     "Guarapiranga": 2,
-            #     "Cotia": 3,
-            #     "Rio Grande": 4, 
-            #     "Rio Claro":5,
-            #     "São Lourenço": 17,
-            #     "SIM": 459
-            # }
-            # sistemas_esperados = {0, 1, 2, 3, 4, 5, 17}
-
-            # if os.path.exists(json_sistemas):
-            #     with open(json_sistemas, 'r', encoding='utf-8') as f:
-            #         data = json.load(f)
-            #     dados_sistemas = data.get("dadosSistemas", [])
-            #     df_dados_sistemas = pd.DataFrame(dados_sistemas)
-
-            #     if "Data" in df_dados_sistemas.columns and not df_dados_sistemas.empty:
-            #         df_dados_sistemas["Data"] = pd.to_datetime(df_dados_sistemas["Data"])
-            #         data_existe = data_atual == df_dados_sistemas["Data"].iloc[0]
-            #     else:
-            #         data_existe = False
-
-            #     sistemas_presentes = set(df_dados_sistemas["SistemaId"].unique()) if "SistemaId" in df_dados_sistemas else set()
-
-            #     if not data_existe and sistemas_esperados.issubset(sistemas_presentes):
-            #         # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
-            #         fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
-            #         fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
-            #         fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
-            #         fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
-            #         fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
-
-            #         with open(json_sistemas, 'r', encoding='utf-8') as f:
-            #             data = json.load(f)
-            #         dados_sistemas = data.get("dadosSistemas", [])
-            #         df_dados_sistemas = pd.DataFrame(dados_sistemas)
-            
-            # else:
-            #     # get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str)
-            #     fetch_and_save_json(data_atual_str, "sabesp_sistemas_all_data.json")
-            #     fetch_and_save_json(data_ano_anterior_str, "sabesp_sistemas_all_data_anoanterior.json")
-            #     fetch_and_save_json(data_7dias_str, "sabesp_sistemas_all_data_7dias.json")
-            #     fetch_and_save_json(data_14dias_str, "sabesp_sistemas_all_data_14dias.json")
-            #     fetch_and_save_json(data_21dias_str, "sabesp_sistemas_all_data_21dias.json")
-
-            #     with open(json_sistemas, 'r', encoding='utf-8') as f:
-            #         data = json.load(f)
-            #     dados_sistemas = data.get("dadosSistemas", [])
-            #     df_dados_sistemas = pd.DataFrame(dados_sistemas)
-
-                
-            # with open(json_sistemas_1d, 'r', encoding='utf-8') as f:
-            #     data_1d = json.load(f)
-            #     json_sistemas_1d = data_1d.get("dadosSistemas", [])
-            #     df_dados_sistemas_1d = pd.DataFrame(json_sistemas_1d)
-            #     ano_anterior = df_dados_sistemas_1d[["SistemaId", "VolumePorcentagem"]]
-            #     ano_anterior = ano_anterior.rename(columns={"VolumePorcentagem": "Volume Ano Anterior (%)"})
-
-
-            # with open(json_sistemas_7d, 'r', encoding='utf-8') as f:
-            #     data_7d = json.load(f)
-            #     json_sistemas_7d = data_7d.get("dadosSistemas", [])
-            #     df_dados_sistemas_7d = pd.DataFrame(json_sistemas_7d)
-            #     sistemas_7d = df_dados_sistemas_7d[["SistemaId", "VolumePorcentagem"]]
-            #     sistemas_7d = sistemas_7d.rename(columns={"VolumePorcentagem": "Volume -7 dias (%)"})
-
-            # with open(json_sistemas_14d, 'r', encoding='utf-8') as f:
-            #     data_14d = json.load(f)
-            #     json_sistemas_14d = data_14d.get("dadosSistemas", [])
-            #     df_dados_sistemas_14d = pd.DataFrame(json_sistemas_14d)
-            #     sistemas_14d = df_dados_sistemas_14d[["SistemaId", "VolumePorcentagem"]]
-            #     sistemas_14d = sistemas_14d.rename(columns={"VolumePorcentagem": "Volume -14 dias (%)"})
-
-            # with open(json_sistemas_21d, 'r', encoding='utf-8') as f:
-            #     data_21d = json.load(f)
-            #     json_sistemas_21d = data_21d.get("dadosSistemas", [])
-            #     df_dados_sistemas_21d = pd.DataFrame(json_sistemas_21d)
-            #     sistemas_21d = df_dados_sistemas_21d[["SistemaId", "VolumePorcentagem"]]
-            #     sistemas_21d = sistemas_21d.rename(columns={"VolumePorcentagem": "Volume -21 dias (%)"})
-
-            # sistemas_atual = df_dados_sistemas[["SistemaId", "VolumePorcentagem"]]
-            # sistemas_atual = sistemas_atual.rename(columns={"VolumePorcentagem": "Volume atual (%)"})
-
-            # data_inicial = '2025-06-01' 
-            # url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_inicial}/{data_atual_str}'
-            # response = requests.get(url_sim, verify=False)
-
-            # if response.status_code == 200:
-            #     data = response.json()
-
-            #     if "dataCollection" in data:
-            #         df_sim_atual_all = pd.DataFrame(data["dataCollection"])
-            #         df_sim_atual = df_sim_atual_all.copy()
-            #         df_sim_atual['SistemaId'] = 459
-
-            #         valor_7dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_7dias_str, 'value'].iloc[0]
-            #         valor_14dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_14dias_str, 'value'].iloc[0]
-            #         valor_21dias = df_sim_atual_all.loc[df_sim_atual_all['dateTime'] == data_21dias_str, 'value'].iloc[0]
-            #         df_sim_atual["Volume -7 dias (%)"] = valor_7dias
-            #         df_sim_atual["Volume -14 dias (%)"] = valor_14dias
-            #         df_sim_atual["Volume -21 dias (%)"] = valor_21dias
-
-            #         df_sim_atual = df_sim_atual[df_sim_atual['dateTime'] == data_atual_str]
-            #         df_sim_atual = df_sim_atual.rename(columns={"value": "Volume atual (%)"})
-            #         df_sim_atual = df_sim_atual.drop(columns={"dateTime", "deliveredAt"})
-
-
-            # merged_data_sistemas = pd.merge(sistemas_atual, sistemas_7d, on='SistemaId', how='left')
-            # merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_14d, on='SistemaId', how='left')
-            # merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_21d, on='SistemaId', how='left')
-
-
-            # url_sim_ano_anterior = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_ano_anterior_str}'
-            # response = requests.get(url_sim_ano_anterior, verify=False)
-
-            # if response.status_code == 200:
-            #     data = response.json()
-
-            #     if "dataCollection" in data:
-            #         df_sim_ano_anterior = pd.DataFrame(data["dataCollection"])
-            #         df_sim_ano_anterior['SistemaId'] = 459
-            #         df_sim_ano_anterior = df_sim_ano_anterior.drop(columns={"dateTime", "deliveredAt"})
-            #         df_sim_ano_anterior = df_sim_ano_anterior.rename(columns={"value": "Volume Ano Anterior (%)"})
-
-            # merged_data_sistemas = pd.concat([merged_data_sistemas, df_sim_atual], ignore_index=True)
-            # ano_anterior = pd.concat([ano_anterior, df_sim_ano_anterior], ignore_index=True)
-
-            # df_nome_sistemas = pd.DataFrame(list(nomes_sistema.items()), columns=["Sistema", "SistemaId"])
-            # merged_data_sistemas = pd.merge(merged_data_sistemas, df_nome_sistemas, on='SistemaId', how='left')
-            # merged_data_sistemas = merged_data_sistemas[merged_data_sistemas['Sistema'].notna()]
-
-            # merged_data_sistemas = pd.merge(merged_data_sistemas, ano_anterior, on='SistemaId', how='left')
-
-            # merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
-            # merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
-            # merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: '#DB0B0B' if x < 0 else '#12A704')
-
-            creat_dashboard(df_atual_all_data, df_final_all_data_sabesp, lista_anos_str, data_atual_str, data_ano_anterior_str, dia, mes, ano_usado)
-
-        
-        elif st.session_state.reservatorio == 'SSD':
-            if ano_filtro != data_ano_anterior_str:
-
-                sistemas_ano_comparacao = get_ssd_api_comparacao(ano_filtro)
-            else:                
-                sistemas_ano_comparacao = get_ssd_api_comparacao(data_ano_anterior_str)
-
-
-            merged_data_sistemas_all = get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str)
-
-            #"São Lourenço": 447,
-            volume_sistema_ssd = {
-                "Cantareira": 375,
-                "Alto Tietê": 351,
-                "Guarapiranga": 399,
-                "Cotia": 387,
-                "Rio Grande": 435, 
-                "Rio Claro":423,
-                "SIM": 459
-            }
-
-            df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
-            data_inicial = '2025-06-01' 
-            all_volume =[]
-            for _,data_volume in df_sistemas_volume.iterrows():
-                id = data_volume["SistemaId"]
-
-                url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
-                response = requests.get(url_volume, verify=False)
-
-                if response.status_code == 200:
-                    data = response.json()
-
-                    if "dataCollection" in data:
-                        df_sim_atual = pd.DataFrame(data["dataCollection"])
-                        df_sim_atual_all = df_sim_atual.copy()
-                        df_sim_atual_all['SistemaId'] = id
-
-                        all_volume.append(df_sim_atual_all)
-
-            df_final_all = pd.concat(all_volume, ignore_index=True)
-            df_final_all_volume= pd.merge(df_final_all, df_sistemas_volume, on='SistemaId', how='left')
-            
-            key = os.environ.get('KEY')
-            value = os.environ.get('VALUE')
-            headers = {key: value}
-            url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
-            response_sl = requests.get(url_sao_lourenco, headers=headers)
-
-            if response_sl.status_code == 200:
-                dados_sl = response_sl.json()
-                if "data" in dados_sl:
-                    df_atual_sl = pd.DataFrame(dados_sl["data"])
-                    df_atual_sl = df_atual_sl[["data", 'volumeOperacional_porcentagem']]
-                    df_atual_sl['SistemaId'] = 447
-                    df_atual_sl['Sistema'] = "São Lourenço"
-                    df_atual_sl["data"] = pd.to_datetime(df_atual_sl["data"])
-                    df_atual_sl["data"] = df_atual_sl["data"].dt.strftime("%Y-%m-%d")
-                    
-                    df_atual_sl = df_atual_sl.rename(columns={"volumeOperacional_porcentagem": "value", "data": "dateTime"})
-
-            df_final_all_volume = pd.concat([df_final_all_volume, df_atual_sl], ignore_index=True)
-
-            data_dia_anterior = datetime.today() - timedelta(days=1)
-            data_dia_anterior_str = data_dia_anterior.strftime('%Y-%m-%d')
-
-            if data_atual_str in merged_data_sistemas_all['dateTime'].values:
-                merged_data_sistemas = merged_data_sistemas_all[
-                    merged_data_sistemas_all['dateTime'] == data_atual_str
-                ]
-            elif data_dia_anterior_str in merged_data_sistemas_all['dateTime'].values:
-                merged_data_sistemas = merged_data_sistemas_all[
-                    merged_data_sistemas_all['dateTime'] == data_dia_anterior_str
-                ]
-
-            merged_data_sistemas = pd.merge(merged_data_sistemas, sistemas_ano_comparacao, on='SistemaId', how='left' ).copy()
-            
-            merged_data_sistemas = merged_data_sistemas.rename(columns={"dateTime_x": "dateTime"})
-            merged_data_sistemas["dateTime"] = pd.to_datetime(merged_data_sistemas["dateTime"])
-            merged_data_sistemas["dateTime"] = merged_data_sistemas["dateTime"].dt.strftime("%Y-%m-%d")
-            merged_data_sistemas = merged_data_sistemas.drop(columns=['data_x','dateTime_y','data_y'])
-
-            merged_data_sistemas['diferença'] = merged_data_sistemas['Volume atual (%)'] - merged_data_sistemas['Volume Ano Anterior (%)']
-            merged_data_sistemas['simbolo'] = merged_data_sistemas['diferença'].apply(lambda x: '🠗' if x < 0 else '🠕')
-            merged_data_sistemas['cor_diferença'] = merged_data_sistemas['diferença'].apply(lambda x: "#660000" if x < 0 else "#2F582B")
-
-            creat_dashboard(merged_data_sistemas, df_final_all_volume, lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado)
+        creat_dashboard(lista_anos_str, data_atual_str, st.session_state.get("data_ano_anterior_str", data_ano_anterior_str), dia, mes, ano_usado, data_7dias_str, data_14dias_str, data_21dias_str)
 
         return None
 
@@ -8495,7 +8249,4 @@ async def main():
     
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
 
