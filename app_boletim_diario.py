@@ -3450,7 +3450,6 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     cc1, cc2 = st.columns([2.0, 2.0])
     with cc1:
         
-        
         vazao_natural['ano'] = vazao_natural['ano'].astype(int)
         vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
 
