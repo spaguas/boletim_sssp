@@ -2556,10 +2556,31 @@ def get_ssd_vazao_afluente(data_atual_str):
 def get_ssd_descarregada(data_atual_str):
 
     vazao_descarregada_diaria = {
-        "Cantareira":372
+        "Cantareira":372, 
+        "Atibainha":48,
+        "Jaguari / Jacareí": 136,
+        "Paiva Castro":158, 
+        "Cachoeira":81
+    }
+
+    mes = {
+        "Janeiro": 1,
+        "Fevereiro": 2,
+        "Março": 3,
+        "Abril": 4,
+        "Maio": 5,
+        "Junho": 6,
+        "Julho": 7,
+        "Agosto": 8,
+        "Setembro": 9,
+        "Outubro": 10,
+        "Novembro": 11,
+        "Dezembro":12
     }
 
     df_vazao_afluente_diaria = pd.DataFrame(list(vazao_descarregada_diaria.items()), columns=["Sistema", "SistemaId"]).copy()
+    df_meses = pd.DataFrame(list(mes.items()), columns=["Mês", "mes_n"]).copy()
+
 
     data_base = '1953-01-01'
 
@@ -2578,11 +2599,16 @@ def get_ssd_descarregada(data_atual_str):
                 df_atual_all = df_atual.copy()
                 df_atual_all['SistemaId'] = id
 
+                df_atual_all["dateTime"] = pd.to_datetime(df_atual_all["dateTime"])
+                df_atual_all["mes_n"] = df_atual_all["dateTime"].dt.strftime("%m")
+                df_atual_all["mes_n"] =  df_atual_all["mes_n"].astype(int)
+
                 vazao_descarregada_diaria_all.append(df_atual_all)
 
     df_vazao_descarregada_diaria_all = pd.concat(vazao_descarregada_diaria_all, ignore_index=True)
-    df_vazao_descarregada_diaria_all = pd.merge(df_vazao_descarregada_diaria_all, df_vazao_afluente_diaria, on='SistemaId', how='left')            
-
+    df_vazao_descarregada_diaria_all = pd.merge(df_vazao_descarregada_diaria_all, df_vazao_afluente_diaria, on='SistemaId', how='left')
+    df_vazao_descarregada_diaria_all = pd.merge(df_vazao_descarregada_diaria_all, df_meses, on='mes_n', how='left')            
+    print(df_vazao_descarregada_diaria_all)
 
     return df_vazao_descarregada_diaria_all
 
@@ -3368,7 +3394,8 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
                     xanchor="center"  
                 ),
                 paper_bgcolor="white",   # fundo do canvas
-                plot_bgcolor="white"     # margens menores
+                plot_bgcolor="white",
+                height=480     # margens menores
             )
 
             st.plotly_chart(fig_tgransferencia)
@@ -3414,14 +3441,14 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
                     xanchor="center"  
                 ),
                 paper_bgcolor="white",   # fundo do canvas
-                plot_bgcolor="white"     # margens menores
+                plot_bgcolor="white", # margens menores
+                height=480      
             )
 
             st.plotly_chart(fig_tgransferencia_all)
 
     cc1, cc2 = st.columns([2.0, 2.0])
     with cc1:
-        
         
         vazao_natural['ano'] = vazao_natural['ano'].astype(int)
         vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
@@ -3628,8 +3655,8 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
         )
 
         st.plotly_chart(fig_sim)
-
-    media_movel_captada = calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_afluente, vazao_descarregada, sistema_selecionado)
+    vazao_descarregada_cantareira = vazao_descarregada[vazao_descarregada['Sistema'] == 'Cantareira']
+    media_movel_captada = calculate_media_movel_captda(df_sim_atual_all, vazao_captada_diaria, vazao_afluente, vazao_descarregada_cantareira, sistema_selecionado)
     
 
     media_movel_captada_all= media_movel_captada.rename(columns={"MediaMovel_Vazão Captada_14d":"MediaMovel_Vazão_Captada_14d", f"MediaMovel_Vazão Afluente {sistema_selecionado}_14d": f"MediaMovel_Vazão_Afluente {sistema_selecionado}_14d"})
@@ -3805,6 +3832,149 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     fig_media_movel_sim.update_xaxes(tickformat="%d-%m-%Y")
 
     st.plotly_chart(fig_media_movel_sim)
+    vazao_descarregada['value'] = vazao_descarregada['value'].round(3)
+    pivot_vazao_descarregada = vazao_descarregada.pivot(
+        index=['dateTime', 'Mês', 'mes_n'],  # adiciona Mês ao índice
+        columns='Sistema',
+        values='value'
+    ).reset_index()
+
+    cd1, cd2 = st.columns([2.00, 2.00])
+
+    with cd1:
+
+        pivot_vazao_descarregada['dateTime'] = pd.to_datetime(pivot_vazao_descarregada['dateTime'])
+
+        pivot_vazao_descarregada_atual = pivot_vazao_descarregada[
+            (pivot_vazao_descarregada['dateTime'].dt.month == pd.Timestamp.today().month) &
+            (pivot_vazao_descarregada['dateTime'].dt.year == pd.Timestamp.today().year)
+        ].copy()
+
+        pivot_vazao_descarregada_atual['Data'] = pivot_vazao_descarregada_atual['dateTime'].dt.strftime('%d/%m/%Y')
+        cols_sistemas = ['Cantareira', 'Atibainha', 'Cachoeira', 'Jaguari / Jacareí', 'Paiva Castro']
+
+        for col in cols_sistemas:
+            pivot_vazao_descarregada_atual[col] = pivot_vazao_descarregada_atual[col].map(lambda x: f"{x:.2f}")
+
+        n = len(pivot_vazao_descarregada_atual)
+        fill_colors = ['white']*(n-1) + ["#cac9c9"]
+        font_bold = ['normal']*(n-1) + ['bold']
+
+        fig_tgransferencia_all= go.Figure(
+            data=[
+                go.Table(
+                    columnwidth=[1.3, 1.3, 1.3, 1.3, 2.0, 1.7],
+                    header=dict(
+                        values=['Data', 'Cantareira', 'Atibainha', 'Cachoeira', 'Jaguari / Jacareí', 'Paiva Castro'],
+                        fill_color="#f3f3f3",
+                        line_color='white', 
+                        align='center',   # horizontal
+                        font=dict(color='black', size=16)
+                    ),
+                    cells=dict(
+                        values=[pivot_vazao_descarregada_atual[col] for col in ['Data', 'Cantareira', 'Atibainha', 'Cachoeira', 'Jaguari / Jacareí', 'Paiva Castro']],
+                        fill_color=[fill_colors, fill_colors],
+                        line_color='lightgray',       # linhas horizontais
+                        line=dict(color='white', width=0),  # linhas verticais invisíveis
+                        align='center',
+                        font=dict(color='black', size=14, family="Arial"),
+                        font_weight=font_bold
+                    )
+                )
+            ]
+        )
+
+        fig_tgransferencia_all.update_layout(
+            title=dict(
+                text=f"Vazão Descarregada (m³/s) - Diária",
+                font=dict(color='black', size=16),
+                x=0.5,           # posição horizontal (0 = esquerda, 0.5 = centro, 1 = direita)
+                xanchor="center",
+                y=0.90,       # posição vertical (0 = fundo, 1 = topo)
+                yanchor="top"  
+            ),
+            paper_bgcolor="white",   # fundo do canvas
+            plot_bgcolor="white",
+            width=1300,   # largura total
+            height=480    # altura total da figura     # margens menores
+        )
+
+        st.plotly_chart(fig_tgransferencia_all, use_container_width=True)
+
+
+    with cd2:
+
+        pivot_vazao_descarregada['dateTime'] = pd.to_datetime(pivot_vazao_descarregada['dateTime'])
+
+        pivot_vazao_descarregada_atual = pivot_vazao_descarregada[
+            (pivot_vazao_descarregada['dateTime'].dt.year == pd.Timestamp.today().year)
+        ].copy()
+
+        cols_sistemas = ['Cantareira', 'Atibainha', 'Cachoeira', 'Jaguari / Jacareí', 'Paiva Castro']
+
+        group_vazao_descarregada = pivot_vazao_descarregada_atual.groupby(['mes_n', 'Mês'])[cols_sistemas].mean().reset_index()
+        group_vazao_descarregada = group_vazao_descarregada.sort_values('mes_n').reset_index(drop=True)
+
+        total = pd.DataFrame([{
+            "Mês": "Total",
+            "Cantareira": group_vazao_descarregada['Cantareira'].mean(),
+            "Atibainha": group_vazao_descarregada['Atibainha'].mean(),
+            "Cachoeira": group_vazao_descarregada['Cachoeira'].mean(),
+            "Jaguari / Jacareí": group_vazao_descarregada['Jaguari / Jacareí'].mean(),
+            "Paiva Castro": group_vazao_descarregada['Paiva Castro'].mean()
+        }])
+
+        for col in cols_sistemas:
+            group_vazao_descarregada[col] = group_vazao_descarregada[col].map(lambda x: f"{x:.2f}")
+            total[col] = f"{total[col][0]:.2f}"
+
+        display_table = pd.concat([group_vazao_descarregada, total], ignore_index=True)
+
+        n = len(display_table)
+        fill_colors = ['white']*(n-1) + ["#cac9c9"]
+        font_bold = ['normal']*(n-1) + ['bold']
+
+        fig_tgransferencia_all= go.Figure(
+            data=[
+                go.Table(
+                    columnwidth=[1.3, 1.3, 1.3, 1.3, 2.0, 1.7],
+                    header=dict(
+                        values=['Mês', 'Cantareira', 'Atibainha', 'Cachoeira', 'Jaguari / Jacareí', 'Paiva Castro'],
+                        fill_color="#f3f3f3",
+                        line_color='white', 
+                        align='center',   # horizontal
+                        font=dict(color='black', size=16)
+                    ),
+                    cells=dict(
+                        values=[display_table[col] for col in ['Mês', 'Cantareira', 'Atibainha', 'Cachoeira', 'Jaguari / Jacareí', 'Paiva Castro']],
+                        fill_color=[fill_colors, fill_colors],
+                        line_color='lightgray',       # linhas horizontais
+                        line=dict(color='white', width=0),  # linhas verticais invisíveis
+                        align='center',
+                        font=dict(color='black', size=14, family="Arial"),
+                        font_weight=font_bold
+                    )
+                )
+            ]
+        )
+
+        fig_tgransferencia_all.update_layout(
+            title=dict(
+                text=f"Vazão Média Descarregada (m³/s) - Mensal",
+                font=dict(color='black', size=16),
+                x=0.5,           # posição horizontal (0 = esquerda, 0.5 = centro, 1 = direita)
+                xanchor="center",
+                y=0.90,       # posição vertical (0 = fundo, 1 = topo)
+                yanchor="top"  
+            ),
+            paper_bgcolor="white",   # fundo do canvas
+            plot_bgcolor="white",
+            width=1300,   # largura total
+            height=480    # altura total da figura     # margens menores
+        )
+
+        st.plotly_chart(fig_tgransferencia_all, use_container_width=True)
+
 
     co1, co2 = st.columns([1.50, 0.50])
 
@@ -3950,7 +4120,7 @@ st.markdown(
     }
 
     textarea {
-        font-size: 16px !important;
+        font-size: 15px !important;
     }
     .stDownloadButton>button {
         background-color: transparent !important;
@@ -7256,7 +7426,7 @@ async def slide8():
         data_inicial = datetime.today()
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
-        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        url = f"https://apivime.inmet.gov.br/COSMO7/SE/prec7dias/{data_inicial_str}H00:00"
         url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
         print(url)
         try:
