@@ -3451,7 +3451,7 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     with cc1:
         
         vazao_natural['ano'] = vazao_natural['ano'].astype(int)
-        vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2025) & (vazao_natural['Sistema']==sistema_selecionado)]
+        vazao_natural_atual = vazao_natural[(vazao_natural['ano'] == 2026) & (vazao_natural['Sistema']==sistema_selecionado)]
 
         ano_comparacao = pd.to_datetime(ano_filtro).year
         ano_atual = datetime.today().year
@@ -3469,6 +3469,36 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
         fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158", hovertemplate='Média: %{y:.2f}<extra></extra>'))
         fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1", hovertemplate='Mínima: %{y:.2f}<extra></extra>'))
         fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["data_formatada"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
+        x_obs = vazao_natural_atual["data_formatada"]
+        y_obs = vazao_natural_atual["value"]
+
+        if len(vazao_natural_atual) == 1:
+            # Apenas um mês → mostrar ponto
+            fig_vazao.add_trace(
+                go.Scatter(
+                    x=x_obs,
+                    y=y_obs,
+                    mode='markers',
+                    name='Observado',
+                    marker=dict(color="#0013BE", size=7),
+                    hovertemplate='Observado: %{y:.2f}<extra></extra>'
+                )
+            )
+        elif len(vazao_natural_atual) > 1:
+            # Dois ou mais meses → linha + pontos
+            fig_vazao.add_trace(
+                go.Scatter(
+                    x=x_obs,
+                    y=y_obs,
+                    mode='lines+markers',
+                    name='Observado',
+                    line=dict(color="#0013BE", width=2),
+                    # marker=dict(size=6),
+                    line_shape='spline',
+                    hovertemplate='Observado: %{y:.2f}<extra></extra>'
+                )
+            )
+
 
         fig_vazao.add_trace(go.Scatter(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#A15858", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %{{y:.2f}}<extra></extra>'))
 
@@ -3502,7 +3532,7 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
 
     with cc2:
         vazao_captada['ano'] = vazao_captada['ano'].astype(int)
-        vazao_captada_atual = vazao_captada[(vazao_captada['ano'] == 2025) & (vazao_captada['Sistema']==sistema_selecionado)]
+        vazao_captada_atual = vazao_captada[(vazao_captada['ano'] == 2026) & (vazao_captada['Sistema']==sistema_selecionado)]
 
         ano_comparacao = pd.to_datetime(ano_filtro).year
         ano_atual = datetime.today().year
@@ -3518,8 +3548,36 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
 
         fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['mean_value'], name='Média', marker_color="#72AC7E", hovertemplate='Média: %{y:.2f}<extra></extra>'))
         fig_vazao_captada.add_trace(go.Bar(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['min_value'], name='Mínima', marker_color="#598A9E", hovertemplate='Mínima: %{y:.2f}<extra></extra>'))
-        fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_atual["data_formatada"], y=vazao_captada_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
+        # fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_atual["data_formatada"], y=vazao_captada_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
+        x_obs = vazao_captada_atual["data_formatada"]
+        y_obs = vazao_captada_atual["value"]
 
+        if len(vazao_captada_atual) == 1:
+            # Apenas um mês → mostrar ponto
+            fig_vazao_captada.add_trace(
+                go.Scatter(
+                    x=x_obs,
+                    y=y_obs,
+                    mode='markers',
+                    name='Observado',
+                    marker=dict(color="#0013BE", size=7),
+                    hovertemplate='Observado: %{y:.2f}<extra></extra>'
+                )
+            )
+        elif len(vazao_captada_atual) > 1:
+            # Dois ou mais meses → linha + pontos
+            fig_vazao_captada.add_trace(
+                go.Scatter(
+                    x=x_obs,
+                    y=y_obs,
+                    mode='lines+markers',
+                    name='Observado',
+                    line=dict(color="#0013BE", width=2),
+                    # marker=dict(size=6),
+                    line_shape='spline',
+                    hovertemplate='Observado: %{y:.2f}<extra></extra>'
+                )
+            )
         fig_vazao_captada.add_trace(go.Scatter(x=vazao_captada_comparacao["data_formatada"], y=vazao_captada_comparacao['value'], mode='lines', name=f'{ano_comparacao}', line=dict(color="#C52F2F", width=2), line_shape='spline', hovertemplate=f'{ano_comparacao}: %{{y:.2f}}<extra></extra>'))
 
         fig_vazao_captada.update_layout(
