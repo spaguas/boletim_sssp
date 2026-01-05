@@ -3468,7 +3468,7 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
 
         fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['mean_value'], name='Média', marker_color="#73A158", hovertemplate='Média: %{y:.2f}<extra></extra>'))
         fig_vazao.add_trace(go.Bar(x=vazao_natural_comparacao["data_formatada"], y=vazao_natural_comparacao['min_value'], name='Mínima', marker_color="#7E82B1", hovertemplate='Mínima: %{y:.2f}<extra></extra>'))
-        fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["data_formatada"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
+        # fig_vazao.add_trace(go.Scatter(x=vazao_natural_atual["data_formatada"], y=vazao_natural_atual['value'], mode='lines', name='Observado', line=dict(color="#0013BE", width=2), line_shape='spline', hovertemplate='Observado: %{y:.2f}<extra></extra>'))
         x_obs = vazao_natural_atual["data_formatada"]
         y_obs = vazao_natural_atual["value"]
 
