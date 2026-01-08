@@ -2756,7 +2756,7 @@ def get_telemetric_stations(data_atual_str):
     end_date_str = end_date.strftime("%Y-%m-%d")
     #ajustar a lógica da data par pegar o end_date como data atual + 1 até às 03:00 da manhã
 
-    stations_id = [29592, 30846]
+    stations_id = [29592, 30846, 29591]
     all_stations =[]
     for id in stations_id:
 
