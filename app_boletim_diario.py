@@ -1983,7 +1983,7 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
         dados_ana = response_ana_atual.json()
         dados_ana =pd.DataFrame(dados_ana)
         if "data" in dados_ana:
-            df_dados_ana = dados_ana[dados_ana["estado"] == "Sistema Equivalente"].copy()
+            df_dados_ana = dados_ana[dados_ana["estado"] == "Sistema Cantareira"].copy()
             df_dados_ana["data"] = pd.to_datetime(df_dados_ana["data"])
             df_dados_ana["data"] = df_dados_ana["data"].dt.strftime("%Y-%m-%d")
 
@@ -1993,7 +1993,7 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
         dados_ana_anterior = response_ana_anterior.json()
         dados_ana_anterior =pd.DataFrame(dados_ana_anterior)
         if "data" in dados_ana_anterior:
-            df_dados_ana_anterior = dados_ana_anterior[dados_ana_anterior["estado"] == "Sistema Equivalente"].copy()
+            df_dados_ana_anterior = dados_ana_anterior[dados_ana_anterior["estado"] == "Sistema Cantareira"].copy()
             df_dados_ana_anterior["data"] = pd.to_datetime(df_dados_ana_anterior["data"])
             df_dados_ana_anterior["data"] = df_dados_ana_anterior["data"].dt.strftime("%Y-%m-%d")
 
@@ -6595,10 +6595,11 @@ async def slide5():
             )
 
             # Se mudar a seleção, atualiza o estado e recarrega
-            if set(prefixos_selecionados) != set(st.session_state.excluir_prefixos_fluvio):
-                st.session_state.excluir_prefixos_fluvio = prefixos_selecionados
-                st.rerun()
-            
+            # if set(prefixos_selecionados) != set(st.session_state.excluir_prefixos_fluvio):
+            #     st.session_state.excluir_prefixos_fluvio = prefixos_selecionados
+            #     st.rerun()
+            st.session_state.excluir_prefixos_fluvio = prefixos_selecionados
+
         colun1, colun2, colun3 = st.columns([0.2, 1.2, 0.2])
             
         with colun2:    
