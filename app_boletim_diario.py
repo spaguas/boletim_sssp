@@ -1955,7 +1955,6 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
 
     df_final_all_data_sabesp= pd.concat(atual_all_data, ignore_index=True)
     
-    print(df_final_all_data_sabesp["Volume Atual (%)"].dtype)
     today = datetime.today()
     data_str = today.strftime("%a %b %d %Y %H:%M:%S GMT-0300 (Horário Padrão de Brasília)")
 
@@ -1998,7 +1997,6 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
             df_dados_ana_anterior["data"] = pd.to_datetime(df_dados_ana_anterior["data"])
             df_dados_ana_anterior["data"] = df_dados_ana_anterior["data"].dt.strftime("%Y-%m-%d")
 
-    print(df_dados_ana)
     df_dados_ana["volumeUtil"] = pd.to_numeric(
         df_dados_ana["volumeUtil"],
         errors="coerce"
