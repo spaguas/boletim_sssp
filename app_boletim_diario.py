@@ -47,6 +47,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dateutil.relativedelta import relativedelta
 from matplotlib.patches import FancyArrowPatch
 from shapely.geometry import Point
+from urllib.parse import quote
 
 
 load_dotenv()
@@ -720,7 +721,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         data_inicial = datetime.today()
         data_inicial_str = data_inicial.strftime('%Y-%m-%d')
 
-        url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec24h/{data_inicial_str}H00:00"
+        url_inmet = f"https://apivime.inmet.gov.br/COSMO7/SE/prec7dias/{data_inicial_str}H00:00"
         url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
 
 
@@ -1953,6 +1954,73 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
                 atual_all_data.append(linha_atual)
 
     df_final_all_data_sabesp= pd.concat(atual_all_data, ignore_index=True)
+    
+    print(df_final_all_data_sabesp["Volume Atual (%)"].dtype)
+    today = datetime.today()
+    data_str = today.strftime("%a %b %d %Y %H:%M:%S GMT-0300 (Horário Padrão de Brasília)")
+
+    try:
+        data_anterior = today.replace(year=today.year - 1)
+    except ValueError:
+        # Trata 29/02
+        data_anterior = today.replace(month=2, day=28, year=today.year - 1)
+
+    data_str_anterior = data_anterior.strftime(
+        "%a %b %d %Y %H:%M:%S GMT-0300 (Horário Padrão de Brasília)"
+    )
+
+    url_ana_atual = (
+        "https://www.ana.gov.br/sar/restportal/api/retornaMedicoes?"
+        f"data={quote(data_str)}&siglaUf=&tipoSistema=3"
+    )
+    url_ana_anterior = (
+        "https://www.ana.gov.br/sar/restportal/api/retornaMedicoes?"
+        f"data={quote(data_str_anterior)}&siglaUf=&tipoSistema=3"
+    )
+
+    response_ana_atual = requests.get(url_ana_atual, headers=headers)
+
+    if response_ana_atual.status_code == 200:
+        dados_ana = response_ana_atual.json()
+        dados_ana =pd.DataFrame(dados_ana)
+        if "data" in dados_ana:
+            df_dados_ana = dados_ana[dados_ana["estado"] == "Sistema Equivalente"].copy()
+            df_dados_ana["data"] = pd.to_datetime(df_dados_ana["data"])
+            df_dados_ana["data"] = df_dados_ana["data"].dt.strftime("%Y-%m-%d")
+
+    response_ana_anterior = requests.get(url_ana_anterior, headers=headers)
+
+    if response_ana_anterior.status_code == 200:
+        dados_ana_anterior = response_ana_anterior.json()
+        dados_ana_anterior =pd.DataFrame(dados_ana_anterior)
+        if "data" in dados_ana_anterior:
+            df_dados_ana_anterior = dados_ana_anterior[dados_ana_anterior["estado"] == "Sistema Equivalente"].copy()
+            df_dados_ana_anterior["data"] = pd.to_datetime(df_dados_ana_anterior["data"])
+            df_dados_ana_anterior["data"] = df_dados_ana_anterior["data"].dt.strftime("%Y-%m-%d")
+
+    print(df_dados_ana)
+    df_dados_ana["volumeUtil"] = pd.to_numeric(
+        df_dados_ana["volumeUtil"],
+        errors="coerce"
+    )
+
+    df_dados_ana_anterior["volumeUtil"] = pd.to_numeric(
+        df_dados_ana_anterior["volumeUtil"],
+        errors="coerce"
+    )
+
+    valor_volume = df_dados_ana["volumeUtil"].iloc[0]
+    valor_volume_anterior = df_dados_ana_anterior["volumeUtil"].iloc[0]
+
+    df_final_all_data_sabesp.loc[
+        df_final_all_data_sabesp["Sistema"] == "Cantareira",
+        "Volume Atual (%)"
+    ] = valor_volume
+
+    df_final_all_data_sabesp.loc[
+        df_final_all_data_sabesp["Sistema"] == "Cantareira",
+        "Volume Ano Anterior (%)"
+    ] = valor_volume_anterior
 
     url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_atual_str}'
     response_sim = requests.get(url_sim, verify=False)
@@ -6966,6 +7034,13 @@ async def slide6():
         json_sistemas = 'results/sabesp_sistemas.json'
         sistemas_esperados = {"Cantareira", "Alto Tietê", "Guarapiranga", "Cotia", "Rio Grande", "Rio Claro", "São Lourenço", 'SIM'}
 
+        if "atualizar_cantareira" not in st.session_state:
+            st.session_state.atualizar_cantareira = False
+
+
+        if st.session_state.atualizar_cantareira:
+            get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str)
+
         if os.path.exists(json_sistemas):
             merged_data_sistemas = pd.read_json(json_sistemas)
 
@@ -7031,7 +7106,7 @@ async def slide6():
 
                 # Configurações das barras
                 n = len(merged_data_sistemas) 
-                largura_barra = 0.37 
+                largura_barra = 0.44 
                 espacamento = 0.05
                 indice = np.arange(n) 
 
@@ -7066,7 +7141,7 @@ async def slide6():
                         ax.text(
                             x,
                             y - max_valor * 0.02,  # Um pouco abaixo do topo
-                            f'{y:.1f}',           # Número inteiro com símbolo de porcentagem
+                            f'{y:.2f}',           # Número inteiro com símbolo de porcentagem
                             ha='center',
                             va='top',
                             fontsize=8,
@@ -7179,6 +7254,10 @@ async def slide6():
             chrome_path = localizar_chrome()
             hti.browser_path = chrome_path
             hti.screenshot(html_str=html_sem_titulo, save_as=f'tabela_rmsp.png', size=(800, 600))
+
+            if st.button("Atualizar"):
+                        st.session_state.atualizar_cantareira = True
+                        st.rerun()
 
 
         min_dif_filter = merged_data_sistemas[merged_data_sistemas["Diferença Vol. Anual (%)"] == merged_data_sistemas["Diferença Vol. Anual (%)"].min()].iloc[0]
