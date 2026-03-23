@@ -5129,12 +5129,18 @@ async def slide1():
                     zoomControl=False,
                 )
 
+                # folium.TileLayer(
+                #     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                #     attr=' ',
+                #     name='OpenStreetMap',
+                #     overlay=False,
+                #     control=True, 
+                # ).add_to(mapa)
+
                 folium.TileLayer(
-                    tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    attr=' ',
-                    name='OpenStreetMap',
-                    overlay=False,
-                    control=True, 
+                    tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                    attr='CartoDB',
+                    name='CartoDB Light',
                 ).add_to(mapa)
 
                 mapa.options['attributionControl'] = False
@@ -5347,7 +5353,7 @@ async def slide1():
                     
 
                     prefixos_selecionados = st.multiselect(
-                        label="",
+                        label="Excluir prefixos",
                         options=prefix_list,
                         default=st.session_state.excluir_prefixos,
                         placeholder="Excluir prefixos",
@@ -5421,12 +5427,18 @@ async def slide1():
                         zoomControl=False
                     )
 
+                    # folium.TileLayer(
+                    #     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    #     attr=' ',
+                    #     name='OpenStreetMap',
+                    #     overlay=False,
+                    #     control=True, 
+                    # ).add_to(mapa)
+
                     folium.TileLayer(
-                        tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        attr=' ',
-                        name='OpenStreetMap',
-                        overlay=False,
-                        control=True, 
+                        tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                        attr='CartoDB',
+                        name='CartoDB Light',
                     ).add_to(mapa)
 
                     mapa.options['attributionControl'] = False
@@ -6421,12 +6433,18 @@ async def slide5():
             zoomControl=False
         )
 
+        # folium.TileLayer(
+        #     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        #     attr=' ',
+        #     name='OpenStreetMap',
+        #     overlay=False,
+        #     control=True
+        # ).add_to(mapa)
+
         folium.TileLayer(
-            tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            attr=' ',
-            name='OpenStreetMap',
-            overlay=False,
-            control=True
+            tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            attr='CartoDB',
+            name='CartoDB Light',
         ).add_to(mapa)
 
         mapa.options['attributionControl'] = False
@@ -6587,7 +6605,7 @@ async def slide5():
                 unsafe_allow_html=True)
             
             prefixos_selecionados = st.multiselect(
-                label="",
+                label="Exlcuir prefixos",
                 options=prefix_list,
                 default=st.session_state.excluir_prefixos_fluvio,
                 placeholder="Excluir prefixos",
@@ -7384,12 +7402,18 @@ async def slide7():
             zoomControl=False
         )
 
+        # folium.TileLayer(
+        #     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        #     attr=' ',
+        #     name='OpenStreetMap',
+        #     overlay=False,
+        #     control=True, 
+        # ).add_to(mapa)
+
         folium.TileLayer(
-            tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            attr=' ',
-            name='OpenStreetMap',
-            overlay=False,
-            control=True, 
+            tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+            attr='CartoDB',
+            name='CartoDB Light',
         ).add_to(mapa)
 
         mapa.options['attributionControl'] = False
@@ -7783,12 +7807,18 @@ async def slide5_seca():
                     zoomControl=False
                 )
 
+                # folium.TileLayer(
+                #     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                #     attr=' ',
+                #     name='OpenStreetMap',
+                #     overlay=False,
+                #     control=True
+                # ).add_to(mapa)
+
                 folium.TileLayer(
-                    tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    attr=' ',
-                    name='OpenStreetMap',
-                    overlay=False,
-                    control=True
+                    tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                    attr='CartoDB',
+                    name='CartoDB Light',
                 ).add_to(mapa)
 
                 mapa.options['attributionControl'] = False
