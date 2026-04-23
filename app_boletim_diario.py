@@ -1591,7 +1591,8 @@ def capturar_ipmet():
     try:
         usuario = os.environ.get('IPMET_USERNAME')
         senha = os.environ.get('IPMET_PASSWORD')
-        url = f"https://www.ipmetradar.com.br/restrito/2login.php?username={usuario}&senha={senha}&tipo_acesso=ip"
+        # url = f"https://www.ipmetradar.com.br/restrito/2login.php?username={usuario}&senha={senha}&tipo_acesso=ip"
+        url="https://www.ipmetradar.com.br/2mobileGis.php"
 
         driver.get(url)
 
@@ -1617,7 +1618,7 @@ def capturar_ipmet():
         driver.save_screenshot("screenshot_ipmet.png")
 
         img = Image.open("screenshot_ipmet.png")
-        imagem_recortada = img.crop((170, 362, 950, 710)) #esquerda, cima, direita, baixo
+        imagem_recortada = img.crop((170, 270, 950, 620)) #esquerda, cima, direita, baixo
         data_inicial = datetime.today()
         data_str = data_inicial.strftime('%Y-%m-%d')
 
@@ -5990,7 +5991,7 @@ async def slide3():
         else:
             img_ipmet, url_ipmet = capturar_ipmet()
 
-        url_ipmet = "https://www.saisp.br/estaticos/sitenovo/home.html"
+        url_ipmet = "https://www.ipmetradar.com.br/2mobileGis.php"
 
         legenda_ipmet = Image.open("escala_acum.png")
 
