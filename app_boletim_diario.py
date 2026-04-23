@@ -1580,11 +1580,63 @@ def iniciar_chrome_com_diretorio_unico():
     options.add_argument("--disable-web-security")
     options.add_argument(f"--user-data-dir={unique_user_data_dir}")
 
+    # ✅ Flags adicionais importantes para Docker/Linux
+    # options.add_argument("--disable-software-rasterizer")
+    # options.add_argument("--disable-extensions")
+    # options.add_argument("--disable-background-networking")
+    # options.add_argument("--remote-debugging-port=9222")  # Ajuda estabilidade
+    # options.add_argument("--force-device-scale-factor=1")
+
     # Inicia o ChromeDriver
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(options=options, service=service)
 
     return driver, unique_user_data_dir
+
+def capturar_ipmet_bkp():
+    driver, dir_path = iniciar_chrome_com_diretorio_unico()
+    try:
+        usuario = os.environ.get('IPMET_USERNAME')
+        senha = os.environ.get('IPMET_PASSWORD')
+        # url = f"https://www.ipmetradar.com.br/restrito/2login.php?username={usuario}&senha={senha}&tipo_acesso=ip"
+        url="https://www.ipmetradar.com.br/2mobileGis.php"
+
+        driver.get(url)
+
+        wait = WebDriverWait(driver, 15)  # Espera até 15 segundos
+        iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
+
+        driver.switch_to.frame(iframe)
+        driver.implicitly_wait(5)
+
+        select_element = driver.find_element(By.CSS_SELECTOR, "#layer-select")
+        select_element.click()
+        tm.sleep(3)
+        select = Select(select_element)
+        select.select_by_value("acum24h")
+        tm.sleep(14)
+        select_element.click()
+
+        select_button = driver.find_element(By.CSS_SELECTOR, "button.ol-zoom-out")
+        select_button.click()
+
+        tm.sleep(3)
+
+        driver.save_screenshot("screenshot_ipmet.png")
+
+        img = Image.open("screenshot_ipmet.png")
+        imagem_recortada = img.crop((170, 270, 950, 620)) #esquerda, cima, direita, baixo
+        data_inicial = datetime.today()
+        data_str = data_inicial.strftime('%Y-%m-%d')
+
+        output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
+        imagem_recortada.save(output_path)
+
+        return imagem_recortada, url
+    
+    finally:
+        driver.quit()
+        shutil.rmtree(dir_path, ignore_errors=True)
 
 def capturar_ipmet():
     driver, dir_path = iniciar_chrome_com_diretorio_unico()
@@ -1597,6 +1649,7 @@ def capturar_ipmet():
         # ✅ Esperar iframe estar visível, não só presente
         iframe = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "iframe")))
         driver.switch_to.frame(iframe)
+        # tm.sleep(5)
 
         # ✅ Esperar o select estar clicável antes de interagir
         select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
@@ -1615,20 +1668,16 @@ def capturar_ipmet():
         select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
         select_button.click()
 
-        tm.sleep(5)  # ✅ Dar tempo após zoom
+        tm.sleep(10)  # ✅ Dar tempo após zoom
+        # image_screenshot = "screenshot_ipmet.png"
+        # if os.path.exists(image_screenshot):
+        #     os.remove(image_screenshot)
 
+        
         # ✅ Salvar debug screenshot para diagnosticar no servidor
-        driver.save_screenshot("screenshot_ipmet_debug.png")
+        driver.save_screenshot("screenshot_ipmet.png")
 
-        img = Image.open("screenshot_ipmet_debug.png")
-
-        # Verificação anti-branco: se a imagem for majoritariamente branca, logar aviso
-        import numpy as np
-        arr = np.array(img)
-        percentual_branco = np.mean(arr > 250) * 100
-        print(f"[DEBUG] Percentual de pixels brancos: {percentual_branco:.1f}%")
-        if percentual_branco > 80:
-            print("[AVISO] Imagem provavelmente em branco! Verifique screenshot_ipmet_debug.png")
+        img = Image.open("screenshot_ipmet.png")
 
         imagem_recortada = img.crop((170, 270, 950, 620))
         data_str = datetime.today().strftime('%Y-%m-%d')
