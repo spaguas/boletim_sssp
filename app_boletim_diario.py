@@ -424,7 +424,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         pdf.set_xy(42, 116)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=10, style='I')
-        pdf.cell(0, 6, txt="Produzido pelo Ipmet. Disponível em: IPMET", ln=1, link="https://www.ipmetradar.com.br/")
+        pdf.cell(0, 6, txt="Produzido pelo Ipmet. Disponível em: IPMET", ln=1, link="https://www.ipmetradar.com.br/2mobileGis.php")
 
         pdf.set_xy(163, 26)
         pdf.set_font("Arial","B", size=12)
