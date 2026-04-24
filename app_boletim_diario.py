@@ -1586,9 +1586,16 @@ def iniciar_chrome_com_diretorio_unico():
     options.add_argument("--disable-features=IsolateOrigins,site-per-process")
     options.add_argument("--disable-site-isolation-trials")
 
+    options.add_argument(
+        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/120.0.0.0 Safari/537.36"
+    )
+
     # Inicia o ChromeDriver
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(options=options, service=service)
+    driver.set_page_load_timeout(60)
 
     return driver, unique_user_data_dir
 
