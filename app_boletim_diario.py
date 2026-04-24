@@ -1579,13 +1579,12 @@ def iniciar_chrome_com_diretorio_unico():
     options.add_argument("--window-size=1300,2000")
     options.add_argument("--disable-web-security")
     options.add_argument(f"--user-data-dir={unique_user_data_dir}")
+    options.add_argument("--force-device-scale-factor=1")
 
     # ✅ Flags adicionais importantes para Docker/Linux
-    # options.add_argument("--disable-software-rasterizer")
-    # options.add_argument("--disable-extensions")
-    # options.add_argument("--disable-background-networking")
-    # options.add_argument("--remote-debugging-port=9222")  # Ajuda estabilidade
-    # options.add_argument("--force-device-scale-factor=1")
+    options.add_argument("--allow-running-insecure-content")
+    options.add_argument("--disable-features=IsolateOrigins,site-per-process")
+    options.add_argument("--disable-site-isolation-trials")
 
     # Inicia o ChromeDriver
     service = Service(ChromeDriverManager().install())
