@@ -1669,7 +1669,7 @@ def capturar_ipmet():
         except:
             pass  # Se não achar, continua com sleep mesmo assim
 
-        tm.sleep(20)  # ✅ Aumentar — Linux sem GPU renderiza mais devagar
+        tm.sleep(30)  # ✅ Aumentar — Linux sem GPU renderiza mais devagar
 
         select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
         select_button.click()
