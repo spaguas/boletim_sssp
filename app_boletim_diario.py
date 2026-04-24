@@ -1649,7 +1649,7 @@ def capturar_ipmet():
         # ✅ Esperar iframe estar visível, não só presente
         iframe = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "iframe")))
         driver.switch_to.frame(iframe)
-        # tm.sleep(5)
+        tm.sleep(5)
 
         # ✅ Esperar o select estar clicável antes de interagir
         select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
@@ -1673,11 +1673,11 @@ def capturar_ipmet():
         # if os.path.exists(image_screenshot):
         #     os.remove(image_screenshot)
 
-        
-        # ✅ Salvar debug screenshot para diagnosticar no servidor
-        driver.save_screenshot("screenshot_ipmet.png")
 
-        img = Image.open("screenshot_ipmet.png")
+        # ✅ Salvar debug screenshot para diagnosticar no servidor
+        driver.save_screenshot("results/screenshot_ipmet.png")
+
+        img = Image.open("results/screenshot_ipmet.png")
 
         imagem_recortada = img.crop((170, 270, 950, 620))
         data_str = datetime.today().strftime('%Y-%m-%d')
