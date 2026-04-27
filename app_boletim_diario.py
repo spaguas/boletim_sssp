@@ -1572,19 +1572,25 @@ def iniciar_chrome_com_diretorio_unico():
 
     # Configura opções do Chrome
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless=new")  # Usar 'new' evita erros com a versão atual do Chrome
+    options.add_argument("--headless=chrome")  # Usar 'new' evita erros com a versão atual do Chrome
     options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-software-rasterizer")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-webgl-image-chromium")
+    options.add_argument("--no-sandbox")
     options.add_argument("--window-size=1300,2000")
-    options.add_argument("--disable-web-security")
     options.add_argument(f"--user-data-dir={unique_user_data_dir}")
     options.add_argument("--force-device-scale-factor=1")
-
-    # ✅ Flags adicionais importantes para Docker/Linux
+    options.add_argument("--disable-web-security")
     options.add_argument("--allow-running-insecure-content")
     options.add_argument("--disable-features=IsolateOrigins,site-per-process")
-    options.add_argument("--disable-site-isolation-trials")
+
+    # ✅ Forçar software renderer para WebGL funcionar sem GPU física
+    options.add_argument("--use-gl=swiftshader")
+    options.add_argument("--use-angle=swiftshader")
+    options.add_argument("--enable-webgl")
+    options.add_argument("--ignore-gpu-blocklist")
+    options.add_argument("--enable-gpu-rasterization")
 
     options.add_argument(
         "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
@@ -1608,6 +1614,23 @@ def capturar_ipmet_bkp():
         url="https://www.ipmetradar.com.br/2mobileGis.php"
 
         driver.get(url)
+
+        info = driver.execute_script("""
+            const canvas = document.querySelector('canvas.ol-layer');
+            if (!canvas) return 'sem canvas';
+            
+            // Testa qual contexto está sendo usado
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            const ctx2d = canvas.getContext('2d');
+            
+            return {
+                tem_webgl: !!gl,
+                tem_2d: !!ctx2d,
+                width: canvas.width,
+                height: canvas.height
+            };
+        """)
+        print("[DEBUG] Contexto do canvas:", info)
 
         wait = WebDriverWait(driver, 15)  # Espera até 15 segundos
         iframe = wait.until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
@@ -1644,6 +1667,46 @@ def capturar_ipmet_bkp():
         driver.quit()
         shutil.rmtree(dir_path, ignore_errors=True)
 
+def esperar_canvas_renderizar(driver, timeout=60):
+    deadline = tm.time() + timeout
+    tentativa = 0
+    while tm.time() < deadline:
+        tentativa += 1
+        resultado = driver.execute_script("""
+            // ✅ Seletor correto baseado no elemento real
+            const canvas = document.querySelector(
+                '#map > div > div.ol-unselectable.ol-layers > div:nth-child(4) > canvas'
+            );
+            if (!canvas) return {status: 'sem_canvas'};
+            
+            // Canvas WebGL — não suporta getContext('2d') após WebGL iniciado
+            // Usa toDataURL para verificar se tem conteúdo
+            try {
+                const dataUrl = canvas.toDataURL();
+                // Canvas em branco retorna uma string curta/padrão
+                const tamanhoData = dataUrl.length;
+                return {
+                    status: tamanhoData > 5000 ? 'carregado' : 'branco',
+                    tamanho_data: tamanhoData,
+                    width: canvas.width,
+                    height: canvas.height
+                };
+            } catch(e) {
+                return {status: 'erro_taint', erro: e.message};
+            }
+        """)
+        
+        print(f"[DEBUG] Tentativa {tentativa}: {resultado}")
+        
+        if resultado and resultado.get('status') == 'carregado':
+            print("[OK] Canvas com conteúdo detectado!")
+            return True
+            
+        tm.sleep(2)
+    
+    print("[AVISO] Timeout — canvas continuou branco.")
+    return False
+
 def capturar_ipmet():
     driver, dir_path = iniciar_chrome_com_diretorio_unico()
     try:
@@ -1657,28 +1720,46 @@ def capturar_ipmet():
         driver.switch_to.frame(iframe)
         tm.sleep(5)
 
+        info = driver.execute_script("""
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return 'sem canvas';
+
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            const ctx2d = canvas.getContext('2d');
+
+            return {
+                tem_webgl: !!gl,
+                tem_2d: !!ctx2d,
+                width: canvas.width,
+                height: canvas.height
+            };
+        """)
+        print("[DEBUG iframe] Contexto do canvas:", info)
+
         # ✅ Esperar o select estar clicável antes de interagir
         select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
         select = Select(select_element)
         select.select_by_value("acum24h")
 
-        # ✅ Após mudar o select, esperar algum elemento do mapa re-renderizar
-        # Substitua ".ol-layer canvas" pelo seletor correto do mapa se necessário
-        try:
-            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".ol-layer canvas")))
-        except:
-            pass  # Se não achar, continua com sleep mesmo assim
+        canvas_ok = esperar_canvas_renderizar(driver, timeout=90)
+        
+        if not canvas_ok:
+            # ✅ Diagnóstico: verifica se tiles foram bloqueados
+            logs = driver.execute_script("""
+                return window.performance.getEntriesByType('resource')
+                    .filter(r => r.initiatorType === 'img' || r.name.includes('wms') 
+                               || r.name.includes('tile') || r.name.includes('radar'))
+                    .map(r => r.name + ' -> ' + (r.responseStatus || '?'));
+            """)
+            print("[DEBUG] Recursos de rede:", logs)
 
-        tm.sleep(30)  # ✅ Aumentar — Linux sem GPU renderiza mais devagar
 
         select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
         select_button.click()
-
-        tm.sleep(10)  # ✅ Dar tempo após zoom
-        # image_screenshot = "screenshot_ipmet.png"
-        # if os.path.exists(image_screenshot):
-        #     os.remove(image_screenshot)
-
+        
+        # Após zoom, espera o mapa re-renderizar
+        tm.sleep(3)
+        esperar_canvas_renderizar(driver, timeout=30)
 
         # ✅ Salvar debug screenshot para diagnosticar no servidor
         driver.save_screenshot("results/screenshot_ipmet.png")

@@ -5,11 +5,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Instala dependências do sistema e do Chrome
 RUN apt-get update && apt-get install -y \
     wget curl unzip gnupg ca-certificates \
-    fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 \
-    libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 libnspr4 libnss3 libx11-xcb1 \
-    libxcomposite1 libxdamage1 libxrandr2 xdg-utils lsb-release \
-    libgbm1 libgtk-3-0 libxshmfence1 libxi6 libxcursor1 libxinerama1 libgl1 \
+    fonts-liberation \
+    libappindicator3-1 libasound2 \
+    libatk-bridge2.0-0 libatk1.0-0 \
+    libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 \
+    libnspr4 libnss3 \
+    libx11-xcb1 libxcomposite1 libxdamage1 libxrandr2 \
+    libxfixes3 libxkbcommon0 libxcb-dri3-0 \
+    libxshmfence1 libxi6 libxcursor1 libxinerama1 \
+    libgl1 libdrm2 libgbm1 \
+    libpango-1.0-0 libcairo2 \
     libu2f-udev libvulkan1 libxss1 \
+    xdg-utils lsb-release \
     --no-install-recommends && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
