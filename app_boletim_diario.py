@@ -1572,7 +1572,7 @@ def iniciar_chrome_com_diretorio_unico():
 
     # Configura opções do Chrome
     options = webdriver.ChromeOptions()
-    # options.add_argument("--headless=chrome")  # Usar 'new' evita erros com a versão atual do Chrome
+    options.add_argument("--headless=chrome")  # Usar 'new' evita erros com a versão atual do Chrome
     options.add_argument("--disable-gpu") 
     options.add_argument("--no-sandbox") 
     options.add_argument("--disable-dev-shm-usage") 
@@ -1582,6 +1582,8 @@ def iniciar_chrome_com_diretorio_unico():
     options.add_argument("--disable-web-security") 
     options.add_argument("--allow-running-insecure-content") 
     options.add_argument("--disable-features=IsolateOrigins,site-per-process") 
+
+    # options.add_argument("--disable-software-rasterizer")
     
     # ✅ Forçar software renderer para WebGL funcionar sem GPU física 
     options.add_argument("--use-gl=swiftshader") 
