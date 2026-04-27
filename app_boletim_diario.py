@@ -1572,26 +1572,24 @@ def iniciar_chrome_com_diretorio_unico():
 
     # Configura opções do Chrome
     options = webdriver.ChromeOptions()
-    options.add_argument("--headless=chrome")  # Usar 'new' evita erros com a versão atual do Chrome
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-software-rasterizer")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-webgl-image-chromium")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--window-size=1300,2000")
-    options.add_argument(f"--user-data-dir={unique_user_data_dir}")
-    options.add_argument("--force-device-scale-factor=1")
-    options.add_argument("--disable-web-security")
-    options.add_argument("--allow-running-insecure-content")
-    options.add_argument("--disable-features=IsolateOrigins,site-per-process")
-
-    # ✅ Forçar software renderer para WebGL funcionar sem GPU física
-    options.add_argument("--use-gl=swiftshader")
-    options.add_argument("--use-angle=swiftshader")
-    options.add_argument("--enable-webgl")
-    options.add_argument("--ignore-gpu-blocklist")
-    options.add_argument("--enable-gpu-rasterization")
-
+    # options.add_argument("--headless=chrome")  # Usar 'new' evita erros com a versão atual do Chrome
+    options.add_argument("--disable-gpu") 
+    options.add_argument("--no-sandbox") 
+    options.add_argument("--disable-dev-shm-usage") 
+    options.add_argument("--window-size=1300,2000") 
+    options.add_argument(f"--user-data-dir={unique_user_data_dir}") 
+    options.add_argument("--force-device-scale-factor=1") 
+    options.add_argument("--disable-web-security") 
+    options.add_argument("--allow-running-insecure-content") 
+    options.add_argument("--disable-features=IsolateOrigins,site-per-process") 
+    
+    # ✅ Forçar software renderer para WebGL funcionar sem GPU física 
+    options.add_argument("--use-gl=swiftshader") 
+    options.add_argument("--use-angle=swiftshader") 
+    options.add_argument("--enable-webgl") 
+    options.add_argument("--ignore-gpu-blocklist") 
+    options.add_argument("--enable-gpu-rasterization") 
+    
     options.add_argument(
         "--user-agent=Mozilla/5.0 (X11; Linux x86_64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
@@ -1741,17 +1739,7 @@ def capturar_ipmet():
         select = Select(select_element)
         select.select_by_value("acum24h")
 
-        canvas_ok = esperar_canvas_renderizar(driver, timeout=90)
-        
-        if not canvas_ok:
-            # ✅ Diagnóstico: verifica se tiles foram bloqueados
-            logs = driver.execute_script("""
-                return window.performance.getEntriesByType('resource')
-                    .filter(r => r.initiatorType === 'img' || r.name.includes('wms') 
-                               || r.name.includes('tile') || r.name.includes('radar'))
-                    .map(r => r.name + ' -> ' + (r.responseStatus || '?'));
-            """)
-            print("[DEBUG] Recursos de rede:", logs)
+        # canvas_ok = esperar_canvas_renderizar(driver, timeout=90)
 
 
         select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
@@ -1759,7 +1747,7 @@ def capturar_ipmet():
         
         # Após zoom, espera o mapa re-renderizar
         tm.sleep(3)
-        esperar_canvas_renderizar(driver, timeout=30)
+        # esperar_canvas_renderizar(driver, timeout=30)
 
         # ✅ Salvar debug screenshot para diagnosticar no servidor
         driver.save_screenshot("results/screenshot_ipmet.png")
