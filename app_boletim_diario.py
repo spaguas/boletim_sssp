@@ -66,7 +66,7 @@ class PDF(FPDF):
             col3_w = 30
             y = 10
             self.set_xy(10, y)
-            self.cell(col1_w, 10, "Agência de Água do Estado de São Paulo", 0, 0, 'L')
+            self.cell(col1_w, 10, "Agência de Águas do Estado de São Paulo", 0, 0, 'L')
             if os.path.exists(self.logo_path):
                 self.image(self.logo_path, x=self.w - col3_w - 10, y=y-3, w=20)
         else:
@@ -268,12 +268,12 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
         pdf.set_xy(col2_w, 15)
         pdf.set_font("Arial", size=14,style='B')
-        pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+        pdf.cell(col2_w, txt="Dados de Pluviometria", ln=1, align='L')
         pdf.set_font("Arial", size=12)
 
         pdf.set_xy(38, 26)
         pdf.set_font("Arial","B", size=12)
-        pdf.cell(0, 10, txt="Acumulado de chuva das ultimas 24h", ln=1)
+        pdf.cell(0, 10, txt="Acumulado de chuva das últimas 24h", ln=1)
 
         mapa_html_flu = 'mapa_html_flu'
         transform_html_image(mapa_html_flu)
@@ -350,7 +350,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         pdf.set_xy(col2_w, 15)
         pdf.set_font("Arial", size=14,style='B')
-        pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+        pdf.cell(col2_w, txt="Dados de Pluviometria", ln=1, align='L')
         pdf.set_font("Arial", size=12)
 
         pdf.set_xy(10, 25)
@@ -404,7 +404,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
         pdf.set_xy(col2_w, 15)
         pdf.set_font("Arial", size=14,style='B')
-        pdf.cell(col2_w, txt="Acumulados dos Radares", ln=1, align='L')
+        pdf.cell(col2_w, txt="Acumulado dos Radares", ln=1, align='L')
         pdf.set_font("Arial", size=12)
 
         data_inicial = datetime.today()
@@ -490,7 +490,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
         pdf.set_xy(col2_w, 15)
         pdf.set_font("Arial", size=14,style='B')
-        pdf.cell(col2_w, txt="Dados Fluviometria", ln=1, align='L')
+        pdf.cell(col2_w, txt="Dados de Fluviometria", ln=1, align='L')
         pdf.set_font("Arial", size=12)
 
         mapa_html_5 = "mapa_slide5"
@@ -514,7 +514,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         pdf.set_xy(x, 160)
         pdf.set_font("Arial","B", size=12)
-        pdf.cell(0, 10, txt="Análise das redes Telemétrica", ln=1)
+        pdf.cell(0, 10, txt="Análise das redes Telemétricas", ln=1)
 
         cell_height = get_text_height(pdf, user_input5, w - 2 * padding, line_height)
         total_height = cell_height + 2 * padding
@@ -574,7 +574,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
         pdf.set_xy(col2_w, 15)
         pdf.set_font("Arial", size=14,style='B')
-        pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+        pdf.cell(col2_w, txt="Sistemas Produtores da RMSP", ln=1, align='L')
         pdf.set_font("Arial", size=12)
 
         pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
@@ -593,7 +593,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     
         pdf.set_xy(col2_w, 15)
         pdf.set_font("Arial", size=14,style='B')
-        pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+        pdf.cell(col2_w, txt="Sistemas Produtores da RMSP", ln=1, align='L')
         pdf.set_font("Arial", size=12)
 
         pdf.set_xy(10, 26)
@@ -678,7 +678,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         pdf.set_xy(58, 108)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
-        pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Fonte: SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+        pdf.cell(0, 10, txt="Elaborado pela equipe da SP Águas. Fonte: SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
         pdf.set_xy(185, 28)
         pdf.set_font("Arial","B", size=12)
@@ -860,7 +860,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.image("imagens/mapa_html_dsc.jpg", x=10, y=36, w=136)
     pdf.set_xy(38, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
+    pdf.cell(0, 10, txt="Elaborado pela equipe da SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
 
 
     pdf.set_xy(185, 26)
@@ -880,7 +880,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.image("imagens/mapa_html_dcsc.jpg", x=150, y=36, w=136)
     pdf.set_xy(177, 125)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Elaborado pela equipe do SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
+    pdf.cell(0, 10, txt="Elaborado pela equipe da SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
 
     x = 10
     y = 142
@@ -966,12 +966,12 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
    
     pdf.set_xy(col2_w, 15)
     pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+    pdf.cell(col2_w, txt="Dados de Pluviometria", ln=1, align='L')
     pdf.set_font("Arial", size=12)
 
     pdf.set_xy(38, 26)
     pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Acumulado de chuva das ultimas 24h", ln=1)
+    pdf.cell(0, 10, txt="Acumulado de chuva das últimas 24h", ln=1)
 
     mapa_html_flu = 'mapa_html_flu'
     transform_html_image(mapa_html_flu)
@@ -1039,7 +1039,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     pdf.set_xy(col2_w, 15)
     pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Dados Pluviometria", ln=1, align='L')
+    pdf.cell(col2_w, txt="Dados de Pluviometria", ln=1, align='L')
     pdf.set_font("Arial", size=12)
 
     pdf.set_xy(10, 25)
@@ -1081,7 +1081,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
    
     pdf.set_xy(col2_w, 15)
     pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Dados Fluviometria - Estiagem", ln=1, align='L')
+    pdf.cell(col2_w, txt="Dados de Fluviometria - Estiagem", ln=1, align='L')
     pdf.set_font("Arial", size=12)
 
     mapa_slide5_seca = "mapa_slide5_seca"
@@ -1108,7 +1108,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     pdf.set_xy(x, 160)
     pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Análise das redes Telemétrica", ln=1)
+    pdf.cell(0, 10, txt="Análise das redes Telemétricas", ln=1)
 
     cell_height = get_text_height(pdf, user_input5_seca, w - 2 * padding, line_height)
     total_height = cell_height + 2 * padding
@@ -1132,7 +1132,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
    
     pdf.set_xy(col2_w, 15)
     pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+    pdf.cell(col2_w, txt="Sistemas Produtores da RMSP", ln=1, align='L')
     pdf.set_font("Arial", size=12)
 
     pdf.image("results/imagem_rmsp.png", x=15, y=25, w=265)
@@ -1151,7 +1151,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
    
     pdf.set_xy(col2_w, 15)
     pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Sistema Produtores da RMSP", ln=1, align='L')
+    pdf.cell(col2_w, txt="Sistemas Produtores da RMSP", ln=1, align='L')
     pdf.set_font("Arial", size=12)
 
     pdf.set_xy(10, 26)
@@ -4519,7 +4519,7 @@ async def slide1_seca():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -4718,7 +4718,7 @@ async def slide1_seca():
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe do SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe da SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
                 </div>
                 """,
             unsafe_allow_html=True) 
@@ -4835,7 +4835,7 @@ async def slide1_seca():
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe do SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe da SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
                 </div>
                 """,
             unsafe_allow_html=True) 
@@ -4881,7 +4881,7 @@ async def slide1_seca():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -5191,7 +5191,7 @@ async def slide1():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -5205,7 +5205,7 @@ async def slide1():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Dados Pluviometria</h1>
+                <h1  style="font-size: 18px;">Dados de Pluviometria</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -5472,7 +5472,7 @@ async def slide1():
 
                     st.write("""
                         <div style="text-align: center; color: #333333;">
-                            <h1  style="font-size: 14px; margin: 0; padding: 0">Acumulado de chuva das ultimas 24h</h1>
+                            <h1  style="font-size: 14px; margin: 0; padding: 0">Acumulado de chuva das últimas 24h</h1>
                         </div>
                         """,
                         unsafe_allow_html=True)
@@ -5672,7 +5672,7 @@ async def slide2():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -5686,7 +5686,7 @@ async def slide2():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Dados Pluviometria</h1>
+                <h1  style="font-size: 18px;">Dados de Pluviometria</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -6094,7 +6094,7 @@ async def slide3():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -6108,7 +6108,7 @@ async def slide3():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Acumulados dos Radares</h1>
+                <h1  style="font-size: 18px;">Acumulado dos Radares</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -6219,7 +6219,7 @@ async def slide4():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -6346,7 +6346,7 @@ async def slide5():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -6360,7 +6360,7 @@ async def slide5():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Dados Fluviometria</h1>
+                <h1  style="font-size: 18px;">Dados de Fluviometria</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -6536,7 +6536,7 @@ async def slide5():
                     estado_sem_registro.append(estado)
 
         # Construindo a legenda
-        legenda = "De acordo com os registros das redes telemétricas públicas do Estado de São Paulo nas últimas 24h foram registrados "
+        legenda = "De acordo com os registros das redes telemétricas públicas do Estado de São Paulo nas últimas 24h registraram-se "
 
         # Primeiro Extravasamento/Emergência
         if dados_criticos:
@@ -6761,7 +6761,7 @@ async def slide5():
             if 'user_input_slide5' not in st.session_state:
                 st.session_state.user_input_slide5 = legenda  # sem f-string desnecessária
 
-            user_input = st.text_area("Análise das redes Telemétrica", height=100, key="user_input_slide5")
+            user_input = st.text_area("Análise das redes Telemétricas", height=100, key="user_input_slide5")
 
 
         with colun3:
@@ -6786,7 +6786,7 @@ async def slide5():
 
         if 'Extravasamento' in df_extravasation['current_state'].values:
             get_prefix = df_extravasation[df_extravasation['current_state']=='Extravasamento']
-
+            print("entrou extravsamento")
 
             prefix_id = get_prefix['station_prefix_id'].unique()
 
@@ -6824,7 +6824,7 @@ async def slide5():
                     st.write("""
                         <div class="align-left-center">
                             <div style="color: black;">
-                                <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                                <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                             </div>
                         </div>
                         """,
@@ -6891,7 +6891,7 @@ async def slide5():
 
                 fig = go.Figure()
                 df_filtered['current_data'] = df_filtered['current_data'] - pd.Timedelta(hours=3)
-                fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['value'], mode='lines', name='Valor', line=dict(color='#268b12', width=1), line_shape='spline'))
+                fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['value'], mode='lines', name='Nível (m)', line=dict(color='#268b12', width=1), line_shape='spline'))
 
                 # Adicionando as linhas horizontais para os níveis
                 if not df_filtered['extravasation_level'].isnull().all():
@@ -6916,7 +6916,7 @@ async def slide5():
                     title=f"Dados fluviométricos do posto - {id_station} - {name_station}",
                     # title_x=0.3,
                     xaxis_title="Horas",
-                    yaxis_title="Valor",
+                    yaxis_title="Nível (m)",
                     plot_bgcolor='white',    # Cor de fundo do gráfico
                     paper_bgcolor='white',   # Cor de fundo da área ao redor do gráfico
                     font=dict(color='black'),  # Cor das fontes para preto
@@ -7114,7 +7114,7 @@ async def slide6():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -7128,7 +7128,7 @@ async def slide6():
         with col2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Sistema Produtores da RMSP</h1>
+                <h1  style="font-size: 18px;">Sistemas Produtores da RMSP</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -7227,7 +7227,7 @@ async def slide6():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -7241,7 +7241,7 @@ async def slide6():
         with colun_grafico2:
             st.write("""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Sistema Produtores da RMSP</h1>
+                <h1  style="font-size: 18px;">Sistemas Produtores da RMSP</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -7468,7 +7468,7 @@ async def slide7():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -7595,7 +7595,7 @@ async def slide7():
 
             st.components.v1.html(mapa_html, width=860, height=350)
             url = 'https://cth.daee.sp.gov.br/sibh/chuva_agora'
-            st.markdown(f'<p style="text-align: center; font-size: 12px">Elaborado pela equipe do SP Águas. Fonte: <a href="{url}" target="_blank">SIBH</a> </a></p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="text-align: center; font-size: 12px">Elaborado pela equipe da SP Águas. Fonte: <a href="{url}" target="_blank">SIBH</a> </a></p>', unsafe_allow_html=True)
             st.write(" ")
             
         with coluna2:
@@ -7698,7 +7698,7 @@ async def slide8():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -7795,7 +7795,7 @@ async def slide8_seca():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -7892,7 +7892,7 @@ async def slide5_seca():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
@@ -7906,7 +7906,7 @@ async def slide5_seca():
         with col2:
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Dados Fluviometria - Estiagem</h1>
+                <h1  style="font-size: 18px;">Dados de Fluviometria - Estiagem</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -8135,7 +8135,7 @@ async def slide5_seca():
                     
                     # Usar o valor do session_state diretamente
                     user_input = st.text_area(
-                        "Análise das redes Telemétrica", 
+                        "Análise das redes Telemétricas", 
                         value=st.session_state.user_input_slide5_seca,
                         height=100,
                         key="text_area_seca"
@@ -8257,7 +8257,7 @@ async def slide6_seca():
             st.write("""
                 <div class="align-left-center">
                     <div style="color: black;">
-                        <p style="font-size: 11px">Agência de Água do Estado de São Paulo</h1>
+                        <p style="font-size: 11px">Agência de Águas do Estado de São Paulo</h1>
                     </div>
                 </div>
                 """,
