@@ -179,6 +179,8 @@ def transform_html_image(nome_arquivo):
     if os.path.exists(png_path):
         os.remove(png_path)
 
+
+
     # Usa o mesmo Chrome do Selenium (caminho explícito)
     hti = Html2Image(
         output_path='imagens',
@@ -194,11 +196,30 @@ def transform_html_image(nome_arquivo):
     hti.browser_path = chrome_path
 
     try:
-        hti.screenshot(
+        if nome_arquivo == 'mapa_slide5':
+
+            with open(f"{nome_arquivo}.html", "r", encoding="utf-8") as f:
+                html = f.read()
+
+            html = html.replace(
+                "<body>",
+                '<body style="zoom: 150%;">'
+            )
+
+            with open(f"{nome_arquivo}.html", "w", encoding="utf-8") as f:
+                f.write(html)
+                
+            hti.screenshot(
             html_file=f'{nome_arquivo}.html',
             save_as=f'{nome_arquivo}.png',
-            size=(800, 600)
-        )
+            size=(1000, 600) #(largura, altura)
+            )
+        else:
+            hti.screenshot(
+                html_file=f'{nome_arquivo}.html',
+                save_as=f'{nome_arquivo}.png',
+                size=(800, 600)
+            )
         print(f"[SUCESSO] Screenshot salvo em: {png_path}")
     except Exception as e:
         print(f"[ERRO] Falha ao gerar imagem: {str(e)}")
@@ -286,7 +307,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
 
         pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
-        pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(62, 138)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
@@ -303,17 +324,17 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
         background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
         pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
-        pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(152, 140)  # x=150 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
         
         x = 10
-        y = 142
+        y = 155
         w = 278
         padding = 3
         line_height = 7
 
-        pdf.set_xy(x, 132)
+        pdf.set_xy(x, 144)
         pdf.set_font("Arial","B", size=12)
         pdf.cell(0, 10, txt="Relatos 24h", ln=1)
 
@@ -420,9 +441,9 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         legenda_ipmet = Image.open("escala_acum.png").convert("RGB")
         legenda_ipmet.save("imagens/escala_ipmet_temp.jpg", "JPEG", quality=95)
-        pdf.image("imagens/escala_ipmet_temp.jpg", x=50, y=100, w=60)
+        pdf.image("imagens/escala_ipmet_temp.jpg", x=50, y=106, w=60)
 
-        pdf.set_xy(42, 116)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(42, 123)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=10, style='I')
         pdf.cell(0, 6, txt="Produzido pelo Ipmet. Disponível em: IPMET", ln=1, link="https://www.ipmetradar.com.br/2mobileGis.php")
 
@@ -502,7 +523,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.paste(imgagem_html_5, mask=imgagem_html_5.split()[3])  # usa canal alpha como máscara
         background.save("imagens/mapa_slide5.jpg", "JPEG", quality=95)
         pdf.image("imagens/mapa_slide5.jpg", x=40, y=25, w=210)
-        pdf.set_xy(115, 158)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(115, 152)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
