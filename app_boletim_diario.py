@@ -179,8 +179,6 @@ def transform_html_image(nome_arquivo):
     if os.path.exists(png_path):
         os.remove(png_path)
 
-
-
     # Usa o mesmo Chrome do Selenium (caminho explícito)
     hti = Html2Image(
         output_path='imagens',
@@ -196,30 +194,11 @@ def transform_html_image(nome_arquivo):
     hti.browser_path = chrome_path
 
     try:
-        if nome_arquivo == 'mapa_slide5':
-
-            with open(f"{nome_arquivo}.html", "r", encoding="utf-8") as f:
-                html = f.read()
-
-            html = html.replace(
-                "<body>",
-                '<body style="zoom: 150%;">'
-            )
-
-            with open(f"{nome_arquivo}.html", "w", encoding="utf-8") as f:
-                f.write(html)
-                
-            hti.screenshot(
+        hti.screenshot(
             html_file=f'{nome_arquivo}.html',
             save_as=f'{nome_arquivo}.png',
-            size=(1000, 600) #(largura, altura)
-            )
-        else:
-            hti.screenshot(
-                html_file=f'{nome_arquivo}.html',
-                save_as=f'{nome_arquivo}.png',
-                size=(800, 600)
-            )
+            size=(800, 600)
+        )
         print(f"[SUCESSO] Screenshot salvo em: {png_path}")
     except Exception as e:
         print(f"[ERRO] Falha ao gerar imagem: {str(e)}")
@@ -307,7 +286,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
 
         pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
-        pdf.set_xy(62, 138)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
@@ -324,17 +303,17 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
         background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
         pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
-        pdf.set_xy(152, 140)  # x=150 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
         
         x = 10
-        y = 155
+        y = 142
         w = 278
         padding = 3
         line_height = 7
 
-        pdf.set_xy(x, 144)
+        pdf.set_xy(x, 132)
         pdf.set_font("Arial","B", size=12)
         pdf.cell(0, 10, txt="Relatos 24h", ln=1)
 
@@ -441,9 +420,9 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         legenda_ipmet = Image.open("escala_acum.png").convert("RGB")
         legenda_ipmet.save("imagens/escala_ipmet_temp.jpg", "JPEG", quality=95)
-        pdf.image("imagens/escala_ipmet_temp.jpg", x=50, y=106, w=60)
+        pdf.image("imagens/escala_ipmet_temp.jpg", x=50, y=100, w=60)
 
-        pdf.set_xy(42, 123)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(42, 116)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=10, style='I')
         pdf.cell(0, 6, txt="Produzido pelo Ipmet. Disponível em: IPMET", ln=1, link="https://www.ipmetradar.com.br/2mobileGis.php")
 
@@ -523,7 +502,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.paste(imgagem_html_5, mask=imgagem_html_5.split()[3])  # usa canal alpha como máscara
         background.save("imagens/mapa_slide5.jpg", "JPEG", quality=95)
         pdf.image("imagens/mapa_slide5.jpg", x=40, y=25, w=210)
-        pdf.set_xy(115, 152)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(115, 158)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
@@ -535,7 +514,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         pdf.set_xy(x, 160)
         pdf.set_font("Arial","B", size=12)
-        pdf.cell(0, 10, txt="Análise das redes Telemétricas", ln=1)
+        pdf.cell(0, 10, txt="Análise das redes telemétricas", ln=1)
 
         cell_height = get_text_height(pdf, user_input5, w - 2 * padding, line_height)
         total_height = cell_height + 2 * padding
@@ -879,20 +858,22 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_dsc.jpg", "JPEG", quality=95)
     pdf.image("imagens/mapa_html_dsc.jpg", x=10, y=36, w=136)
-    pdf.set_xy(38, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(48, 124)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Elaborado pela equipe da SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
 
 
-    pdf.set_xy(185, 26)
+    pdf.set_xy(152, 26)
     pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Dias consecutivos sem chuva", ln=1)
+    pdf.cell(0, 10, txt="Dias consecutivos sem chuva no período de estiagem (01/04 a 30/09)", ln=1)
 
     mapa_html_dcsc = 'mapa_html_dcsc'
     transform_html_image(mapa_html_dcsc)
     png_path_dcsc = f"imagens/{mapa_html_dcsc}.png"
     wait_for_file(png_path_dcsc)
     tm.sleep(1)
+
+
 
     imgagem_inter = Image.open("imagens/mapa_html_dcsc.png").convert("RGBA")
     background = Image.new("RGB", imgagem_inter.size, (255, 255, 255))  # fundo branco
@@ -1129,7 +1110,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     pdf.set_xy(x, 160)
     pdf.set_font("Arial","B", size=12)
-    pdf.cell(0, 10, txt="Análise das redes Telemétricas", ln=1)
+    pdf.cell(0, 10, txt="Análise das redes telemétricas", ln=1)
 
     cell_height = get_text_height(pdf, user_input5_seca, w - 2 * padding, line_height)
     total_height = cell_height + 2 * padding
@@ -1741,37 +1722,46 @@ def capturar_ipmet():
         driver.switch_to.frame(iframe)
         tm.sleep(5)
 
+        info = driver.execute_script("""
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return 'sem canvas';
+
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            const ctx2d = canvas.getContext('2d');
+
+            return {
+                tem_webgl: !!gl,
+                tem_2d: !!ctx2d,
+                width: canvas.width,
+                height: canvas.height
+            };
+        """)
+        print("[DEBUG iframe] Contexto do canvas:", info)
+
         # ✅ Esperar o select estar clicável antes de interagir
         select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
         select = Select(select_element)
         select.select_by_value("acum24h")
 
+        # canvas_ok = esperar_canvas_renderizar(driver, timeout=90)
+
+
         select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
         select_button.click()
+        
+        # Após zoom, espera o mapa re-renderizar
         tm.sleep(3)
+        # esperar_canvas_renderizar(driver, timeout=30)
 
-        mapa = driver.find_element(By.CSS_SELECTOR, ".ol-viewport")  # container do OpenLayers
-        png = mapa.screenshot_as_png
+        # ✅ Salvar debug screenshot para diagnosticar no servidor
+        driver.save_screenshot("results/screenshot_ipmet.png")
 
+        img = Image.open("results/screenshot_ipmet.png")
+
+        imagem_recortada = img.crop((170, 270, 950, 620))
         data_str = datetime.today().strftime('%Y-%m-%d')
-        output_path = os.path.join("results", f"screenshot_ipmet.png")
-        with open(output_path, "wb") as f:
-            f.write(png)
-
-        imagem = Image.open(output_path)
-        w, h = imagem.size
-        imagem_recortada = imagem.crop((50, 0, w-50, h))
-
-        # driver.save_screenshot("results/screenshot_ipmet.png")
-
-        # img = Image.open("results/screenshot_ipmet.png")
-
-        # imagem_recortada = img.crop((170, 270, 950, 620))
-        # data_str = datetime.today().strftime('%Y-%m-%d')
         output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
         imagem_recortada.save(output_path)
-
-        # return imagem_recortada, url
 
         return imagem_recortada, url
 
@@ -4839,7 +4829,7 @@ async def slide1_seca():
 
             st.write("""
                 <div style="text-align: center; color: #333333;">
-                    <h1  style="font-size: 14px; margin: 0; padding: 0">Dias consecutivos sem chuva</h1>
+                    <h1  style="font-size: 14px; margin: 0; padding: 0">Dias consecutivos sem chuva no período de estiagem (01/04 a 30/09)</h1>
                 </div>
                 """,
             unsafe_allow_html=True)
@@ -5334,7 +5324,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",  # Borda branca
-                                weight=0.5,
+                                weight=1.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5347,9 +5337,7 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
-                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
-                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
                                 )
                             ).add_to(layer_10)
 
@@ -5358,7 +5346,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",
-                                weight=0.5,
+                                weight=1.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5371,9 +5359,7 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
-                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
-                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
                                 )
                             ).add_to(layer_30)
 
@@ -5382,7 +5368,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",
-                                weight=0.5,
+                                weight=1.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5395,10 +5381,8 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
-                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
-                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
-                                    )
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
+                                )
                             ).add_to(layer_70)
                             
 
@@ -5407,7 +5391,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",
-                                weight=0.5,
+                                weight=1.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5420,10 +5404,8 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
-                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
-                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
-                            )
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
+                                )
                             ).add_to(layer_100)
 
                 layer_10.add_to(mapa)
@@ -5684,7 +5666,7 @@ async def slide1():
 
 
 async def slide2():
-
+    print("Entrou slide 2")
     with slide2_container:
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
 
@@ -5757,6 +5739,7 @@ async def slide2():
                 ORDER BY (max(ac_diario)) DESC LIMIT 10;"""
 
         tabela_df= execute_query(query_cities)
+
         ultima_atualizacao = tabela_df['execution_date'].iloc[0]
         tabela_df = tabela_df.drop(columns=['execution_date'], errors='ignore')
         # print(tabela_df)
@@ -6781,7 +6764,7 @@ async def slide5():
             if 'user_input_slide5' not in st.session_state:
                 st.session_state.user_input_slide5 = legenda  # sem f-string desnecessária
 
-            user_input = st.text_area("Análise das redes Telemétricas", height=100, key="user_input_slide5")
+            user_input = st.text_area("Análise das redes telemétricas", height=100, key="user_input_slide5")
 
 
         with colun3:
@@ -8155,7 +8138,7 @@ async def slide5_seca():
                     
                     # Usar o valor do session_state diretamente
                     user_input = st.text_area(
-                        "Análise das redes Telemétricas", 
+                        "Análise das redes telemétricas", 
                         value=st.session_state.user_input_slide5_seca,
                         height=100,
                         key="text_area_seca"
