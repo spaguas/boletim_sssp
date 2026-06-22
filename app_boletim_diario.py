@@ -254,7 +254,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     pdf.set_font("Arial", "B", 15)
     pdf.cell(0, 10, f"{data_anterior_str} 07:00 até {data_atual_str} 07:00", ln=True)
     
-    imagem_logos = "regua.png"
+    imagem_logos = "regua_2.png"
     pdf.image(imagem_logos, x=165, y=193, w=130)
 
     #________________________________________________________________Slide 1
@@ -826,7 +826,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.set_font("Arial", "B", 15)
     pdf.cell(0, 10, f"{data_anterior_str} 07:00 até {data_atual_str} 07:00", ln=True)
     
-    imagem_logos = "regua.png"
+    imagem_logos = "regua_2.png"
     pdf.image(imagem_logos, x=165, y=193, w=130)
 
 
@@ -4242,7 +4242,7 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     co1, co2 = st.columns([1.50, 0.50])
 
     with co1:
-        gov_base64 = get_base64_image("regua.png")
+        gov_base64 = get_base64_image("regua_2.png")
         st.markdown(
             f"""
             <style>
@@ -4448,7 +4448,7 @@ async def capa():
         with colcenter1:
             bg_base64 = get_base64_image("Logo Colorido.png")
             sp4_base64 = get_base64_image("SP-4.png")
-            gov_base64 = get_base64_image("regua.png")
+            gov_base64 = get_base64_image("regua_2.png")
 
             data_atual = datetime.today()
             data_anterior = datetime.today() - timedelta(days=1)
