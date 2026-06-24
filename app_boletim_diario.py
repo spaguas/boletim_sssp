@@ -193,16 +193,47 @@ def transform_html_image(nome_arquivo):
 
     hti.browser_path = chrome_path
 
+    # try:
+    #     hti.screenshot(
+    #         html_file=f'{nome_arquivo}.html',
+    #         save_as=f'{nome_arquivo}.png',
+    #         size=(800, 600)
+    #     )
+    #     print(f"[SUCESSO] Screenshot salvo em: {png_path}")
+    # except Exception as e:
+    #     print(f"[ERRO] Falha ao gerar imagem: {str(e)}")
+    #     raise
+
     try:
-        hti.screenshot(
-            html_file=f'{nome_arquivo}.html',
-            save_as=f'{nome_arquivo}.png',
-            size=(800, 600)
-        )
-        print(f"[SUCESSO] Screenshot salvo em: {png_path}")
+        if nome_arquivo == 'mapa_slide5' or nome_arquivo == 'mapa_slide5_seca':
+
+            with open(f"{nome_arquivo}.html", "r", encoding="utf-8") as f:
+                html = f.read()
+
+            html = html.replace(
+                "<body>",
+                '<body style="zoom: 150%;">'
+            )
+
+            with open(f"{nome_arquivo}.html", "w", encoding="utf-8") as f:
+                f.write(html)
+            hti.screenshot(
+                html_file=f'{nome_arquivo}.html',
+                save_as=f'{nome_arquivo}.png',
+                size=(1000, 600) #(largura, altura)
+                )
+        else:
+            hti.screenshot(
+                html_file=f'{nome_arquivo}.html',
+                save_as=f'{nome_arquivo}.png',
+                size=(800, 600)
+            )       
+            print(f"[SUCESSO] Screenshot salvo em: {png_path}")
+
     except Exception as e:
         print(f"[ERRO] Falha ao gerar imagem: {str(e)}")
         raise
+ 
 
 def wait_for_file(filepath, timeout=30):
     start_time = tm.time()
@@ -254,7 +285,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
     pdf.set_font("Arial", "B", 15)
     pdf.cell(0, 10, f"{data_anterior_str} 07:00 até {data_atual_str} 07:00", ln=True)
     
-    imagem_logos = "regua_2.png"
+    imagem_logos = "regua_3.png"
     pdf.image(imagem_logos, x=165, y=193, w=130)
 
     #________________________________________________________________Slide 1
@@ -286,7 +317,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
 
         pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
-        pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(62, 138)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
@@ -303,17 +334,17 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
         background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
         pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
-        pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(152, 140)  # x=150 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
         
         x = 10
-        y = 142
+        y = 155
         w = 278
         padding = 3
         line_height = 7
 
-        pdf.set_xy(x, 132)
+        pdf.set_xy(x, 144)
         pdf.set_font("Arial","B", size=12)
         pdf.cell(0, 10, txt="Relatos 24h", ln=1)
 
@@ -428,7 +459,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         pdf.set_xy(163, 26)
         pdf.set_font("Arial","B", size=12)
-        pdf.multi_cell(132, 6, txt='Acumulado das 24h (mm) - Radar SP Águas', align='C')
+        pdf.multi_cell(132, 6, txt='Acumulado das 24h (mm) - Radar SP-Águas', align='C')
 
         image_path_saisp = f'results/imagem_saisp_{data_str}.png'
         img_saisp = Image.open(image_path_saisp).convert("RGB")
@@ -502,7 +533,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         background.paste(imgagem_html_5, mask=imgagem_html_5.split()[3])  # usa canal alpha como máscara
         background.save("imagens/mapa_slide5.jpg", "JPEG", quality=95)
         pdf.image("imagens/mapa_slide5.jpg", x=40, y=25, w=210)
-        pdf.set_xy(115, 158)  # x=20 (imagem), y=120 (abaixo dela)
+        pdf.set_xy(115, 152)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
         pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
@@ -678,7 +709,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
         pdf.set_xy(58, 108)  # x=20 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
-        pdf.cell(0, 10, txt="Elaborado pela equipe da SP Águas. Fonte: SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
+        pdf.cell(0, 10, txt="Elaborado pela equipe da SP-Águas. Fonte: SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
         pdf.set_xy(185, 28)
         pdf.set_font("Arial","B", size=12)
@@ -826,7 +857,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.set_font("Arial", "B", 15)
     pdf.cell(0, 10, f"{data_anterior_str} 07:00 até {data_atual_str} 07:00", ln=True)
     
-    imagem_logos = "regua_2.png"
+    imagem_logos = "regua_3.png"
     pdf.image(imagem_logos, x=165, y=193, w=130)
 
 
@@ -858,12 +889,12 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_dsc.jpg", "JPEG", quality=95)
     pdf.image("imagens/mapa_html_dsc.jpg", x=10, y=36, w=136)
-    pdf.set_xy(48, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(48, 140)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Elaborado pela equipe da SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
+    pdf.cell(0, 10, txt="Elaborado pela equipe da SP-Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
 
 
-    pdf.set_xy(152, 26)
+    pdf.set_xy(148, 26)
     pdf.set_font("Arial","B", size=12)
     pdf.cell(0, 10, txt="Dias consecutivos sem chuva no período de estiagem (01/04 a 30/09)", ln=1)
 
@@ -880,17 +911,17 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_dcsc.jpg", "JPEG", quality=95)
     pdf.image("imagens/mapa_html_dcsc.jpg", x=150, y=36, w=136)
-    pdf.set_xy(177, 125)  # x=150 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(177, 140)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Elaborado pela equipe da SP Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
+    pdf.cell(0, 10, txt="Elaborado pela equipe da SP-Águas. Disponível em: Hidroapp", ln=1, link="https://hidroapp.daee.sp.gov.br/mapa")
 
     x = 10
-    y = 142
+    y = 155
     w = 278
     padding = 3
     line_height = 7
 
-    pdf.set_xy(x, 132)
+    pdf.set_xy(x, 144)
     pdf.set_font("Arial","B", size=12)
     pdf.cell(0, 10, txt="Relatos 24h", ln=1)
 
@@ -987,7 +1018,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background.paste(imgagem_flu, mask=imgagem_flu.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_flu.jpg", "JPEG", quality=95)
     pdf.image("imagens/mapa_html_flu.jpg", x=10, y=36, w=136)
-    pdf.set_xy(62, 124)  # x=20 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(62, 140)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.cell(0, 10, txt="Fonte: Chuva agora - SIBH", ln=1, link="https://cth.daee.sp.gov.br/sibh/chuva_agora")
 
@@ -1007,17 +1038,17 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     background.paste(imgagem_inter, mask=imgagem_inter.split()[3])  # usa canal alpha como máscara
     background.save("imagens/mapa_html_inter.jpg", "JPEG", quality=95)
     pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
-    pdf.set_xy(152, 125)  # x=150 (imagem), y=120 (abaixo dela)
+    pdf.set_xy(152, 140)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
     pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
     
     x = 10
-    y = 142
+    y = 155
     w = 278
     padding = 3
     line_height = 7
 
-    pdf.set_xy(x, 132)
+    pdf.set_xy(x, 144)
     pdf.set_font("Arial","B", size=12)
     pdf.cell(0, 10, txt="Relatos 24h", ln=1)
 
@@ -1209,7 +1240,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.image(f"imagens/tabela_alto_tiete.png", x=8, y=37, w=150)
     pdf.set_xy(59, 100)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Fonte: SSSD Alto Tietê - CTH - DAEE", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete")
+    pdf.cell(0, 10, txt="Fonte: SSSD Alto Tietê - SP-Águas", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete")
 
     data_inicial = datetime.today()
     data_str = data_inicial.strftime('%Y-%m-%d')
@@ -1219,7 +1250,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.image(f"results/imagem_alto_tiete_{data_str}.png", x=155, y=32, w=140)
     pdf.set_xy(200, 100)  # x=20 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
-    pdf.cell(0, 10, txt="Fonte: SSSD Alto Tietê - CTH - DAEE", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete")
+    pdf.cell(0, 10, txt="Fonte: SSSD Alto Tietê - SP-Águas", ln=1, link="https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete")
 
 
     x = 10
@@ -1265,12 +1296,12 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.add_page()
 
     col1_w = 80 
-    col2_w = 120  
+    col2_w = 105 
     col3_w = 165  
    
     pdf.set_xy(col2_w, 15)
     pdf.set_font("Arial", size=14,style='B')
-    pdf.cell(col2_w, txt="Pentada", ln=1, align='L')
+    pdf.cell(col2_w, txt="Previsão meteorológica para os próximos 5 dias", ln=1, align='L')
     pdf.set_font("Arial", size=12)
     
     temp_img_path = "imagens/temp_pentada.jpg"
@@ -1278,9 +1309,9 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     
     pdf.image(temp_img_path, x=10, y=32, w=148)
     
-    pdf.set_xy(182, 32)
+    pdf.set_xy(190, 32)
     pdf.set_font("Arial","B", size=12)
-    pdf.cell(182, 10, txt="Previsão do Tempo para os dias seguintes", ln=1)
+    pdf.cell(182, 10, txt="Condições previstas:", ln=1)
 
     x = col3_w
     y = 42
@@ -4242,7 +4273,7 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     co1, co2 = st.columns([1.50, 0.50])
 
     with co1:
-        gov_base64 = get_base64_image("regua_2.png")
+        gov_base64 = get_base64_image("regua_3.png")
         st.markdown(
             f"""
             <style>
@@ -4448,7 +4479,7 @@ async def capa():
         with colcenter1:
             bg_base64 = get_base64_image("Logo Colorido.png")
             sp4_base64 = get_base64_image("SP-4.png")
-            gov_base64 = get_base64_image("regua_2.png")
+            gov_base64 = get_base64_image("regua_3.png")
 
             data_atual = datetime.today()
             data_anterior = datetime.today() - timedelta(days=1)
@@ -4720,7 +4751,7 @@ async def slide1_seca():
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe da SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe da SP-Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
                 </div>
                 """,
             unsafe_allow_html=True) 
@@ -4837,7 +4868,7 @@ async def slide1_seca():
             url_geodados='https://hidroapp.daee.sp.gov.br/mapa'
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe da SP Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe da SP-Águas. Disponível em: <a href="{url_geodados}" target="_blank"> Hidroapp</a></p>
                 </div>
                 """,
             unsafe_allow_html=True) 
@@ -6180,7 +6211,7 @@ async def slide3():
         with coluna2:
             st.write("""
             <div style="text-align: center; color: #333333;">
-                <h1  style="font-size: 14px; margin: 0; padding: 0">Acumulado das 24h (mm) - Radar SP Águas</h1>
+                <h1  style="font-size: 14px; margin: 0; padding: 0">Acumulado das 24h (mm) - Radar SP-Águas</h1>
             </div>
             """,
             unsafe_allow_html=True)
@@ -7598,7 +7629,7 @@ async def slide7():
 
             st.components.v1.html(mapa_html, width=860, height=350)
             url = 'https://cth.daee.sp.gov.br/sibh/chuva_agora'
-            st.markdown(f'<p style="text-align: center; font-size: 12px">Elaborado pela equipe da SP Águas. Fonte: <a href="{url}" target="_blank">SIBH</a> </a></p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="text-align: center; font-size: 12px">Elaborado pela equipe da SP-Águas. Fonte: <a href="{url}" target="_blank">SIBH</a> </a></p>', unsafe_allow_html=True)
             st.write(" ")
             
         with coluna2:
@@ -7775,7 +7806,7 @@ async def slide8():
 
             st.write(f"""
                     <div style="color: black; line-height: 1;">
-                        <p style="font-size: 14px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>
+                        <p style="font-size: 14px; margin: 0.5; text-align: center";"><strong>Condições previstas:</strong></p>
                     </div>
                 """,
             unsafe_allow_html=True) 
@@ -7792,7 +7823,7 @@ async def slide8():
 async def slide8_seca():
     with slide8_secas:
 
-        col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
+        col1, col2, col3 = st.columns([1.2, 2.0, 0.15])
 
         with col1:
             st.write("""
@@ -7813,7 +7844,7 @@ async def slide8_seca():
             url = 'https://cth.daee.sp.gov.br/sibh/chuva_agora'
             st.write(f"""
             <div style="color: black;">
-                <h1  style="font-size: 18px;">Pentada</h1>
+                <h1  style="font-size: 18px;">Previsão meteorológica para os próximos 5 dias</h1>
             </div>
             """,
             unsafe_allow_html=True) 
@@ -7871,7 +7902,7 @@ async def slide8_seca():
 
             st.write(f"""
                     <div style="color: black; line-height: 1;">
-                        <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Previsão do Tempo para os dias seguintes:</strong></p>  
+                        <p style="font-size: 12px; margin: 0.5; text-align: center";"><strong>Condições previstas:</strong></p>  
                     </div>
                 """,
             unsafe_allow_html=True) 
@@ -8095,7 +8126,7 @@ async def slide5_seca():
 
 
                 # Construindo a legenda
-                legenda = "De acordo com as redes telemétricas públicas do Estado de São Paulo foram registrados "
+                legenda = "De acordo com os registros das redes telemétricas públicas do Estado de São Paulo nas últimas 24 horas registraram-se "
 
                 # Primeiro Extravasamento/Emergência
                 if dados_criticos:
@@ -8372,7 +8403,7 @@ async def slide6_seca():
 
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> CTH - DAEE </a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> SP-Águas </a></p>
                 </div>
                 """,
             unsafe_allow_html=True)
@@ -8407,7 +8438,7 @@ async def slide6_seca():
 
             st.write(f"""
                 <div style="color: black; line-height: 1;">
-                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> CTH - DAEE </a></p>
+                    <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Fonte: SSSD Alto Tietê - <a href="{url}" target="_blank"> SP-Águas </a></p>
                 </div>
                 """,
             unsafe_allow_html=True)
