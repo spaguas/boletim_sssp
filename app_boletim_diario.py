@@ -1753,21 +1753,21 @@ def capturar_ipmet():
         driver.switch_to.frame(iframe)
         tm.sleep(5)
 
-        info = driver.execute_script("""
-            const canvas = document.querySelector('canvas');
-            if (!canvas) return 'sem canvas';
+        # info = driver.execute_script("""
+        #     const canvas = document.querySelector('canvas');
+        #     if (!canvas) return 'sem canvas';
 
-            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-            const ctx2d = canvas.getContext('2d');
+        #     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        #     const ctx2d = canvas.getContext('2d');
 
-            return {
-                tem_webgl: !!gl,
-                tem_2d: !!ctx2d,
-                width: canvas.width,
-                height: canvas.height
-            };
-        """)
-        print("[DEBUG iframe] Contexto do canvas:", info)
+        #     return {
+        #         tem_webgl: !!gl,
+        #         tem_2d: !!ctx2d,
+        #         width: canvas.width,
+        #         height: canvas.height
+        #     };
+        # """)
+        # print("[DEBUG iframe] Contexto do canvas:", info)
 
         # ✅ Esperar o select estar clicável antes de interagir
         select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
@@ -1785,13 +1785,34 @@ def capturar_ipmet():
         # esperar_canvas_renderizar(driver, timeout=30)
 
         # ✅ Salvar debug screenshot para diagnosticar no servidor
-        driver.save_screenshot("results/screenshot_ipmet.png")
+        # driver.save_screenshot("results/screenshot_ipmet.png")
 
-        img = Image.open("results/screenshot_ipmet.png")
+        # img = Image.open("results/screenshot_ipmet.png")
 
-        imagem_recortada = img.crop((170, 270, 950, 620))
+        mapa = driver.find_element(By.CSS_SELECTOR, ".ol-viewport")  # container do OpenLayers
+        png = mapa.screenshot_as_png
         data_str = datetime.today().strftime('%Y-%m-%d')
         output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
+
+        # imagem_recortada = img.crop((170, 270, 950, 620))
+
+        with open(output_path, "wb") as f:
+            f.write(png)
+
+        imagem = Image.open(output_path)
+        w, h = imagem.size
+        imagem_recortada = imagem.crop((50, 0, w-50, h))
+
+        # driver.save_screenshot("results/screenshot_ipmet.png")
+
+        # img = Image.open("results/screenshot_ipmet.png")
+
+        # imagem_recortada = img.crop((170, 270, 950, 620))
+        # data_str = datetime.today().strftime('%Y-%m-%d')
+        output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
+        imagem_recortada.save(output_path)
+        
+
         imagem_recortada.save(output_path)
 
         return imagem_recortada, url
@@ -5355,7 +5376,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",  # Borda branca
-                                weight=1.5,
+                                weight=0.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5368,7 +5389,9 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
+                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
+                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
                                 )
                             ).add_to(layer_10)
 
@@ -5377,7 +5400,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",
-                                weight=1.5,
+                                weight=0.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5390,7 +5413,9 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
+                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
+                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
                                 )
                             ).add_to(layer_30)
 
@@ -5399,7 +5424,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",
-                                weight=1.5,
+                                weight=0.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5412,7 +5437,9 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
+                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
+                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
                                 )
                             ).add_to(layer_70)
                             
@@ -5422,7 +5449,7 @@ async def slide1():
                                 location=[lat, lon],
                                 radius=6,
                                 color="white",
-                                weight=1.5,
+                                weight=0.5,
                                 fill=True,
                                 fill_color=cor,
                                 fill_opacity=1.0,
@@ -5435,7 +5462,9 @@ async def slide1():
                                 icon=folium.DivIcon(
                                     icon_size=(14, 14),  # Tamanho do ícone
                                     icon_anchor=(7, 7),  # Para centralizar o texto
-                                    html=f'<div style="font-size: 8px; color: white; text-align: center; background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; line-height: 14px; border: 1px solid white;">{valor}</div>'
+                                    html=f'<div style="font-size: 8px; color: white; text-align: center; '
+                                        f'background-color: {cor}; border-radius: 50%; width: 14px; height: 14px; '
+                                        f'line-height: 14px; border: none; outline: 1px solid rgba(255,255,255,0.4);">{valor}</div>'
                                 )
                             ).add_to(layer_100)
 
