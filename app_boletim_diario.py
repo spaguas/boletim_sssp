@@ -7488,8 +7488,8 @@ async def slide6():
         # Verifica se existe valor negativo
         if min_dif_filter["Diferença Vol. Anual (%)"] < 0:
             legenda += (
-                f"O sistema produtor da Rede Metropolitana de São Paulo (RMSP) {min_dif_filter['Sistema']} "
-                f"está a {min_dif_filter['Diferença Vol. Anual (%)']:.2f}% do volume útil em comparação com o mesmo mês no ano anterior, a maior diferença negativa em comparação com os demais sistemas."
+                f"O sistema produtor da Região Metropolitana de São Paulo (RMSP) {min_dif_filter['Sistema']} "
+                f"está a {min_dif_filter['Diferença Vol. Anual (%)']:.2f} p.p. do volume útil em comparação com o mesmo mês no ano anterior, a maior diferença negativa em comparação com os demais sistemas."
                 f" Atualmente o seu volume útil está em {min_dif_filter['Volume Atual (%)']:.2f}% e no ano anterior estava com {min_dif_filter['Volume Ano Anterior (%)']:.2f}%."
             )
 
@@ -7498,7 +7498,7 @@ async def slide6():
             frase_inicial = "Já o sistema" if legenda else "O sistema produtor da Rede Metropolitana de São Paulo (RMSP)"
             legenda += (
                 f" {frase_inicial} {max_dif_filter['Sistema']} "
-                f"apresentou a maior diferença positiva de {max_dif_filter['Diferença Vol. Anual (%)']:.2f}% em comparação com o mesmo mês no ano anterior, "
+                f"apresentou a maior diferença positiva de {max_dif_filter['Diferença Vol. Anual (%)']:.2f} p.p. em comparação com o mesmo mês no ano anterior, "
                 f"hoje apresenta o volume atual de {max_dif_filter['Volume Atual (%)']:.2f}% e no ano anterior estava com {max_dif_filter['Volume Ano Anterior (%)']:.2f}%."
             )
 
