@@ -5317,7 +5317,7 @@ async def slide1():
                 mapa = folium.Map(
                     location=[latitude, longitude],  # Centralizar no meio dos pontos
                     zoom_start=6,
-                    tiles=None,
+                    tiles="OpenStreetMap",
                     control_scale=False, 
                     zoomControl=False,
                 )
@@ -5330,11 +5330,11 @@ async def slide1():
                 #     control=True, 
                 # ).add_to(mapa)
 
-                folium.TileLayer(
-                    tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                    attr='CartoDB',
-                    name='CartoDB Light',
-                ).add_to(mapa)
+                # folium.TileLayer(
+                #     tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                #     attr='CartoDB',
+                #     name='CartoDB Light',
+                # ).add_to(mapa)
 
                 mapa.options['attributionControl'] = False
 
@@ -5623,7 +5623,7 @@ async def slide1():
                     mapa = folium.Map(
                         location=[latitude, longitude],  # Centralizar no meio dos pontos
                         zoom_start=5.5,
-                        tiles=None,
+                        tiles="OpenStreetMap",
                         control_scale=False, 
                         zoomControl=False
                     )
@@ -5636,11 +5636,11 @@ async def slide1():
                     #     control=True, 
                     # ).add_to(mapa)
 
-                    folium.TileLayer(
-                        tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                        attr='CartoDB',
-                        name='CartoDB Light',
-                    ).add_to(mapa)
+                    # folium.TileLayer(
+                    #     tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                    #     attr='CartoDB',
+                    #     name='CartoDB Light',
+                    # ).add_to(mapa)
 
                     mapa.options['attributionControl'] = False
 
@@ -6630,7 +6630,7 @@ async def slide5():
         mapa = folium.Map(
             location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
             zoom_start=6.0,
-            tiles=None,
+            tiles="OpenStreetMap",
             control_scale=False, 
             zoomControl=False
         )
@@ -6643,11 +6643,11 @@ async def slide5():
         #     control=True
         # ).add_to(mapa)
 
-        folium.TileLayer(
-            tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-            attr='CartoDB',
-            name='CartoDB Light',
-        ).add_to(mapa)
+        # folium.TileLayer(
+        #     tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        #     attr='CartoDB',
+        #     name='CartoDB Light',
+        # ).add_to(mapa)
 
         mapa.options['attributionControl'] = False
 
@@ -7599,7 +7599,7 @@ async def slide7():
         mapa = folium.Map(
             location=[latitude, longitude],  # Centralizar no meio dos pontos
             zoom_start=5.5,
-            tiles=None,
+            tiles="OpenStreetMap",
             control_scale=False, 
             zoomControl=False
         )
@@ -7612,11 +7612,11 @@ async def slide7():
         #     control=True, 
         # ).add_to(mapa)
 
-        folium.TileLayer(
-            tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-            attr='CartoDB',
-            name='CartoDB Light',
-        ).add_to(mapa)
+        # folium.TileLayer(
+        #     tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+        #     attr='CartoDB',
+        #     name='CartoDB Light',
+        # ).add_to(mapa)
 
         mapa.options['attributionControl'] = False
 
@@ -8004,7 +8004,7 @@ async def slide5_seca():
                 mapa = folium.Map(
                     location=[-22.7832, -48.4430],  # Centralizar no meio dos pontos
                     zoom_start=6.0,
-                    tiles=None,
+                    tiles="OpenStreetMap",
                     control_scale=False, 
                     zoomControl=False
                 )
@@ -8017,11 +8017,11 @@ async def slide5_seca():
                 #     control=True
                 # ).add_to(mapa)
 
-                folium.TileLayer(
-                    tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-                    attr='CartoDB',
-                    name='CartoDB Light',
-                ).add_to(mapa)
+                # folium.TileLayer(
+                #     tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                #     attr='CartoDB',
+                #     name='CartoDB Light',
+                # ).add_to(mapa)
 
                 mapa.options['attributionControl'] = False
 
