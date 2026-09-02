@@ -274,7 +274,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
 
     pdf.set_xy(10, 95)
     pdf.set_font("Arial", "B", 15)
-    pdf.cell(0, 10, "Sala de Situação São Paulo - SSSP", ln=True)
+    pdf.cell(0, 10, "Sala de Situação Alfredo Pisani - SSAP", ln=True)
 
     data_atual = datetime.today()
     data_anterior = datetime.today() - timedelta(days=1)
@@ -336,7 +336,7 @@ def create_pdf(user_input1, image, user_input3, user_input5, all_extravasamento,
         pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
         pdf.set_xy(152, 140)  # x=150 (imagem), y=120 (abaixo dela)
         pdf.set_font("Arial", size=8, style='I')
-        pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
+        pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação Alfredo Pisani - SSAP. Parâmetros: Potência=2,0, Suavização=0,02 e Raio=0,5°.", align='C')
         
         x = 10
         y = 155
@@ -846,7 +846,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
 
     pdf.set_xy(10, 95)
     pdf.set_font("Arial", "B", 15)
-    pdf.cell(0, 10, "Sala de Situação São Paulo - SSSP", ln=True)
+    pdf.cell(0, 10, "Sala de Situação Alfredo Pisani - SSAP", ln=True)
 
     data_atual = datetime.today()
     data_anterior = datetime.today() - timedelta(days=1)
@@ -1040,7 +1040,7 @@ def create_pdf_estiagem(user_input1_seca, user_input1, user_input5_seca, user_in
     pdf.image("imagens/mapa_html_inter.jpg", x=150, y=36, w=136)
     pdf.set_xy(152, 140)  # x=150 (imagem), y=120 (abaixo dela)
     pdf.set_font("Arial", size=8, style='I')
-    pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.", align='C')
+    pdf.multi_cell(135, 5, txt="Elaborado pela equipe técnica da Sala de Situação Alfredo Pisani - SSAP. Parâmetros: Potência=2,0, Suavização=0,02 e Raio=0,5°.", align='C')
     
     x = 10
     y = 155
@@ -1362,7 +1362,7 @@ def refresh_viwe():
 def gerar_mapa_chuva_shapefile(get_data, data_shapefile, arquivo, excluir_prefixos):
 
     data_inicial = datetime.today()
-    hora_inicial = time(7, 0)
+    hora_inicial = time(10, 0)
     data_hora_inicial = datetime.combine(data_inicial, hora_inicial)
     data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
     hora_inicial_str = data_hora_inicial.strftime('%H:%M')
@@ -1427,7 +1427,7 @@ def gerar_mapa_chuva_shapefile(get_data, data_shapefile, arquivo, excluir_prefix
 
     smoothing = 0.02
 
-    radius = 50/100
+    radius = 0.5  # graus; aproximadamente 50 km no Estado de São Paulo
 
     output_raster = f"results/{arquivo}_{date_time_id}.tif"
     gdal.Grid(
@@ -4539,7 +4539,7 @@ async def capa():
                     <img src="data:image/png;base64,{bg_base64}" class="background-image">
                     <div class="text-content" style="margin-top: 200px;">
                         <h1 style="font-size: 50px; margin: 0; padding-top: 120px; font-weight: bold; ">Boletim Diário</h1>
-                        <h1 style="font-size: 28px; margin: 0; padding: 0;">Sala de Situação São Paulo - SSSP</h1>
+                        <h1 style="font-size: 28px; margin: 0; padding: 0;">Sala de Situação Alfredo Pisani - SSAP</h1>
                         <h1 style="font-size: 22px; margin: 0; padding: 0;">({data_anterior_str} 07:00 até {data_atual_str} 07:00)</h1>
                     </div>
                 </div>
@@ -5687,7 +5687,7 @@ async def slide1():
 
                     st.write(f"""
                         <div style="color: black; line-height: 1;">
-                            <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe técnica da Sala de Situação São Paulo (SSSP). Parâmetros: Potência=0.02, Suavização=0.02 e Raio=0.5.</p>
+                            <p style="text-align: center; font-size: 12px; margin: 0; padding: 0;">Elaborado pela equipe técnica da Sala de Situação Alfredo Pisani - SSAP. Parâmetros: Potência=2,0, Suavização=0,02 e Raio=0,5°.</p>
                         </div>
                         """,
                     unsafe_allow_html=True)
