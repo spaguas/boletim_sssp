@@ -6956,22 +6956,29 @@ async def slide5():
 
                 fig = go.Figure()
                 df_filtered['current_data'] = df_filtered['current_data'] - pd.Timedelta(hours=3)
+                
+                df_plot = df_filtered.copy()
+                colunas_nivel = ['value','extravasation_level','emergency_level','alert_level','attention_level']
+                
                 fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['value'], mode='lines', name='Nível (m)', line=dict(color='#268b12', width=1), line_shape='spline'))
 
+                for coluna in colunas_nivel:
+                    df_plot[coluna] = pd.to_numeric(df_plot[coluna], errors='coerce')/100
+
                 # Adicionando as linhas horizontais para os níveis
-                if not df_filtered['extravasation_level'].isnull().all():
+                if not df_plot['extravasation_level'].isnull().all():
                     fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['extravasation_level'], 
                                             mode='lines', name='Extravasamento', line=dict(dash='dash', color='#da070f', width=1)))
                     
-                if not df_filtered['emergency_level'].isnull().all():
+                if not df_plot['emergency_level'].isnull().all():
                     fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['emergency_level'], 
                                             mode='lines', name='Emergência', line=dict(dash='dash', color='#8435b7', width=1)))
 
-                if not df_filtered['alert_level'].isnull().all():
+                if not df_plot['alert_level'].isnull().all():
                     fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['alert_level'], 
                                             mode='lines', name='Alerta', line=dict(dash='dash', color='#f95108', width=1)))
 
-                if not df_filtered['attention_level'].isnull().all():
+                if not df_plot['attention_level'].isnull().all():
                     fig.add_trace(go.Scatter(x=df_filtered['current_data'], y=df_filtered['attention_level'], 
                                             mode='lines', name='Atenção', line=dict(dash='dash', color='#f8d202', width=1)))
                 
@@ -6990,7 +6997,8 @@ async def slide5():
                     yaxis_title_font=dict(color='black'), 
                     legend=dict(font=dict(color='black')),
                     xaxis=dict(tickfont=dict(color='black', size=9), gridcolor='lightgray', dtick="3600000", tickformat="%H:%M"),# Cor dos valores no eixo X
-                    yaxis=dict(tickfont=dict(color='black', size=9), gridcolor='lightgray', tickformat=".", tickmode='auto') 
+                    yaxis=dict(tickfont=dict(color='black', size=9), gridcolor='lightgray', tickformat=".2f", tickmode='auto'),
+                    separators=',.' 
                 )
 
                 html_str = fig.to_html(full_html=False, include_plotlyjs='cdn')
@@ -7022,8 +7030,8 @@ async def slide5():
                 last_extravasamento_date = df_extravasamento['current_data'].max()
 
                 atual_state = df_filtered['current_state'].iloc[-1]
-                nivel_atual = round(df_filtered['value'].iloc[-1], 3)
-                nivel_max = round(df_filtered['value'].max(), 3)
+                nivel_atual = round(df_filtered['value'].iloc[-1]/100, 3)
+                nivel_max = round(df_filtered['value'].max()/100, 3)
                 minucipio = df_filtered['municipio'].iloc[0]
                 ugrhi = df_filtered['ugrhi'].iloc[0]
                 
