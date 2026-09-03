@@ -3998,6 +3998,12 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     idx_afluente_3 = (media_movel_captada['dateTime'] - data_ref_filtro_3).abs().idxmin()
     idx_taxa_3 = (media_movel_captada['dateTime'] - data_ref_filtro_3).abs().idxmin()
 
+    data_ref_4 = pd.to_datetime("2026-07-31").to_pydatetime()
+    data_ref_filtro_4 = pd.to_datetime("2025-09-22")
+    idx_captada_4 = (media_movel_captada['dateTime'] - data_ref_filtro_4).abs().idxmin()
+    idx_afluente_4 = (media_movel_captada['dateTime'] - data_ref_filtro_4).abs().idxmin()
+    idx_taxa_4 = (media_movel_captada['dateTime'] - data_ref_filtro_4).abs().idxmin()
+
     ultima_data = media_movel_captada['dateTime'].max()
     valor_captada_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, 'MediaMovel_Vazão_Captada_14d'].values[0]
     valor_afluente_final = media_movel_captada.loc[media_movel_captada['dateTime'] == ultima_data, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d'].values[0]
@@ -4024,6 +4030,11 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     valor_afluente_3 = media_movel_captada.loc[idx_afluente_3, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d']
     media_movel_captada['TaxaVar_14d'] = media_movel_captada['TaxaVar_14d'].replace({np.nan: None})
     valor_taxa_3 = media_movel_captada.loc[idx_taxa_3, 'TaxaVar_14d']
+
+    valor_captada_4 = media_movel_captada.loc[idx_captada_4, 'MediaMovel_Vazão_Captada_14d']
+    valor_afluente_4 = media_movel_captada.loc[idx_afluente_4, f'MediaMovel_Vazão_Afluente {sistema_selecionado}_14d']
+    media_movel_captada['TaxaVar_14d'] = media_movel_captada['TaxaVar_14d'].replace({np.nan: None})
+    valor_taxa_4 = media_movel_captada.loc[idx_taxa_4, 'TaxaVar_14d']
     
     if sistema_selecionado == "São Lourenço":
         intervalo = 0.5
@@ -4038,23 +4049,27 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#da1010", width=2),name=f"Ref: {data_ref_2.strftime('%d/%m/%Y')} (Início da RDA)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#6e0808", width=2),name=f"{data_ref.strftime('%d/%m/%Y')} (Início da GDN)"))
     fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#8917be", width=2),name=f"Ref: {data_ref_3.strftime('%d/%m/%Y')} (Início da GDN 10h)"))
+    fig_media_movel_sim.add_trace(go.Scatter(x=[None], y=[None],mode="lines",line=dict(color="#17bebe", width=2),name=f"Ref: {data_ref_4.strftime('%d/%m/%Y')} (Início da GDN 8h)"))
     
     fig_media_movel_sim.add_vline(x=data_ref, line=dict(color="#6e0808", width=2, dash="solid"))
     fig_media_movel_sim.add_vline(x=data_ref_2, line=dict(color="#da1010", width=2, dash="solid"))
     fig_media_movel_sim.add_vline(x=data_ref_3, line=dict(color="#8917be", width=2, dash="solid"))
+    fig_media_movel_sim.add_vline(x=data_ref_4, line=dict(color="#17bebe", width=2, dash="solid"))
 
     fig_media_movel_sim.add_annotation(x=data_ref, y=valor_captada,text=f"{valor_captada:.2f}", font=dict(color="#232FE0", size=18), showarrow=True, arrowcolor="#232FE0", arrowhead=2, ax=-40, ay=-40)
     fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_captada_2,text=f"{valor_captada_2:.2f}", font=dict(color="#232FE0", size=18), showarrow=True,arrowcolor="#232FE0",arrowhead=2,ax=-40,ay=-40)
     fig_media_movel_sim.add_annotation(x=data_ref_3,y=valor_captada_2,text=f"{valor_captada_3:.2f}", font=dict(color="#232FE0", size=18), showarrow=True,arrowcolor="#232FE0",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref_4,y=valor_captada_4,text=f"{valor_captada_4:.2f}", font=dict(color="#232FE0", size=18), showarrow=True,arrowcolor="#232FE0",arrowhead=2,ax=-40,ay=-40)
 
     fig_media_movel_sim.add_annotation(x=data_ref,y=valor_afluente,text=f"{valor_afluente:.2f}", font=dict(color="#387540", size=18), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
     fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_afluente_2,text=f"{valor_afluente_2:.2f}", font=dict(color="#387540", size=18), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
     fig_media_movel_sim.add_annotation(x=data_ref_3,y=valor_afluente_3,text=f"{valor_afluente_3:.2f}", font=dict(color="#387540", size=18), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
+    fig_media_movel_sim.add_annotation(x=data_ref_4,y=valor_afluente_4,text=f"{valor_afluente_4:.2f}", font=dict(color="#387540", size=18), showarrow=True,arrowcolor="#387540",arrowhead=2,ax=-40,ay=-40)
 
     fig_media_movel_sim.add_annotation(x=data_ref,y=valor_taxa,text=f"{valor_taxa:.2f}", font=dict(color="#c47003", size=18), showarrow=True,arrowcolor="#c47003",arrowhead=2,ax=-40,ay=-40,yref="y2")
     fig_media_movel_sim.add_annotation(x=data_ref_2,y=valor_taxa_2,text=f"{valor_taxa_2:.2f}", font=dict(color="#c47003", size=18), showarrow=True,arrowcolor="#c47003",arrowhead=2,ax=-40,ay=-40,yref="y2")
     fig_media_movel_sim.add_annotation(x=data_ref_3,y=valor_taxa_3,text=f"{valor_taxa_3:.2f}", font=dict(color="#c47003", size=18), showarrow=True,arrowcolor="#c47003",arrowhead=2,ax=-40,ay=-40,yref="y2")
-
+    fig_media_movel_sim.add_annotation(x=data_ref_4,y=valor_taxa_4,text=f"{valor_taxa_4:.2f}", font=dict(color="#c47003", size=18), showarrow=True,arrowcolor="#c47003",arrowhead=2,ax=-40,ay=-40,yref="y2")
 
     # Anotação da vazão captada
     fig_media_movel_sim.add_annotation(
