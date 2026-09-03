@@ -3999,7 +3999,7 @@ def creat_dashboard(lista_anos_str, data_atual_str, data_ano_anterior_str, dia, 
     idx_taxa_3 = (media_movel_captada['dateTime'] - data_ref_filtro_3).abs().idxmin()
 
     data_ref_4 = pd.to_datetime("2026-07-31").to_pydatetime()
-    data_ref_filtro_4 = pd.to_datetime("2025-09-22")
+    data_ref_filtro_4 = pd.to_datetime("2026-07-31")
     idx_captada_4 = (media_movel_captada['dateTime'] - data_ref_filtro_4).abs().idxmin()
     idx_afluente_4 = (media_movel_captada['dateTime'] - data_ref_filtro_4).abs().idxmin()
     idx_taxa_4 = (media_movel_captada['dateTime'] - data_ref_filtro_4).abs().idxmin()
