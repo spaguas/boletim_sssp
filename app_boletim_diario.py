@@ -8783,7 +8783,7 @@ async def main():
                     st.download_button(
                         label="Baixar PDF",
                         data=pdf_bytes,
-                        file_name=f"boletim_diario_{datetime.today().strftime('%Y%m%d')}.pdf",
+                        file_name=f"Boletim_SSAP_{datetime.today().strftime('%Y%m%d')}.pdf",
                         mime="application/pdf",
                     )
 
