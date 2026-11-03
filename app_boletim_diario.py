@@ -1,5 +1,6 @@
 import os
 import io
+from wsgiref import headers
 import folium
 import requests
 import tempfile
@@ -1372,6 +1373,17 @@ def gerar_mapa_chuva_shapefile(get_data, data_shapefile, arquivo, excluir_prefix
     data_hora_final = data_hora_inicial - timedelta(hours=horas)
     date_time_id = data_hora_inicial.strftime("%Y%m%d%H%M")
 
+    headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/156.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://cth.daee.sp.gov.br/",
+            "Origin": "https://cth.daee.sp.gov.br"
+        }
+    
     url = f'https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now?station_type_id=2&hours=24&from_date={data_inicial_str}T{hora_inicial_str}&show_all=true&public=true'
     estatistica_desejada = "mean"
 
@@ -1380,7 +1392,7 @@ def gerar_mapa_chuva_shapefile(get_data, data_shapefile, arquivo, excluir_prefix
     get_data.to_file(data_shapefile)
 
     # Obtendo dados da API
-    response = requests.get(url)
+    response = requests.get(url, headers=headers, verify=False, timeout=10)
     data = response.json()
 
     # Extraindo coordenadas e valores
@@ -1880,9 +1892,18 @@ def capturar_ssd():
         shutil.rmtree(dir_path, ignore_errors=True)
 
 def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dias_str, data_21dias_str):
-
+    headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/156.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://cth.daee.sp.gov.br/",
+            "Origin": "https://cth.daee.sp.gov.br"
+        }
     url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
-    response = requests.get(url_ano_atual, verify=False, timeout=120)
+    response = requests.get(url_ano_atual, headers=headers, verify=False, timeout=120)
 
     if response.status_code == 200:
 
@@ -1901,9 +1922,10 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
             print("A chave 'dadosSistemas' não foi encontrada dentro de 'ReturnObj' ou 'ReturnObj' está vazio.")
     else:
         print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
+
     
     url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
-    response_1 = requests.get(url_ano_anteior, verify=False, timeout=120)
+    response_1 = requests.get(url_ano_anteior, headers=headers, verify=False, timeout=120)
     if response_1.status_code == 200:
 
         data_1 = response_1.json()
@@ -1923,7 +1945,7 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
     url_7_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_7dias_str}"
-    response_7 = requests.get(url_7_dias, verify=False, timeout=120)
+    response_7 = requests.get(url_7_dias, headers=headers, verify=False, timeout=120)
 
     if response_7.status_code == 200:
 
@@ -1943,7 +1965,7 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
     url_14_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_14dias_str}"
-    response_14 = requests.get(url_14_dias, verify=False, timeout=120)
+    response_14 = requests.get(url_14_dias, headers=headers, verify=False, timeout=120)
 
     if response_14.status_code == 200:
 
@@ -1962,7 +1984,7 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
         print(f"Erro na requisição ano anterior. Status Code: {response.status_code}")
 
     url_21_dias = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_21dias_str}"
-    response_21 = requests.get(url_21_dias, verify=False, timeout=120)
+    response_21 = requests.get(url_21_dias, headers=headers, verify=False, timeout=120)
 
     if response_21.status_code == 200:
 
@@ -1981,9 +2003,20 @@ def get_sabesp_api_dashboard(data_atual_str, data_ano_anterior_str, data_7dias_s
 
 def fetch_and_save_json(data_str, filename):
     print(data_str, filename)
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
     url = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_str}"
     try:
-        response = requests.get(url, verify=False, timeout=120)
+        response = requests.get(url, headers=headers, verify=False, timeout=120)
         if response.status_code == 200:
             print("retornou_response")
             data = response.json()
@@ -2000,10 +2033,19 @@ def fetch_and_save_json(data_str, filename):
         print(f"Erro na requisição {data_str}: {e}")
         
 def get_sabesp_api(data_atual_str, data_ano_anterior_str):
-
+    headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/156.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://cth.daee.sp.gov.br/",
+            "Origin": "https://cth.daee.sp.gov.br"
+        }
     url_ano_atual = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_atual_str}"
     print(url_ano_atual)
-    response = requests.get(url_ano_atual, verify=False)
+    response = requests.get(url_ano_atual, headers=headers, verify=False)
 
     if response.status_code == 200:
 
@@ -2017,7 +2059,7 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
         print(f"Erro na requisição ano atual. Status Code: {response.status_code}")
     print("Url ano anterior", datetime.now())
     url_ano_anteior = f"https://mananciais-sabesp.fcth.br/api/Mananciais/Boletins/Mananciais/{data_ano_anterior_str}"
-    response = requests.get(url_ano_anteior, verify=False)
+    response = requests.get(url_ano_anteior, headers=headers, verify=False)
 
     if response.status_code == 200:
 
@@ -2049,7 +2091,7 @@ def get_sabesp_api(data_atual_str, data_ano_anterior_str):
 
 
     url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_atual_str}'
-    response = requests.get(url_sim, verify=False)
+    response = requests.get(url_sim, headers=headers, verify=False)
 
     if response.status_code == 200:
         data = response.json()
@@ -2098,7 +2140,21 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
 
     key = os.environ.get('KEY')
     value = os.environ.get('VALUE')
-    headers = {key: value}
+    headers_sabesp = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://ssdapi.sabesp.com.br/",
+        "Origin": "https://ssdapi.sabesp.com.br",
+
+        # Autenticação
+        key.strip(): value.strip()
+    }
+    
+    # headers_sabesp = {key: value}
 
     sistema_sabesp = {
         "cantareira": "Cantareira",
@@ -2117,7 +2173,7 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
         id = sistema["Sistema_sabesp"]
 
         url_sabesp = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/{id}/dados/{data_ano_anterior_str}/{data_atual_str}"
-        response_sabesp = requests.get(url_sabesp, headers=headers)
+        response_sabesp = requests.get(url_sabesp, headers=headers_sabesp)
 
         if response_sabesp.status_code == 200:
             dados_sabesp = response_sabesp.json()
@@ -2168,6 +2224,17 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
         f"data={quote(data_str_anterior)}&siglaUf=&tipoSistema=3"
     )
 
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
+
     response_ana_atual = requests.get(url_ana_atual, headers=headers)
 
     if response_ana_atual.status_code == 200:
@@ -2212,7 +2279,7 @@ def get_sabesp_api_resumo(data_atual_str, data_ano_anterior_str):
     ] = valor_volume_anterior
 
     url_sim = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/459/Data/{data_ano_anterior_str}/{data_atual_str}'
-    response_sim = requests.get(url_sim, verify=False)
+    response_sim = requests.get(url_sim, headers=headers, verify=False)
 
     if response_sim.status_code == 200:
         data = response_sim.json()
@@ -2317,12 +2384,23 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
 
     df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
 
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
+    
     all_volume =[]
     for _,data_volume in df_sistemas_volume.iterrows():
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_21dias_str}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
@@ -2378,9 +2456,24 @@ def get_ssd_api(data_atual_str, data_7dias_str, data_14dias_str, data_21dias_str
 
     key = os.environ.get('KEY')
     value = os.environ.get('VALUE')
-    headers = {key: value}
+    # headers = {key: value}
+    headers_sabesp = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://ssdapi.sabesp.com.br/",
+        "Origin": "https://ssdapi.sabesp.com.br",
+
+        # Autenticação
+        key.strip(): value.strip()
+    }
+
+
     url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_21dias_str}/{data_atual_str}"
-    response_sl = requests.get(url_sao_lourenco, headers=headers)
+    response_sl = requests.get(url_sao_lourenco, headers=headers_sabesp)
 
     if response_sl.status_code == 200:
         dados_sl = response_sl.json()
@@ -2452,13 +2545,25 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
 
     df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
     data_inicial = "2000-01-01"
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
+
     all_volume =[]
     for _,data_volume in df_sistemas_volume.iterrows():
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_ano_anterior_str}'
 
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
@@ -2467,12 +2572,6 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
                 df_atual = pd.DataFrame(data["dataCollection"])
                 df_atual_all = df_atual.copy()
                 df_atual_all['SistemaId'] = id
-                
-                # valor_ano_anterior = df_atual_all.loc[df_atual_all['dateTime'] == data_ano_anterior_str, 'value'].iloc[0]
-
-                # df_atual_all["Volume Ano Anterior (%)"] = valor_ano_anterior
-
-                # df_atual_all = df_atual_all[df_atual_all['dateTime'] == data_ano_anterior_str]
 
                 df_atual_all.rename(columns={"value": "Volume Ano Anterior (%)"}, inplace=True)
 
@@ -2490,8 +2589,22 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
 
     key = os.environ.get('KEY')
     value = os.environ.get('VALUE')
-    headers = {key: value}
+    # headers_sabesp = {key: value}
 
+    headers_sabesp = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://ssdapi.sabesp.com.br/",
+        "Origin": "https://ssdapi.sabesp.com.br",
+
+        # Autenticação
+        key.strip(): value.strip()
+    }
+  
 
     hoje = datetime.today()
     dia_mes = hoje.strftime("%m-%d")  # apenas mês e dia
@@ -2503,7 +2616,9 @@ def get_ssd_api_comparacao(data_ano_anterior_str):
     for ano in anos:
         data_str = f"{ano}-{dia_mes}"  # cria "2020-10-26", "2021-10-26", etc.
         url = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_str}/{data_str}"
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers_sabesp, timeout=30)
+
+        print(f"São Lourenço | {data_str} | HTTP {response.status_code}")
         if response.status_code == 200:
             dados = response.json()
             if "data" in dados and len(dados["data"]) > 0:
@@ -2544,13 +2659,25 @@ def get_ssd_vazao_natural(data_atual_str):
     df_sistemas_vazao = pd.DataFrame(list(vazao_natural.items()), columns=["Sistema", "SistemaId"]).copy()
 
     data_base = '1953-01-01'
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
+    
 
     all_volume =[]
     for _,data_volume in df_sistemas_vazao.iterrows():
         id = data_volume["SistemaId"]
 
+        
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
@@ -2609,7 +2736,7 @@ def get_ssd_vazao_natural(data_atual_str):
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
@@ -2675,18 +2802,27 @@ def get_ssd_vazao_captada(data_atual_str):
         "São Lourenço":933
     }
 
-
-
     df_sistemas_vazao = pd.DataFrame(list(vazao_captada_mensal.items()), columns=["Sistema", "SistemaId"]).copy()
 
     data_base = '1953-01-01'
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
 
     all_volume =[]
     for _,data_volume in df_sistemas_vazao.iterrows():
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -2738,7 +2874,7 @@ def get_ssd_vazao_captada(data_atual_str):
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -2787,12 +2923,24 @@ def get_ssd_vazao_afluente(data_atual_str):
 
     data_base = '1953-01-01'
 
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
+    
+
     vazao_afluente_diaria_all =[]
     for _,data_volume in df_vazao_afluente_diaria.iterrows():
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -2838,15 +2986,27 @@ def get_ssd_descarregada(data_atual_str):
     df_vazao_afluente_diaria = pd.DataFrame(list(vazao_descarregada_diaria.items()), columns=["Sistema", "SistemaId"]).copy()
     df_meses = pd.DataFrame(list(mes.items()), columns=["Mês", "mes_n"]).copy()
 
-
     data_base = '1953-01-01'
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
 
     vazao_descarregada_diaria_all =[]
     for _,data_volume in df_vazao_afluente_diaria.iterrows():
         id = data_volume["SistemaId"]
 
+        
+
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -2899,12 +3059,23 @@ def get_ssd_transferencias(data_atual_str):
 
     data_base = '2025-01-01'
 
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
+
     all_volume =[]
     for _,data_volume in df_sistemas_transferencia.iterrows():
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_base}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -2951,7 +3122,7 @@ def get_ssd_transferencias(data_atual_str):
         id = data_volume["SistemaId"]
 
         url_transferencia_dia = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{primeiro_dia}/{data_atual_str}'
-        response = requests.get(url_transferencia_dia, verify=False)
+        response = requests.get(url_transferencia_dia, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -3013,12 +3184,23 @@ def get_telemetric_stations(data_atual_str):
     end_date_str = end_date.strftime("%Y-%m-%d")
     #ajustar a lógica da data par pegar o end_date como data atual + 1 até às 03:00 da manhã
 
+    headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/156.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://cth.daee.sp.gov.br/",
+            "Origin": "https://cth.daee.sp.gov.br"
+        }
+    
     stations_id = [29592, 30846, 29591]
     all_stations =[]
     for id in stations_id:
 
         url = f"https://cth.daee.sp.gov.br/sibh/api/v2/measurements?end_date={end_date_str}T23:59:59.999Z&group_type=minute&start_date={data_atual_str}T00:00:00.000Z&station_prefix_ids[]={id}"    
-        response = requests.get(url, verify=False)
+        response = requests.get(url, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -3061,13 +3243,25 @@ def load_dados(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dia
         }
 
     df_sistemas_volume = pd.DataFrame(list(volume_sistema_ssd.items()), columns=["Sistema", "SistemaId"])
-    data_inicial = '2025-06-01' 
+    data_inicial = '2025-06-01'
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://cth.daee.sp.gov.br/",
+        "Origin": "https://cth.daee.sp.gov.br"
+    }
+     
     all_volume =[]
     for _,data_volume in df_sistemas_volume.iterrows():
         id = data_volume["SistemaId"]
 
         url_volume = f'https://cth.daee.sp.gov.br/ssdsp/api-private/TimeSeries/{id}/Data/{data_inicial}/{data_atual_str}'
-        response = requests.get(url_volume, verify=False)
+        response = requests.get(url_volume, headers=headers, verify=False)
 
         if response.status_code == 200:
             data = response.json()
@@ -3084,9 +3278,23 @@ def load_dados(data_atual_str, data_ano_anterior_str, data_7dias_str, data_14dia
     
     key = os.environ.get('KEY')
     value = os.environ.get('VALUE')
-    headers = {key: value}
+    # headers_sabesp = {key: value}
+    headers_sabesp = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/156.0.0.0 Safari/537.36"
+        ),
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://ssdapi.sabesp.com.br/",
+        "Origin": "https://ssdapi.sabesp.com.br",
+
+        # Autenticação
+        key.strip(): value.strip()
+    }
+
     url_sao_lourenco = f"https://ssdapi.sabesp.com.br/api/ssd/sistemas/sao-lourenco/dados/{data_inicial}/{data_atual_str}"
-    response_sl = requests.get(url_sao_lourenco, headers=headers)
+    response_sl = requests.get(url_sao_lourenco, headers=headers_sabesp)
 
     if response_sl.status_code == 200:
         dados_sl = response_sl.json()
@@ -5296,10 +5504,20 @@ async def slide1():
         data_inicial_str = data_hora_inicial.strftime('%Y-%m-%d')
         hora_inicial_str = data_hora_inicial.strftime('%H:%M')
        
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/156.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://cth.daee.sp.gov.br/",
+            "Origin": "https://cth.daee.sp.gov.br"
+        }
 
         url = f'https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now?station_type_id=2&hours=24&from_date={data_inicial_str}T{hora_inicial_str}&serializer=complete&public=true'
         
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
 
         if response.status_code == 200:
 
@@ -7807,7 +8025,18 @@ async def slide8():
         url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_2.jpg'
         print(url)
         try:
-            response = requests.get(url, verify=False, timeout=10)
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/156.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/json, text/plain, */*",
+                "Referer": "https://cth.daee.sp.gov.br/",
+                "Origin": "https://cth.daee.sp.gov.br"
+            }
+
+            response = requests.get(url, headers=headers, verify=False, timeout=60)
 
             if response.status_code == 200:
                 data = response.json()
@@ -7821,17 +8050,17 @@ async def slide8():
                 else:
                     # Se não achou no JSON, pega direto a imagem alternativa
                     print("Imagem não encontrada no JSON. Usando imagem alternativa.")
-                    image = Image.open(BytesIO(requests.get(url_imgs).content))
+                    image = Image.open(BytesIO(requests.get(url_imgs, headers=headers, verify=False).content))
             else:
                 # Se a API não respondeu com sucesso, pega a imagem alternativa
                 print("API não disponível. Usando imagem alternativa.")
-                image = Image.open(BytesIO(requests.get(url_imgs).content))
+                image = Image.open(BytesIO(requests.get(url_imgs, headers=headers, verify=False).content))
                 url = url_imgs
 
         except Exception as e:
             # Se deu erro na requisição, usa a imagem alternativa
             print(f"Erro ao buscar a imagem da API: {e}. Usando imagem alternativa.")
-            image = Image.open(BytesIO(requests.get(url_imgs, verify=False).content))
+            image = Image.open(BytesIO(requests.get(url_imgs, headers=headers, verify=False).content))
 
 
 
@@ -7904,7 +8133,17 @@ async def slide8_seca():
         url_imgs = 'https://imgs.somarmeteorologia.com.br/v3/figuras/ncl/somarmet/SE_prec_6.jpg'
         print(url)
         try:
-            response = requests.get(url, verify=False, timeout=10)
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/156.0.0.0 Safari/537.36"
+                ),
+                "Accept": "application/json, text/plain, */*",
+                "Referer": "https://cth.daee.sp.gov.br/",
+                "Origin": "https://cth.daee.sp.gov.br"
+            }
+            response = requests.get(url, headers=headers, verify=False, timeout=10)
 
             if response.status_code == 200:
                 data = response.json()
@@ -7918,17 +8157,17 @@ async def slide8_seca():
                 else:
                     # Se não achou no JSON, pega direto a imagem alternativa
                     print("Imagem não encontrada no JSON. Usando imagem alternativa.")
-                    image = Image.open(BytesIO(requests.get(url_imgs).content))
+                    image = Image.open(BytesIO(requests.get(url_imgs, headers=headers, verify=False).content))
             else:
                 # Se a API não respondeu com sucesso, pega a imagem alternativa
                 print("API não disponível. Usando imagem alternativa.")
-                image = Image.open(BytesIO(requests.get(url_imgs).content))
+                image = Image.open(BytesIO(requests.get(url_imgs, headers=headers, verify=False).content))
                 url = url_imgs
 
         except Exception as e:
             # Se deu erro na requisição, usa a imagem alternativa
             print(f"Erro ao buscar a imagem da API: {e}. Usando imagem alternativa.")
-            image = Image.open(BytesIO(requests.get(url_imgs, verify=False).content))
+            image = Image.open(BytesIO(requests.get(url_imgs, headers=headers, verify=False).content))
 
         with coluna1:
 
@@ -7991,9 +8230,20 @@ async def slide5_seca():
             """,
             unsafe_allow_html=True)
 
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/156.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://cth.daee.sp.gov.br/",
+            "Origin": "https://cth.daee.sp.gov.br"
+        }
+
         url = "https://cth.daee.sp.gov.br/sibh/api/v2/measurements/now_flu?references%5B%5D=l95&with_all_ref=true"
 
-        response = requests.get(url)
+        response = requests.get(url, headers=headers, verify=False, timeout=10)
 
         if response.status_code == 200:
 
@@ -8358,9 +8608,19 @@ async def slide6_seca():
 
         st.write(" ")
         
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/156.0.0.0 Safari/537.36"
+            ),
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://cth.daee.sp.gov.br/",
+            "Origin": "https://cth.daee.sp.gov.br"
+        }
 
         url = 'https://cth.daee.sp.gov.br/ssdsp/Sistema/AltoTiete'
-        response = requests.get(url)
+        response = requests.get(url, headers=headers, verify=False, timeout=10)
 
         # Verifica se a requisição foi bem sucedida
         if response.status_code == 200:
