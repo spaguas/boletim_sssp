@@ -49,6 +49,8 @@ from dateutil.relativedelta import relativedelta
 from matplotlib.patches import FancyArrowPatch
 from shapely.geometry import Point
 from urllib.parse import quote
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+
 
 
 load_dotenv()
@@ -1752,6 +1754,36 @@ def esperar_canvas_renderizar(driver, timeout=60):
     print("[AVISO] Timeout — canvas continuou branco.")
     return False
 
+def encontrar_primeiro(driver, seletores):
+    for sel in seletores:
+        elems = driver.find_elements(By.CSS_SELECTOR, sel)
+        for el in elems:
+            if el.is_displayed() and el.size["width"] > 50 and el.size["height"] > 50:
+                return el, sel
+    return None, None
+
+def selecionar_acum24h(driver, wait):
+    # Radio dentro de <label>: <input type="radio" name="produto" value="acum24h">
+    radio = wait.until(EC.presence_of_element_located(
+        (By.CSS_SELECTOR, "input[type='radio'][name='produto'][value='acum24h']")
+    ))
+    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", radio)
+
+    try:
+        # Clicar no <label> pai é o mais "humano" (o input às vezes está escondido via CSS)
+        label = radio.find_element(By.XPATH, "./ancestor::label[1]")
+        wait.until(EC.element_to_be_clickable(label)).click()
+    except Exception:
+        # Fallback: clique via JS + dispara o evento change
+        driver.execute_script("""
+            arguments[0].checked = true;
+            arguments[0].click();
+            arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
+        """, radio)
+
+    # Confirma que ficou marcado
+    WebDriverWait(driver, 10).until(lambda d: radio.is_selected())
+
 def capturar_ipmet():
     driver, dir_path = iniciar_chrome_com_diretorio_unico()
     try:
@@ -1760,60 +1792,99 @@ def capturar_ipmet():
 
         wait = WebDriverWait(driver, 30)  # ✅ Aumentar timeout
 
-        # ✅ Esperar iframe estar visível, não só presente
-        iframe = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "iframe")))
-        driver.switch_to.frame(iframe)
-        tm.sleep(5)
+        # Espera a página carregar (sem iframe agora)
+        wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[name='produto']")))
 
-        # info = driver.execute_script("""
-        #     const canvas = document.querySelector('canvas');
-        #     if (!canvas) return 'sem canvas';
+        selecionar_acum24h(driver, wait)
+        tm.sleep(6)
 
-        #     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        #     const ctx2d = canvas.getContext('2d');
+        SELETORES_MAPA = [
+            ".ol-viewport",
+            ".leaflet-container",
+            ".maplibregl-map",
+            ".mapboxgl-map",
+            "#map",
+            "#mapa",
+            "div[id*='map']",
+        ]
 
-        #     return {
-        #         tem_webgl: !!gl,
-        #         tem_2d: !!ctx2d,
-        #         width: canvas.width,
-        #         height: canvas.height
-        #     };
-        # """)
-        # print("[DEBUG iframe] Contexto do canvas:", info)
+        SELETORES_ZOOM_OUT = [
+            "button.ol-zoom-out",
+            "a.leaflet-control-zoom-out",
+            "button.maplibregl-ctrl-zoom-out",
+            "button[title*='Zoom out' i]",
+            "button[aria-label*='out' i]",
+        ]
 
-        # ✅ Esperar o select estar clicável antes de interagir
-        select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
-        select = Select(select_element)
-        select.select_by_value("acum24h")
+        botao_zoom, sel_zoom = encontrar_primeiro(driver, SELETORES_ZOOM_OUT)
+        if botao_zoom:
+            botao_zoom.click()
+            tm.sleep(3)
+        else:
+            print("Botão de zoom out não encontrado — seguindo sem zoom.")
 
-        # canvas_ok = esperar_canvas_renderizar(driver, timeout=90)
+        # Localiza o mapa
+        mapa, sel_mapa = encontrar_primeiro(driver, SELETORES_MAPA)
+        if mapa is None:
+            # Último recurso: o maior <canvas> visível da página
+            canvases = [c for c in driver.find_elements(By.TAG_NAME, "canvas") if c.is_displayed()]
+            if not canvases:
+                raise NoSuchElementException("Container do mapa não encontrado.")
+            mapa = max(canvases, key=lambda c: c.size["width"] * c.size["height"])
+            sel_mapa = "canvas (maior)"
+        print(f"Mapa encontrado via: {sel_mapa}")
 
-
-        select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
-        select_button.click()
-        
-        # Após zoom, espera o mapa re-renderizar
-        tm.sleep(3)
-        # esperar_canvas_renderizar(driver, timeout=30)
-
-        # ✅ Salvar debug screenshot para diagnosticar no servidor
-        # driver.save_screenshot("results/screenshot_ipmet.png")
-
-        # img = Image.open("results/screenshot_ipmet.png")
-
-        mapa = driver.find_element(By.CSS_SELECTOR, ".ol-viewport")  # container do OpenLayers
         png = mapa.screenshot_as_png
-        data_str = datetime.today().strftime('%Y-%m-%d')
+        os.makedirs("results", exist_ok=True)
+        data_str = datetime.today().strftime("%Y-%m-%d")
         output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
+        with open(output_path, "wb") as f:
+            f.write(png)
+        print(f"Imagem salva em {output_path}")
+
+
+
+
+
+
+        # # ✅ Esperar iframe estar visível, não só presente
+        # iframe = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "iframe")))
+        # driver.switch_to.frame(iframe)
+        # tm.sleep(5)
+
+
+        # # ✅ Esperar o select estar clicável antes de interagir
+        # select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
+        # select = Select(select_element)
+        # select.select_by_value("acum24h")
+
+        # # canvas_ok = esperar_canvas_renderizar(driver, timeout=90)
+
+
+        # select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
+        # select_button.click()
+        
+        # # Após zoom, espera o mapa re-renderizar
+        # tm.sleep(3)
+
+        # mapa = driver.find_element(By.CSS_SELECTOR, ".ol-viewport")  # container do OpenLayers
+        # png = mapa.screenshot_as_png
+        # data_str = datetime.today().strftime('%Y-%m-%d')
+        # output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
 
         # imagem_recortada = img.crop((170, 270, 950, 620))
+
+
+
+        
 
         with open(output_path, "wb") as f:
             f.write(png)
 
         imagem = Image.open(output_path)
         w, h = imagem.size
-        imagem_recortada = imagem.crop((50, 0, w-50, h))
+        imagem_recortada = imagem.crop((10, 680, 1000, 1160)) #esquerda, cima, direita, baixo
 
         # driver.save_screenshot("results/screenshot_ipmet.png")
 
@@ -1845,7 +1916,9 @@ def capturar_saisp():
         password_encoded = urllib.parse.quote(senha)
 
         url = f"https://{usuario}:{password_encoded}@www.saisp.br/geral/processo.jsp?comboFiltroGrupo=&PRODUTO=636&OVLCODE=EPI&dataInicial={data_anterior_str}+07%3A00&WHICHCODE=0&autoUpdate=1&STEP=&DI={data}0700&DF="
-
+        
+        print("=========================url saisp")
+        print(url)
         driver.get(url)
         driver.implicitly_wait(35)
         driver.save_screenshot("screenshot_saisp.png")
@@ -6386,6 +6459,7 @@ async def slide2():
 
 async def slide3():
     with slide3_container:
+        
         col1, col2, col3 = st.columns([1.2, 1.5, 0.15])
 
         with col1:
