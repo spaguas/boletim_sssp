@@ -1786,6 +1786,10 @@ def selecionar_acum24h(driver, wait):
 
 def capturar_ipmet():
     driver, dir_path = iniciar_chrome_com_diretorio_unico()
+
+    driver.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
+        "width": 1300, "height": 2000, "deviceScaleFactor": 1, "mobile": False,
+    })
     try:
         url = "https://www.ipmetradar.com.br/2mobileGis.php"
         driver.get(url)
@@ -1836,6 +1840,7 @@ def capturar_ipmet():
         print(f"Mapa encontrado via: {sel_mapa}")
 
         png = mapa.screenshot_as_png
+
         os.makedirs("results", exist_ok=True)
         data_str = datetime.today().strftime("%Y-%m-%d")
         output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
@@ -1844,54 +1849,24 @@ def capturar_ipmet():
         print(f"Imagem salva em {output_path}")
 
 
-
-
-
-
-        # # ✅ Esperar iframe estar visível, não só presente
-        # iframe = wait.until(EC.visibility_of_element_located((By.TAG_NAME, "iframe")))
-        # driver.switch_to.frame(iframe)
-        # tm.sleep(5)
-
-
-        # # ✅ Esperar o select estar clicável antes de interagir
-        # select_element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#layer-select")))
-        # select = Select(select_element)
-        # select.select_by_value("acum24h")
-
-        # # canvas_ok = esperar_canvas_renderizar(driver, timeout=90)
-
-
-        # select_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.ol-zoom-out")))
-        # select_button.click()
-        
-        # # Após zoom, espera o mapa re-renderizar
-        # tm.sleep(3)
-
-        # mapa = driver.find_element(By.CSS_SELECTOR, ".ol-viewport")  # container do OpenLayers
-        # png = mapa.screenshot_as_png
-        # data_str = datetime.today().strftime('%Y-%m-%d')
-        # output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
-
-        # imagem_recortada = img.crop((170, 270, 950, 620))
-
-
-
-        
-
         with open(output_path, "wb") as f:
             f.write(png)
 
-        imagem = Image.open(output_path)
+        # imagem = Image.open(output_path)
+
+        imagem = Image.open(io.BytesIO(png))
         w, h = imagem.size
-        imagem_recortada = imagem.crop((10, 680, 1000, 1160)) #esquerda, cima, direita, baixo
+        print(f"Viewport: {driver.execute_script('return [innerWidth, innerHeight, devicePixelRatio]')} | Imagem: {w}x{h}")
 
-        # driver.save_screenshot("results/screenshot_ipmet.png")
+        # imagem_recortada = imagem.crop((10, 680, 1000, 1160)) #esquerda, cima, direita, baixo
+        LARGURA_CROP, ALTURA_CROP = 990, 480
+        DX, DY = 0, 0          # deslocamento do centro do recorte em relação ao centro do mapa
 
-        # img = Image.open("results/screenshot_ipmet.png")
+        cx, cy = w // 2 + DX, h // 2 + DY
+        box = (cx - LARGURA_CROP // 2, cy - ALTURA_CROP // 2,
+               cx + LARGURA_CROP // 2, cy + ALTURA_CROP // 2)
+        imagem_recortada = imagem.crop(box)
 
-        # imagem_recortada = img.crop((170, 270, 950, 620))
-        # data_str = datetime.today().strftime('%Y-%m-%d')
         output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
         imagem_recortada.save(output_path)
         
