@@ -1853,19 +1853,9 @@ def capturar_ipmet():
             f.write(png)
 
         # imagem = Image.open(output_path)
-
         imagem = Image.open(io.BytesIO(png))
         w, h = imagem.size
-        print(f"Viewport: {driver.execute_script('return [innerWidth, innerHeight, devicePixelRatio]')} | Imagem: {w}x{h}")
-
-        # imagem_recortada = imagem.crop((10, 680, 1000, 1160)) #esquerda, cima, direita, baixo
-        LARGURA_CROP, ALTURA_CROP = 990, 480
-        DX, DY = 0, 0          # deslocamento do centro do recorte em relação ao centro do mapa
-
-        cx, cy = w // 2 + DX, h // 2 + DY
-        box = (cx - LARGURA_CROP // 2, cy - ALTURA_CROP // 2,
-               cx + LARGURA_CROP // 2, cy + ALTURA_CROP // 2)
-        imagem_recortada = imagem.crop(box)
+        imagem_recortada = imagem.crop((0, 720, w, 1280)) #esquerda, cima, direita, baixo
 
         output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
         imagem_recortada.save(output_path)
