@@ -1767,6 +1767,9 @@ def selecionar_acum24h(driver, wait):
     radio = wait.until(EC.presence_of_element_located(
         (By.CSS_SELECTOR, "input[type='radio'][name='produto'][value='acum24h']")
     ))
+    radio = wait.until(EC.presence_of_element_located(
+        (By.CSS_SELECTOR, "input[type='radio'][name='produto'][value='acum24h']")
+    ))
     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", radio)
 
     try:
@@ -1787,9 +1790,6 @@ def selecionar_acum24h(driver, wait):
 def capturar_ipmet():
     driver, dir_path = iniciar_chrome_com_diretorio_unico()
 
-    driver.execute_cdp_cmd("Emulation.setDeviceMetricsOverride", {
-        "width": 1300, "height": 2000, "deviceScaleFactor": 1, "mobile": False,
-    })
     try:
         url = "https://www.ipmetradar.com.br/2mobileGis.php"
         driver.get(url)
@@ -1855,7 +1855,7 @@ def capturar_ipmet():
         # imagem = Image.open(output_path)
         imagem = Image.open(io.BytesIO(png))
         w, h = imagem.size
-        imagem_recortada = imagem.crop((0, 720, w, 1280)) #esquerda, cima, direita, baixo
+        imagem_recortada = imagem.crop((0, h-720, w, h-1280)) #esquerda, cima, direita, baixo
 
         output_path = os.path.join("results", f"imagem_ipmet_{data_str}.png")
         imagem_recortada.save(output_path)
